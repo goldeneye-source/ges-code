@@ -87,7 +87,8 @@ public:
 	Vector GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget = NULL );
 
 	void CheatImpulseCommands( int iImpulse );
-	void CreateRagdollEntity( void );
+	// GE_DLL: Added virtual
+	virtual void CreateRagdollEntity( void );
 	void GiveAllItems( void );
 	void GiveDefaultItems( void );
 

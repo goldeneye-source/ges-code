@@ -37,6 +37,8 @@
 	#include "hl2mp_bot_temp.h"
 #endif
 
+#ifndef GE_DLL
+
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
 extern bool FindInList( const char **pStrings, const char *pToFind );
@@ -1278,3 +1280,5 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 }
 
 #endif
+
+#endif // GE_DLL

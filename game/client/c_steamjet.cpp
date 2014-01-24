@@ -21,6 +21,9 @@
 #define STEAMJET_NUMRAMPS			5
 #define SF_EMISSIVE					0x00000001
 
+#ifdef GE_DLL
+ConVar cl_ge_noexpheatwave( "cl_ge_noexpheatwave", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
+#endif
 
 //==================================================
 // C_SteamJet
@@ -85,6 +88,12 @@ public:
 	int				m_spawnflags;
 	float			m_flRollSpeed;
 
+#ifdef GE_DLL
+	bool			m_bIsForExplosion;
+	float			m_flStartFadeTime;
+	float			m_flFadeDuration;
+#endif
+
 private:
 
 	void			UpdateLightingRamp();
@@ -130,6 +139,11 @@ IMPLEMENT_CLIENTCLASS_DT(C_SteamJet, DT_SteamJet, CSteamJet)
 	RecvPropInt(RECVINFO(m_nType), 0),
 	RecvPropInt( RECVINFO( m_spawnflags ) ),
 	RecvPropFloat(RECVINFO(m_flRollSpeed), 0 ),
+#ifdef GE_DLL
+	RecvPropBool( RECVINFO(m_bIsForExplosion) ),
+	RecvPropFloat( RECVINFO(m_flStartFadeTime) ),
+	RecvPropFloat( RECVINFO(m_flFadeDuration) ),
+#endif
 END_RECV_TABLE()
 
 // ------------------------------------------------------------------------- //
@@ -149,6 +163,11 @@ C_SteamJet::C_SteamJet()
 	m_bEmit = true;
 	m_bFaceLeft = false;
 	m_ParticleEffect.SetAlwaysSimulate( false ); // Don't simulate outside the PVS or frustum.
+
+#ifdef GE_DLL
+	m_bIsForExplosion = false;
+	m_flStartFadeTime = m_flFadeDuration = 0;
+#endif
 
 	m_vLastRampUpdatePos.Init( 1e24, 1e24, 1e24 );
 	m_vLastRampUpdateAngles.Init( 1e24, 1e24, 1e24 );
@@ -188,6 +207,13 @@ void C_SteamJet::OnDataChanged(DataUpdateType_t updateType)
 //-----------------------------------------------------------------------------
 void C_SteamJet::Start(CParticleMgr *pParticleMgr, IPrototypeArgAccess *pArgs)
 {
+
+#ifdef GE_DLL
+	// If the client doesn't want the heat wave effect for explosions disable starting
+	if ( m_bIsForExplosion && cl_ge_noexpheatwave.GetBool() )
+		return;
+#endif
+
 	pParticleMgr->AddEffect( &m_ParticleEffect, this );
 	
 	switch(m_nType)
@@ -407,7 +433,17 @@ void C_SteamJet::RenderParticles( CParticleRenderIterator *pIterator )
 		vRampColor[1] = MIN( 1.0f, vRampColor[1] );
 		vRampColor[2] = MIN( 1.0f, vRampColor[2] );
 
+#ifdef GE_DLL
+		// Determine a linear alpha falloff based on our limits
+		float alphamod = 1.0f;
+		float fadetime = gpGlobals->curtime - m_flStartFadeTime;
+		if ( m_bIsForExplosion && fadetime > 0 && m_flStartFadeTime > 0 )
+			alphamod = RemapValClamped( fadetime, 0, m_flFadeDuration, 1.0f, 0 );
+
+		float sinLifetime = sin(pParticle->m_Lifetime * 3.14159f / pParticle->m_DieTime) * alphamod;
+#else
 		float sinLifetime = sin(pParticle->m_Lifetime * 3.14159f / pParticle->m_DieTime);
+#endif
 
 		if ( m_nType == STEAM_HEATWAVE )
 		{

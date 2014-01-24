@@ -384,10 +384,12 @@ void C_HLTVCamera::CalcRoamingView(Vector& eyeOrigin, QAngle& eyeAngles, float& 
 
 		AngleVectors ( m_LastCmd.viewangles, &forward, &right, &up);  // Determine movement angles
 
+#ifndef GE_DLL
 		if ( m_LastCmd.buttons & IN_SPEED )
 		{
 			factor /= 2.0f;
 		}
+#endif
 
 		// Copy movement amounts
 		float fmove = m_LastCmd.forwardmove * factor;

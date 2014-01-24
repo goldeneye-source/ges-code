@@ -129,8 +129,10 @@ BEGIN_PREDICTION_DATA( CWeaponFrag )
 END_PREDICTION_DATA()
 #endif
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_frag, CWeaponFrag );
 PRECACHE_WEAPON_REGISTER(weapon_frag);
+#endif
 
 CWeaponFrag::CWeaponFrag( void ) :
 	CBaseHL2MPCombatWeapon()

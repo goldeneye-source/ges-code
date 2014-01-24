@@ -1483,23 +1483,42 @@ public:
 	void	Spawn( void );
 
 	CNetworkVar( PrecipitationType_t, m_nPrecipType );
+#ifdef GE_DLL
+	CNetworkVar( unsigned int, m_iEndSize );
+	CNetworkVar( float, m_flFallSpeed );
+#endif
 };
 
 LINK_ENTITY_TO_CLASS( func_precipitation, CPrecipitation );
+#ifdef GE_DLL
+LINK_ENTITY_TO_CLASS( func_GE_precipitation, CPrecipitation );
+#endif
 
 BEGIN_DATADESC( CPrecipitation )
 	DEFINE_KEYFIELD( m_nPrecipType, FIELD_INTEGER, "preciptype" ),
+#ifdef GE_DLL
+	DEFINE_KEYFIELD( m_iEndSize, FIELD_INTEGER, "endsize" ),
+	DEFINE_KEYFIELD( m_flFallSpeed, FIELD_FLOAT, "fallspeed" ),
+#endif
 END_DATADESC()
 
 // Just send the normal entity crap
 IMPLEMENT_SERVERCLASS_ST( CPrecipitation, DT_Precipitation)
-	SendPropInt( SENDINFO( m_nPrecipType ), Q_log2( NUM_PRECIPITATION_TYPES ) + 1, SPROP_UNSIGNED )
+	SendPropInt( SENDINFO( m_nPrecipType ), Q_log2( NUM_PRECIPITATION_TYPES ) + 1, SPROP_UNSIGNED ),
+#ifdef GE_DLL
+	SendPropInt( SENDINFO( m_iEndSize ), 4, SPROP_UNSIGNED ),
+	SendPropFloat( SENDINFO( m_flFallSpeed ) ),
+#endif
 END_SEND_TABLE()
 
 
 CPrecipitation::CPrecipitation()
 {
 	m_nPrecipType = PRECIPITATION_TYPE_RAIN; // default to rain.
+#ifdef GE_DLL
+	m_iEndSize = 0;
+	m_flFallSpeed = 1.5;
+#endif
 }
 
 void CPrecipitation::Spawn( void )

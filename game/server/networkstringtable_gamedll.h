@@ -37,6 +37,11 @@ extern INetworkStringTable *g_pStringTableVguiScreen;
 extern INetworkStringTable *g_pStringTableEffectDispatch;
 extern INetworkStringTable *g_pStringTableClientSideChoreoScenes;
 
+#ifdef GE_DLL
+// String table for the gameplay help
+extern INetworkStringTable *g_pStringTableGameplay;
+#endif
+
 #define MAX_INFOPANEL_STRINGS			128
 
 // save/load

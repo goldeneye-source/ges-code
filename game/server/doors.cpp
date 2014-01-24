@@ -974,6 +974,25 @@ void CBaseDoor::DoorGoUp( void )
 				// Important note:  All doors face East at all times, and twist their local angle to open.
 				//					So you can't look at the door's facing to determine which way to open.
 
+			#ifdef GE_DLL
+				// This code block attempts to fix doors opening in your face
+				
+				Vector nearestPoint;
+				Vector activatorToNearestPoint = GetAbsOrigin() - m_hActivator->GetAbsOrigin();
+				activatorToNearestPoint.z = 0;
+
+				Vector activatorToOrigin;
+				AngleVectors( m_hActivator->EyeAngles(), &activatorToOrigin );
+				activatorToOrigin.z = 0;
+
+				// Point right hand at door hinge, curl hand towards closest spot on door, if thumb
+				// is up, open door CW.  -- Department of Basic Cross Product Understanding for Noobs
+				Vector cross = activatorToOrigin.Cross( activatorToNearestPoint );
+				if( cross.z < 0.0f )
+				{
+					sign = -1.0f;	
+				}
+			#else
 				Vector nearestPoint;
 				CollisionProp()->CalcNearestPoint( m_hActivator->GetAbsOrigin(), &nearestPoint );
 				Vector activatorToNearestPoint = nearestPoint - m_hActivator->GetAbsOrigin();
@@ -990,6 +1009,7 @@ void CBaseDoor::DoorGoUp( void )
 				{
 					sign = -1.0f;	
 				}
+			#endif
 			}
 		}
 		AngularMove(m_vecAngle2*sign, m_flSpeed);

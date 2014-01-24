@@ -38,4 +38,13 @@
 #define IN_GRENADE2		(1 << 24)	// grenade 2
 #define	IN_ATTACK3		(1 << 25)
 
+#ifdef GE_DLL
+
+#define IN_AIMMODE		(1 << 25)	// When the client goes in aim mode.
+#define IN_DUAL			(1 << 26)	// Is the player dualing their weapons?
+#define IN_GAMEPLAYHELP (1 << 27)
+#define IN_WEAPONLIST	(1 << 28)
+
+#endif
+
 #endif // IN_BUTTONS_H

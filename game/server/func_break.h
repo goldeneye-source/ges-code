@@ -51,6 +51,10 @@ public:
 	void DamageSound( void );
 	void Break( CBaseEntity *pBreaker );
 
+#ifdef GE_DLL
+	virtual void UpdateBulletProof( void );
+#endif
+
 	// Input handlers
 	void InputAddHealth( inputdata_t &inputdata );
 	void InputBreak( inputdata_t &inputdata );
@@ -123,7 +127,9 @@ protected:
 	Materials	m_Material;
 	EHANDLE m_hBreaker;			// The entity that broke us. Held as a data member because sometimes breaking is delayed.
 
+#ifndef GE_DLL
 private:
+#endif
 
 	Explosions	m_Explosion;
 	QAngle		m_GibDir;

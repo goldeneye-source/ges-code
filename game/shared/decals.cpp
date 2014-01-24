@@ -22,6 +22,13 @@
 //#define DECAL_LIST_FILE "scripts/decals.txt"
 #define TRANSLATION_DATA_SECTION "TranslationData"
 
+#ifdef GE_DLL
+#define GE_DECAL_SCRIPT		"scripts/decals_ge.txt"
+#define PAINTBALLS			"PaintballSplats"
+
+extern ConVar ge_paintball;
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -166,6 +173,9 @@ const char *CDecalEmitterSystem::GetDecalNameForIndex( int nIndex )
 bool CDecalEmitterSystem::Init()
 {
 	LoadDecalsFromScript( DECAL_LIST_FILE );
+#ifdef GE_DLL
+	LoadDecalsFromScript( GE_DECAL_SCRIPT );
+#endif
 	return true;
 }
 
@@ -324,6 +334,13 @@ void CDecalEmitterSystem::Clear()
 //-----------------------------------------------------------------------------
 char const *CDecalEmitterSystem::TranslateDecalForGameMaterial( char const *decalName, unsigned char gamematerial )
 {
+#ifdef GE_DLL
+	if(ge_paintball.GetBool())
+	{
+		return PAINTBALLS;
+	}
+#endif
+
 	if ( gamematerial == CHAR_TEX_CONCRETE )
 		return decalName;
 

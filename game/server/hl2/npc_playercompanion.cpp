@@ -2943,6 +2943,7 @@ bool CNPC_PlayerCompanion::OverrideMove( float flInterval )
 				}
 			}
 #endif // HL2_EPISODIC
+#ifndef GE_DLL
 			else if ( pEntity->m_iClassname == iszBounceBomb )
 			{
 				CBounceBomb *pBomb = static_cast<CBounceBomb *>(pEntity);
@@ -2955,6 +2956,7 @@ bool CNPC_PlayerCompanion::OverrideMove( float flInterval )
 					}
 				}
 			}
+#endif
 		}
 	}
 
@@ -3611,11 +3613,13 @@ void CNPC_PlayerCompanion::OnPlayerKilledOther( CBaseEntity *pVictim, const CTak
 		return;
 	}
 
+#ifndef GE_DLL
 	// check if the player killed an enemy by punting a grenade
 	if ( pInflictor && Fraggrenade_WasPunted( pInflictor ) && Fraggrenade_WasCreatedByCombine( pInflictor ) )
 	{
 		bPuntedGrenade = true;
 	}
+#endif
 
 	// check if the victim was Alyx's enemy
 	if ( GetEnemy() == pVictim )

@@ -18,6 +18,8 @@
 #include "in_buttons.h"
 #include "movehelper_server.h"
 
+#ifndef GE_DLL
+
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 

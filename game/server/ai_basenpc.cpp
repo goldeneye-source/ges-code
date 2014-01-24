@@ -1476,7 +1476,7 @@ void CBaseEntity::UpdateShotStatistics( const trace_t &tr )
 	}
 }
 
-
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Handle shot entering water
 //-----------------------------------------------------------------------------
@@ -1528,7 +1528,7 @@ void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info,
 
 	FireBullets( behindGlassInfo );
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Computes the tracer start position
@@ -9517,6 +9517,7 @@ Vector CAI_BaseNPC::GetShootEnemyDir( const Vector &shootOrigin, bool bNoisy )
 //-----------------------------------------------------------------------------
 void CAI_BaseNPC::CollectShotStats( const Vector &vecShootOrigin, const Vector &vecShootDir )
 {
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	if( ai_shot_stats.GetBool() != 0 && GetEnemy()->IsPlayer() )
 	{
@@ -9556,6 +9557,7 @@ void CAI_BaseNPC::CollectShotStats( const Vector &vecShootOrigin, const Vector &
 		m_LastShootAccuracy = -1;
 	}
 #endif
+#endif // GE_DLL
 }
 
 #ifdef HL2_DLL
@@ -11386,6 +11388,10 @@ CAI_BaseNPC::CAI_BaseNPC(void)
 	m_bInChoreo = true; // assume so until call to UpdateEfficiency()
 	
 	SetCollisionGroup( COLLISION_GROUP_NPC );
+
+#ifdef GE_DLL
+	m_LagTrack = new CUtlFixedLinkedList< LagRecordNPC >();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -11395,6 +11401,11 @@ CAI_BaseNPC::CAI_BaseNPC(void)
 //-----------------------------------------------------------------------------
 CAI_BaseNPC::~CAI_BaseNPC(void)
 {
+#ifdef GE_DLL
+	m_LagTrack->Purge();
+	delete m_LagTrack;
+#endif
+
 	g_AI_Manager.RemoveAI( this );
 
 	delete m_pLockedBestSound;
@@ -11734,6 +11745,7 @@ void CAI_BaseNPC::CleanupScriptsOnTeleport( bool bEnrouteAsWell )
 //-----------------------------------------------------------------------------
 bool CAI_BaseNPC::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
 {
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	if ( interactionType == g_interactionBarnacleVictimGrab )
 	{
@@ -11755,6 +11767,7 @@ bool CAI_BaseNPC::HandleInteraction(int interactionType, void *data, CBaseCombat
 		return true;
 	}
 #endif // HL2_DLL
+#endif
 
 	return BaseClass::HandleInteraction( interactionType, data, sourceEnt );
 }

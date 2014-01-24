@@ -49,6 +49,10 @@ public:
 	CNetworkVar( bool, m_bDucking );
 	// In process of duck-jumping
 	CNetworkVar( bool, m_bInDuckJump );
+#ifdef GE_DLL
+	// Flag to tell if we started unducking from a jump
+	CNetworkVar( bool, m_bStartedUnduckFromJump );
+#endif
 	// During ducking process, amount of time before full duc
 	CNetworkVar( float, m_flDucktime );
 	CNetworkVar( float, m_flDuckJumpTime );

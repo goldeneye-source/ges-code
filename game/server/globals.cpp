@@ -24,4 +24,8 @@
 
 Vector			g_vecAttackDir;
 int				g_iSkillLevel;
+#ifndef GE_DLL
+// GE:S doesn't use this ridiculous variable
+// This functionality is now properly owned by CGEBaseGameplayManager
 bool			g_fGameOver;
+#endif

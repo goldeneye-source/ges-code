@@ -12,6 +12,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
 // -------------------------------------------------------------------------------------------- //
 // Mod-specific CServerGameClients implementation.
 // -------------------------------------------------------------------------------------------- //
@@ -29,4 +30,5 @@ void CServerGameClients::GetPlayerLimits( int& minplayers, int& maxplayers, int 
 void CServerGameDLL::LevelInit_ParseAllEntities( const char *pMapEntities )
 {
 }
+#endif
 

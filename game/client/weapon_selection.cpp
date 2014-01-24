@@ -528,13 +528,22 @@ void CBaseHudWeaponSelection::SelectWeapon( void )
 	else
 	{
 		SetWeaponSelected();
-	
+#ifdef GE_DLL
+		// Only play the selection sound and hide the list if we aren't fast switching
+		if ( !hud_fastswitch.GetBool() )
+		{
+			m_hSelectedWeapon = NULL;
+			engine->ClientCmd( "cancelselect\n" );
+			player->EmitSound( "Player.WeaponSelected" );
+		}
+#else
 		m_hSelectedWeapon = NULL;
 	
 		engine->ClientCmd( "cancelselect\n" );
 
 		// Play the "weapon selected" sound
 		player->EmitSound( "Player.WeaponSelected" );
+#endif
 	}
 }
 
@@ -620,7 +629,11 @@ C_BaseCombatWeapon *CBaseHudWeaponSelection::GetNextActivePos( int iSlot, int iS
 		if ( CanBeSelectedInHUD( pWeapon ) && pWeapon->GetSlot() == iSlot )
 		{
 			// If this weapon is lower in the slot than the current lowest, and above our desired position, it's our new winner
+		#ifdef GE_DLL
+			if ( pWeapon->GetPosition() < iLowestPosition && pWeapon->GetPosition() > iSlotPos )
+		#else
 			if ( pWeapon->GetPosition() <= iLowestPosition && pWeapon->GetPosition() >= iSlotPos )
+		#endif
 			{
 				iLowestPosition = pWeapon->GetPosition();
 				pNextWeapon = pWeapon;

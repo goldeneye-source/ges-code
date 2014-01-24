@@ -12,5 +12,7 @@ static CHL2GameStats s_HL2GameStats;
 
 CHL2GameStats::CHL2GameStats( void )
 {
+#ifndef GE_DLL
 	gamestats = &s_HL2GameStats;
+#endif
 }

@@ -177,6 +177,7 @@ void CWeaponHL2MPBase::Materialize( void )
 		DoMuzzleFlash();
 	}
 
+#ifndef GE_DLL
 	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
 		VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
@@ -184,6 +185,7 @@ void CWeaponHL2MPBase::Materialize( void )
 
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}
+#endif
 
 	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{

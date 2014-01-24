@@ -41,9 +41,11 @@ BEGIN_PREDICTION_DATA( C_PlayerResource )
 
 END_PREDICTION_DATA()	
 
+#ifndef GE_DLL
 C_PlayerResource *g_PR;
 
 IGameResources * GameResources( void ) { return g_PR; }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -65,6 +67,7 @@ C_PlayerResource::C_PlayerResource()
 		m_Colors[i] = COLOR_GREY;
 	}
 
+#ifndef GE_DLL
 #ifdef HL2MP
 	m_Colors[TEAM_COMBINE] = COLOR_BLUE;
 	m_Colors[TEAM_REBELS] = COLOR_RED;
@@ -72,6 +75,7 @@ C_PlayerResource::C_PlayerResource()
 #endif
 
 	g_PR = this;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -184,7 +188,11 @@ int C_PlayerResource::GetTeamScore(int index)
 	if ( !team )
 		return 0;
 
+#ifdef GE_DLL
+	return team->GetMatchScore();
+#else
 	return team->Get_Score();
+#endif
 }
 
 int C_PlayerResource::GetFrags(int index )

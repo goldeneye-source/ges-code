@@ -18,7 +18,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Purpose: Displays current ammunition level
 //-----------------------------------------------------------------------------
@@ -187,3 +187,4 @@ void CTeamPlayHud::OnThink()
 
 	InvalidateLayout();
 }
+#endif

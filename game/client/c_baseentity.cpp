@@ -74,7 +74,8 @@ void cc_cl_interp_all_changed( IConVar *pConVar, const char *pOldString, float f
 
 
 static ConVar  cl_extrapolate( "cl_extrapolate", "1", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
-static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.0", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
+// GE_DLL
+static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.15", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
 static ConVar  cl_interp_all( "cl_interp_all", "0", 0, "Disable interpolation list optimizations.", 0, 0, 0, 0, cc_cl_interp_all_changed );
 ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1" );
 extern ConVar	cl_showerror;
@@ -475,6 +476,10 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 
 #ifdef TF_CLIENT_DLL
 	RecvPropArray3( RECVINFO_ARRAY(m_nModelIndexOverrides),	RecvPropInt( RECVINFO(m_nModelIndexOverrides[0]) ) ),
+#endif
+
+#ifdef GE_DLL
+	RecvPropBool	( RECVINFO( m_bBulletProof ) ),
 #endif
 
 END_RECV_TABLE()
@@ -940,6 +945,10 @@ C_BaseEntity::C_BaseEntity() :
 	// Assume drawing everything
 	m_bReadyToDraw = true;
 	m_flProxyRandomValue = 0.0f;
+
+#ifdef GE_DLL
+	m_bBulletProof = false;
+#endif
 
 	m_fBBoxVisFlags = 0;
 #if !defined( NO_ENTITY_PREDICTION )

@@ -576,6 +576,7 @@ void CBaseCombatWeapon::Materialize( void )
 		RemoveEffects( EF_NODRAW );
 		DoMuzzleFlash();
 	}
+#ifndef GE_DLL
 #ifdef HL2MP
 	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
@@ -587,6 +588,7 @@ void CBaseCombatWeapon::Materialize( void )
 #else
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_TRIGGER );
+#endif
 #endif
 
 	SetPickupTouch();
@@ -615,6 +617,7 @@ void CBaseCombatWeapon::AttemptToMaterialize( void )
 //-----------------------------------------------------------------------------
 void CBaseCombatWeapon::CheckRespawn( void )
 {
+#ifndef GE_DLL
 	switch ( g_pGameRules->WeaponShouldRespawn( this ) )
 	{
 	case GR_WEAPON_RESPAWN_YES:
@@ -624,6 +627,7 @@ void CBaseCombatWeapon::CheckRespawn( void )
 		return;
 		break;
 	}
+#endif
 }
 
 class CWeaponList : public CAutoGameSystem

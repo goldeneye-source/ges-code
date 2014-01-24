@@ -9,10 +9,12 @@
 #include "hl2mp_weapon_parse.h"
 #include "ammodef.h"
 
+#ifndef GE_DLL
 FileWeaponInfo_t* CreateWeaponInfo()
 {
 	return new CHL2MPSWeaponInfo;
 }
+#endif
 
 
 

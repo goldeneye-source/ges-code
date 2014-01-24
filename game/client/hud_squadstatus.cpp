@@ -20,6 +20,7 @@
 
 ConVar player_squad_transient_commands( "player_squad_transient_commands", "1", FCVAR_REPLICATED );
 
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Purpose: Shows the sprint power bar
 //-----------------------------------------------------------------------------
@@ -276,4 +277,4 @@ void CHudSquadStatus::Paint()
 	}
 }
 
-
+#endif // GE_DLL

@@ -1517,7 +1517,21 @@ void CBasePlayer::ResetObserverMode()
 	m_iObserverMode = (int)OBS_MODE_NONE;
 
 #ifndef CLIENT_DLL
+#ifdef GE_DLL
+	if ( !(GetFlags() & FL_FAKECLIENT) && IsNetClient() ) {
+		const char *pIdealMode = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_spec_mode" );
+		if ( pIdealMode )
+		{
+			m_iObserverLastMode = atoi( pIdealMode );
+			if ( m_iObserverLastMode <= OBS_MODE_FIXED || m_iObserverLastMode > OBS_MODE_ROAMING )
+			{
+				m_iObserverLastMode = OBS_MODE_IN_EYE;
+			}
+		}
+	}
+#else
 	m_iObserverLastMode = OBS_MODE_ROAMING;
+#endif
 	m_bForcedObserverMode = false;
 	m_afPhysicsFlags &= ~PFLAG_OBSERVER;
 #endif

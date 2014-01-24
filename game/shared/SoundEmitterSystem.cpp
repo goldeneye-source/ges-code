@@ -59,6 +59,7 @@ void ClearModelSoundsCache();
 
 void WaveTrace( char const *wavname, char const *funcname )
 {
+#ifndef GE_DLL
 	if ( IsX360() && !IsDebug() )
 	{
 		return;
@@ -73,6 +74,7 @@ void WaveTrace( char const *wavname, char const *funcname )
 			funcname, wavname );
 		s_WaveTrace.AddString( wavname );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1209,7 +1211,12 @@ void CBaseEntity::EmitSound( IRecipientFilter& filter, int iEntIndex, const char
 	params.m_pflSoundDuration = duration;
 	params.m_bWarnOnDirectWaveReference = true;
 
+#ifdef GE_DLL
+	// If we didn't specify a handle don't try to fake it....
+	EmitSound( filter, iEntIndex, params );
+#else
 	EmitSound( filter, iEntIndex, params, params.m_hSoundScriptHandle );
+#endif
 }
 
 //-----------------------------------------------------------------------------

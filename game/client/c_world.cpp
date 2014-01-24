@@ -76,6 +76,11 @@ bool C_World::Init( int entnum, int iSerialNum )
 	ActivityList_Init();
 	EventList_Init();
 
+	// GE_DLL
+	ConVarRef npc_interp( "cl_interp_npcs" );
+	if ( npc_interp.IsValid() )
+		npc_interp.SetValue( npc_interp.GetDefault() );
+
 	return BaseClass::Init( entnum, iSerialNum );
 }
 

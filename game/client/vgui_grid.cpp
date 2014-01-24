@@ -55,6 +55,36 @@ CGrid::~CGrid()
 	Term();
 }
 
+// GE_DLL
+void CGrid::ApplySettings( KeyValues *inResourceData )
+{
+	BaseClass::ApplySettings( inResourceData );
+
+	SetDimensions( inResourceData->GetInt( "cols", 0 ), inResourceData->GetInt( "rows", 0 ) );
+	
+	int x_spacing = inResourceData->GetInt( "col_spacing", 0 );
+	if ( IsProportional() )
+		x_spacing = XRES( x_spacing );
+
+	int y_spacing = inResourceData->GetInt( "row_spacing", 0 );
+	if ( IsProportional() )
+		y_spacing = YRES( y_spacing );
+
+	SetSpacing( x_spacing, y_spacing );
+
+	AutoSizeCells();
+}
+
+void CGrid::GetSettings( KeyValues *outResourceData )
+{
+	BaseClass::GetSettings( outResourceData );
+}
+
+void CGrid::GetDimensions(int &xCols, int &yRows)
+{
+	xCols = m_xCols;
+	yRows = m_yRows;
+}
 
 bool CGrid::SetDimensions(int xCols, int yRows)
 {
@@ -228,6 +258,30 @@ void CGrid::AutoSetRowHeights()
 		SetRowHeight(i, CalcFitRowHeight(i));
 }
 
+#ifdef GE_DLL
+void CGrid::AutoSizeCells()
+{
+	if ( m_xCols <= 0 && m_yRows <= 0 )
+		return;
+
+	int wide, tall;
+	GetSize( wide, tall );
+
+	wide -= m_xPadding*2 + m_xSpacing * (m_xCols-1);
+	tall -= m_yPadding*2 + m_ySpacing * (m_yRows-1);
+
+	int col_width  = wide / m_xCols;
+	int row_height = tall / m_yRows;
+
+	for ( int y = 0; y < m_yRows; y++ )
+		SetRowHeight( y, row_height );
+
+	for ( int x = 0; x < m_xCols; x++ )
+		SetColumnWidth( x, col_width );
+
+	RepositionContents();
+}
+#endif
 
 bool CGrid::GetEntryBox(
 	int col, int row, int &x, int &y, int &w, int &h)
@@ -268,8 +322,13 @@ void CGrid::RepositionContents()
 				continue;
 
 			pPanel->SetBounds(
+			#ifdef GE_DLL
+				m_xPadding + m_ColOffsets[x], 
+				m_yPadding + m_RowOffsets[y],
+			#else
 				m_ColOffsets[x], 
 				m_RowOffsets[y],
+			#endif
 				m_Widths[x], 
 				m_Heights[y]);
 		}
@@ -283,7 +342,7 @@ int CGrid::CalcDrawHeight()
 {
 	if(m_yRows > 0)
 	{
-		return m_RowOffsets[m_yRows-1] + m_Heights[m_yRows - 1] + m_ySpacing;
+		return m_RowOffsets[m_yRows-1] + m_Heights[m_yRows - 1] + m_yPadding; // GE_DLL
 	}
 	else
 	{
@@ -304,12 +363,12 @@ void CGrid::Paint()
 	int xx, yy;
 	GetPos( xx, yy );
 	// walk the grid looking for underlined rows
-	int x = 0, y = 0;
+	int x = m_xPadding, y = 0; // GE_DLL
 	for (int row = 0; row < m_yRows; row++)
 	{
 		CGridEntry *cell = GridEntry(0, row);
 
-		y = m_RowOffsets[ row ] + m_Heights[ row ] + m_ySpacing;
+		y = m_yPadding + m_RowOffsets[ row ] + m_Heights[ row ] + m_ySpacing; //GE_DLL
 		if (cell->m_bUnderline)
 		{
 			vgui::surface()->DrawSetColor(cell->m_UnderlineColor[0], cell->m_UnderlineColor[1], cell->m_UnderlineColor[2], cell->m_UnderlineColor[3]);
@@ -359,9 +418,9 @@ CGrid::CGridEntry* CGrid::GridEntry(int x, int y)
 
 void CGrid::CalcColOffsets(int iStart)
 {
-	int cur = m_xSpacing;
+	int cur = 0; // GE_DLL
 	if(iStart != 0)
-		cur += m_ColOffsets[iStart-1] + m_Widths[iStart-1];
+		cur += m_ColOffsets[iStart-1] + m_Widths[iStart-1] + m_xSpacing; // GE_DLL
 
 	for(int i=iStart; i < m_xCols; i++)
 	{
@@ -373,9 +432,9 @@ void CGrid::CalcColOffsets(int iStart)
 
 void CGrid::CalcRowOffsets(int iStart)
 {
-	int cur = m_ySpacing;
+	int cur = 0; //GE_DLL
 	if(iStart != 0)
-		cur += m_RowOffsets[iStart-1];
+		cur += m_RowOffsets[iStart-1] + m_Heights[iStart-1] + m_ySpacing; // GE_DLL
 
 	for(int i=iStart; i < m_yRows; i++)
 	{

@@ -50,7 +50,7 @@ void CPlayerProximityProxy::OnBind( void *pC_BaseEntity )
 	// Find the distance between the player and this entity....
 	C_BaseEntity *pEntity = BindArgToEntity( pC_BaseEntity );
 	C_BaseEntity* pPlayer = C_BasePlayer::GetLocalPlayer();
-	if (!pPlayer)
+	if (!pPlayer || !pEntity) //<-- GE_DLL
 		return;
 
 	Vector delta;

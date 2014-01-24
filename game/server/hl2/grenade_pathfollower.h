@@ -39,7 +39,8 @@ public:
 	void			Launch( float flLaunchSpeed, string_t sPathCornerName);
 	void			PlayFlySound(void);
 
-	void EXPORT		Detonate(void);
+	//GE_DLL: Removed EXPORT
+	void 		Detonate(void);
 
 	CGrenadePathfollower(void);
 	~CGrenadePathfollower(void);

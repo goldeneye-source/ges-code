@@ -35,4 +35,12 @@
 
 #define PANEL_COMMENTARY_MODELVIEWER	"commentary_modelviewer"
 
+#ifdef GE_DLL
+	#define PANEL_CHARSELECT	"charselect"
+	#define PANEL_ROUNDREPORT	"roundreport"
+	#define PANEL_CREDITS		"gecredits"
+	#define PANEL_SCENARIOHELP	"scenariohelp"
+	#define PANEL_CLEARQUEUE	"_clearqueue"
+#endif
+
 #endif // VIEWPORT_PANEL_NAMES_H

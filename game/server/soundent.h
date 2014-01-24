@@ -24,7 +24,11 @@ enum
 	MAX_WORLD_SOUNDS_MP	= 128	// The sound array size is set this large but we'll only use gpGlobals->maxPlayers+32 entries in mp.
 };
 
+#ifdef GE_DLL
+enum SOUNDTYPES
+#else
 enum
+#endif
 {
 	SOUND_NONE				= 0,
 	SOUND_COMBAT			= 0x00000001,
@@ -90,7 +94,11 @@ enum
 #define SOUNDENT_VOLUME_PISTOL		1500.0
 #define SOUNDENT_VOLUME_EMPTY		 500.0 // volume of the "CLICK" when you have no bullets
 
+#ifdef GE_DLL
+enum SOUNDPRIORITY
+#else
 enum
+#endif
 {
 	SOUND_PRIORITY_VERY_LOW = -2,
 	SOUND_PRIORITY_LOW,

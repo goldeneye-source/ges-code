@@ -42,11 +42,11 @@ BEGIN_DATADESC( CPlayerResource )
 	DEFINE_FUNCTION( ResourceThink ),
 
 END_DATADESC()
-
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( player_manager, CPlayerResource );
 
 CPlayerResource *g_pPlayerResource;
-
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

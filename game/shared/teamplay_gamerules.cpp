@@ -27,7 +27,9 @@ static char team_names[MAX_TEAMS][MAX_TEAMNAME_LENGTH];
 static int team_scores[MAX_TEAMS];
 static int num_teams = 0;
 
+#ifndef GE_DLL
 extern bool		g_fGameOver;
+#endif
 
 REGISTER_GAMERULES_CLASS( CTeamplayRules );
 
@@ -69,12 +71,14 @@ void CTeamplayRules::Think ( void )
 	BaseClass::Think();
 
 	///// Check game rules /////
-
+#ifndef GE_DLL
+	// GE_DLL: Removing g_fGameOver
 	if ( g_fGameOver )   // someone else quit the game already
 	{
 		BaseClass::Think();
 		return;
 	}
+#endif
 
 	float flTimeLimit = mp_timelimit.GetFloat() * 60;
 	
@@ -277,6 +281,18 @@ void CTeamplayRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 	// Note, not using FStrEq so that this is case sensitive
 	if ( pszOldName[0] != 0 && Q_strcmp( pszOldName, pszName ) )
 	{
+	#ifdef GE_DLL
+		pPlayer->SetPlayerName( pszName );
+
+		IGameEvent * event = gameeventmanager->CreateEvent( "player_changename" );
+		if ( event )
+		{
+			event->SetInt( "userid", pPlayer->GetUserID() );
+			event->SetString( "oldname", pszOldName );
+			event->SetString( "newname", pPlayer->GetPlayerName() );
+			gameeventmanager->FireEvent( event );
+		}
+	#else
 		IGameEvent * event = gameeventmanager->CreateEvent( "player_changename" );
 		if ( event )
 		{
@@ -287,6 +303,7 @@ void CTeamplayRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		}
 		
 		pPlayer->SetPlayerName( pszName );
+	#endif
 	}
 
 	// NVNT see if this user is still or has began using a haptic device

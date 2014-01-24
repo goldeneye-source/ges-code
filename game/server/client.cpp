@@ -174,6 +174,10 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	const char *pszLocation = NULL;
 	if ( g_pGameRules )
 	{
+#ifdef GE_DLL
+		if ( g_pGameRules->OnPlayerSay( pPlayer, p) )
+			return;
+#endif
 		pszFormat = g_pGameRules->GetChatFormat( teamonly, pPlayer );
 		pszPrefix = g_pGameRules->GetChatPrefix( teamonly, pPlayer );	
 		pszLocation = g_pGameRules->GetChatLocation( teamonly, pPlayer );
@@ -945,6 +949,7 @@ void CC_Player_TestDispatchEffect( const CCommand &args )
 
 static ConCommand test_dispatcheffect("test_dispatcheffect", CC_Player_TestDispatchEffect, "Test a clientside dispatch effect.\n\tUsage: test_dispatcheffect <effect name> <distance away> <flags> <magnitude> <scale>\n\tDefaults are: <distance 1024> <flags 0> <magnitude 0> <scale 0>\n", FCVAR_CHEAT);
 
+#ifndef GE_DLL
 #ifdef HL2_DLL
 //-----------------------------------------------------------------------------
 // Purpose: Quickly switch to the physics cannon, or back to previous item
@@ -1009,6 +1014,7 @@ void CC_Player_BugBaitSwap( void )
 	}
 }
 static ConCommand bugswap("bug_swap", CC_Player_BugBaitSwap, "Automatically swaps the current weapon for the bug bait and back again.", FCVAR_CHEAT );
+#endif
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -1314,8 +1320,10 @@ void CC_Notarget_f (void)
 	if ( !pPlayer )
 		return;
 
+#ifndef GE_DLL
 	if ( gpGlobals->deathmatch )
 		return;
+#endif
 
 	pPlayer->ToggleFlag( FL_NOTARGET );
 	if ( !(pPlayer->GetFlags() & FL_NOTARGET ) )

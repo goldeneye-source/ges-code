@@ -1335,6 +1335,7 @@ void CNPC_Crow::FlapSound( void )
 //-----------------------------------------------------------------------------
 bool CNPC_Crow::HandleInteraction( int interactionType, void *data, CBaseCombatCharacter *sourceEnt )
 {
+#ifndef GE_DLL
 	if ( interactionType == g_interactionBarnacleVictimDangle )
 	{
 		// Die instantly
@@ -1359,6 +1360,7 @@ bool CNPC_Crow::HandleInteraction( int interactionType, void *data, CBaseCombatC
 		SetThink( NULL );
 		return true;
 	}
+#endif
 
 	return BaseClass::HandleInteraction( interactionType, data, sourceEnt );
 }

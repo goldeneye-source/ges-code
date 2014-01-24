@@ -61,6 +61,22 @@ public:
 	virtual int  GetNumPlayers( void );
 	virtual CBasePlayer *GetPlayer( int iIndex );
 
+#ifdef GE_DLL
+	//-----------------------------------------------------------------------------
+	// Match Scoring (GE_DLL)
+	//-----------------------------------------------------------------------------
+	virtual void AddMatchScore( int iScore );
+	virtual void SetMatchScore( int iScore );
+	virtual int  GetMatchScore( void );
+	virtual void ResetMatchScore( void );
+
+	//-----------------------------------------------------------------------------
+	// Round scoring (GE_DLL)
+	//-----------------------------------------------------------------------------
+	virtual int  GetRoundScore( void )			{ return m_iRoundScore; }
+	virtual void SetRoundScore( int iRounds )	{ m_iRoundScore = iRounds; }
+	virtual void AddRoundScore( int amt=1 )		{ m_iRoundScore += amt; }
+#else
 	//-----------------------------------------------------------------------------
 	// Scoring
 	//-----------------------------------------------------------------------------
@@ -73,6 +89,7 @@ public:
 	virtual int GetRoundsWon( void ) { return m_iRoundsWon; }
 	virtual void SetRoundsWon( int iRounds ) { m_iRoundsWon = iRounds; }
 	virtual void IncrementRoundsWon( void ) { m_iRoundsWon++; }
+#endif
 
 	void AwardAchievement( int iAchievement );
 
@@ -84,8 +101,13 @@ public:
 
 	// Data
 	CNetworkString( m_szTeamname, MAX_TEAM_NAME_LENGTH );
+#ifdef GE_DLL
+	CNetworkVar( int, m_iMatchScore );
+	CNetworkVar( int, m_iRoundScore );
+#else
 	CNetworkVar( int, m_iScore );
 	CNetworkVar( int, m_iRoundsWon );
+#endif
 	int		m_iDeaths;
 
 	// Spawnpoints

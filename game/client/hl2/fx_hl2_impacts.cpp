@@ -12,6 +12,10 @@
 
 #include "tier0/vprof.h"
 
+#ifdef GE_DLL
+	#include "ge_shareddefs.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -102,6 +106,21 @@ void ImpactCallback( const CEffectData &data )
 		return;
 	}
 
+#ifdef GE_DLL
+	// Since Valve absolutely fails at everything we have to reperform the trace to get the true material type
+	// Dedicated Servers fail to retrieve the material type on traces!
+	if ( nSurfaceProp <= 0 )
+	{
+		trace_t myTr;
+		Vector vecWiggle = 10*vecShotDir;
+		UTIL_TraceLine( vecOrigin - vecWiggle, vecOrigin + vecWiggle, MASK_SOLID, NULL, COLLISION_GROUP_NONE, &myTr );
+
+		nSurfaceProp = myTr.surface.surfaceProps;
+		surfacedata_t *psurfaceData = physprops->GetSurfaceData( data.m_nSurfaceProp );
+		iMaterial = psurfaceData->game.material;
+	}
+#endif
+
 	// If we hit, perform our custom effects and play the sound
 	if ( Impact( vecOrigin, vecStart, iMaterial, iDamageType, iHitbox, pEntity, tr ) )
 	{
@@ -110,6 +129,20 @@ void ImpactCallback( const CEffectData &data )
 	}
 
 	PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
+
+#ifdef GE_DLL
+	if ( iDamageType == DMG_BULLET && pEntity->entindex() == 0 ) {
+		CLocalPlayerFilter filter;
+
+		EmitSound_t params;
+		params.m_pSoundName = "Impact.Ricochet";
+		params.m_flVolume = GERandom<float>(0.75f) + 0.25f;	// Random volume between 0.25 and 1.0
+		params.m_SoundLevel = SNDLVL_NORM;
+		params.m_pOrigin = &vecOrigin;
+		
+		C_BaseEntity::EmitSound( filter, NULL, params );
+	}
+#endif
 }
 
 DECLARE_CLIENT_EFFECT( "Impact", ImpactCallback );

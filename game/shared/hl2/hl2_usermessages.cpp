@@ -50,4 +50,19 @@ void RegisterUserMessages( void )
 	// NVNT register haptic user messages
 	RegisterHapticMessages();
 #endif
+
+#ifdef GE_DLL
+	usermessages->Register( "HideLifeBars", 0 );
+	// Gameplay Progress Bars
+	usermessages->Register( "AddProgressBar", -1 );
+	usermessages->Register( "RemoveProgressBar", 1 );
+	usermessages->Register( "UpdateProgressBar", 5 );
+	usermessages->Register( "ConfigProgressBar", -1 );
+	// Gameplay Popup Message
+	usermessages->Register( "PopupMessage", -1 );
+	// Scenario Help
+	usermessages->Register( "ScenarioHelp", -1 );
+	usermessages->Register( "ScenarioHelpPane", -1 );
+	usermessages->Register( "ScenarioHelpShow", 1 );
+#endif
 }

@@ -124,6 +124,11 @@ public:
 
 	void Render();
 
+#ifdef GE_DLL
+	int GetEndSize() { return m_iEndSize; };
+	float GetFallSpeed() { return m_flFallSpeed; };
+#endif
+
 private:
 
 	// Creates a single particle
@@ -173,6 +178,10 @@ private:
 	float			m_Width;		// Tracer width
 	float			m_Remainder;	// particles we should render next time
 	PrecipitationType_t	m_nPrecipType;			// Precip type
+#ifdef GE_DLL
+	int				m_iEndSize;
+	float			m_flFallSpeed;
+#endif
 	float			m_flHalfScreenWidth;	// Precalculated each frame.
 
 	float			m_flDensity;
@@ -204,7 +213,11 @@ private:
 
 // Just receive the normal data table stuff
 IMPLEMENT_CLIENTCLASS_DT(CClient_Precipitation, DT_Precipitation, CPrecipitation)
-	RecvPropInt( RECVINFO( m_nPrecipType ) )
+	RecvPropInt( RECVINFO( m_nPrecipType ) ),
+#ifdef GE_DLL
+	RecvPropInt( RECVINFO( m_iEndSize ) ),
+	RecvPropFloat( RECVINFO( m_flFallSpeed ) ),
+#endif
 END_RECV_TABLE()
 
 static ConVar r_SnowEnable( "r_SnowEnable", "1", FCVAR_CHEAT, "Snow Enable" );
@@ -632,6 +645,11 @@ CClient_Precipitation::CClient_Precipitation() : m_Remainder(0.0f)
 	m_nPrecipType = PRECIPITATION_TYPE_RAIN;
 	m_MatHandle = INVALID_MATERIAL_HANDLE;
 	m_flHalfScreenWidth = 1;
+
+#ifdef GE_DLL
+	m_iEndSize = 0;
+	m_flFallSpeed = 1.5;
+#endif
 	
 	g_Precipitations.AddToTail( this );
 }
@@ -1931,6 +1949,20 @@ void CSnowFallManager::CreateSnowFall( void )
 		Vector vecTraceStart;
 		VectorCopy( pPlayer->EyePosition(), vecTraceStart );
 
+#ifdef GE_DLL
+		// This adds a check for a ceiling, basically we don't want it to snow when we are inside!
+		// but it checks for a ceiling one body length from your forward view which will still enable
+		// snow to show if you are looking out the door
+		trace_t tr;
+		Vector vecCeilingCheck;
+		UTIL_TraceLine( vecTraceStart + vecForward * 128.0f, 
+			vecTraceStart + vecForward * 128.0f + Vector( 0, 0, r_SnowOutsideRadius.GetFloat() ), 
+			MASK_OPAQUE, pPlayer, COLLISION_GROUP_NONE, &tr );
+
+		if ( tr.fraction < 1 && !( tr.surface.flags & SURF_SKY || tr.surface.flags & SURF_SKY2D || tr.surface.flags & SURF_NODRAW ) )
+			return;
+#endif
+
 		int iSnowVolume = StandingInSnowVolume( vecTraceStart );
 		if ( iSnowVolume != -1 )
 		{
@@ -2166,7 +2198,11 @@ void CSnowFallManager::CreateSnowFallParticle( const Vector &vecParticleSpawn, i
 		return; 
 
 	pParticle->m_flLifetime	= 0.0f;
+#ifdef GE_DLL
+	pParticle->m_vecVelocity = Vector( RandomFloat( -5.0f, 5.0f ), RandomFloat( -5.0f, 5.0f ), ( RandomFloat( -25, -35 ) * m_aSnow[iSnow].m_pEntity->GetFallSpeed() ) );
+#else
 	pParticle->m_vecVelocity = Vector( RandomFloat( -5.0f, 5.0f ), RandomFloat( -5.0f, 5.0f ), ( RandomFloat( -25, -35 ) * r_SnowFallSpeed.GetFloat() ) );
+#endif
 	pParticle->m_flDieTime	= fabs( ( vecParticleSpawn.z - m_aSnow[iSnow].m_vecMin.z ) / ( pParticle->m_vecVelocity.z - 0.1 ) );
 
 	// Probably want to put the color in the snow entity.
@@ -2178,7 +2214,11 @@ void CSnowFallManager::CreateSnowFallParticle( const Vector &vecParticleSpawn, i
 	pParticle->m_uchColor[2] = r_SnowColorBlue.GetInt();
 
 	pParticle->m_uchStartSize = r_SnowStartSize.GetInt();
+#ifdef GE_DLL
+	pParticle->m_uchEndSize = m_aSnow[iSnow].m_pEntity->GetEndSize();
+#else
 	pParticle->m_uchEndSize = r_SnowEndSize.GetInt();
+#endif
 
 //	pParticle->m_uchStartAlpha	= 255;
 	pParticle->m_uchStartAlpha	= r_SnowStartAlpha.GetInt();

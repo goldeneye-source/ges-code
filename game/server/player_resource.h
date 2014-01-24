@@ -40,6 +40,8 @@ protected:
 	int	m_nUpdateCounter;
 };
 
+#ifndef GE_DLL
 extern CPlayerResource *g_pPlayerResource;
+#endif
 
 #endif // PLAYER_RESOURCE_H

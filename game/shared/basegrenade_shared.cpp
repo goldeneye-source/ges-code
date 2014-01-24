@@ -26,6 +26,11 @@ extern short	g_sModelIndexWExplosion;	// (in combatweapon.cpp) holds the index f
 extern short	g_sModelIndexSmoke;			// (in combatweapon.cpp) holds the index for the smoke cloud
 extern ConVar    sk_plr_dmg_grenade;
 
+#ifdef GE_DLL
+	#define PAINTBALL_BOMB "PaintballBombSplats"
+	extern ConVar ge_paintball;
+#endif
+
 #if !defined( CLIENT_DLL )
 
 // Global Savedata for friction modifier
@@ -176,6 +181,50 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 
 	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
+#ifdef GE_DLL
+	//Wreak paintball havok if paintball mode is on
+	//otherwise just continue with what is normally done.
+	if( ge_paintball.GetBool() )
+	{
+		if(!pTrace)
+		{
+			Assert(pTrace);
+			Msg("Error: pTrace == null in CBaseGrenade::Explode()");
+			return;
+		}
+		//Paint the big splat where the bomb went off
+		UTIL_DecalTrace( pTrace, PAINTBALL_BOMB );
+
+		//Create a bunch of impacts around
+		int splatCount =  random->RandomInt( 3, 5 );
+		for( int i = 0; i < splatCount; i++ )
+		{
+			//TODO: Need to do random traces and create splats
+			trace_t tr;
+			Vector	vecStart, vecStop, vecDir;
+
+			// Snap our facing to where we are heading
+			QAngle randAngle;
+			randAngle.Random( 0, 360 );
+			// get the vectors
+			vecStart = GetAbsOrigin();
+			vecStop = vecStart + vecDir * 150;
+			AngleVectors( randAngle, &vecDir );
+
+			UTIL_TraceLine( vecStart, vecStop, MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr );
+
+			// check to see if we hit something
+			if ( tr.m_pEnt )
+				if ( tr.m_pEnt->IsWorld() || tr.m_pEnt->IsPlayer() )
+				{
+					//Paint the big splat where the bomb went off
+					UTIL_DecalTrace( &tr, PAINTBALL_BOMB );
+				}
+		}
+	}
+	else
+#endif
+
 	UTIL_DecalTrace( pTrace, "Scorch" );
 
 	EmitSound( "BaseGrenade.Explode" );
@@ -199,12 +248,14 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	SetNextThink( gpGlobals->curtime );
 #endif//HL2_EPISODIC
 
+#ifndef GE_DLL
 #if defined( HL2_DLL )
 	CBasePlayer *pPlayer = ToBasePlayer( m_hThrower.Get() );
 	if ( pPlayer )
 	{
 		gamestats->Event_WeaponHit( pPlayer, true, "weapon_frag", info );
 	}
+#endif
 #endif
 
 #endif

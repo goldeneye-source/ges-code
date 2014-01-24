@@ -224,6 +224,12 @@ bool CAI_LocalNavigator::MoveCalcDirect( AILocalMoveGoal_t *pMoveGoal, bool bOnl
 		}
 		else
 		{
+#ifdef GE_DLL
+			if ( pMoveGoal->directTrace.pObstruction && 
+				( FClassnameIs( pMoveGoal->directTrace.pObstruction, "prop_door*" ) || FClassnameIs( pMoveGoal->directTrace.pObstruction, "func_door*" ) ) )
+				distClear = max( 0, distClear - 8.0f );
+#endif
+
 			*pDistClear = distClear;
 			m_fLastWasClear = false;
 		}

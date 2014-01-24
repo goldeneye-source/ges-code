@@ -19,7 +19,9 @@ class CAI_Squad;
 class CPropCombineBall;
 
 extern int TrainSpeed(int iSpeed, int iMax);
+#ifndef GE_DLL
 extern void CopyToBodyQue( CBaseAnimating *pCorpse );
+#endif
 
 #define ARMOR_DECAY_TIME 3.5f
 
@@ -92,7 +94,9 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
+#ifndef GE_DLL
 	virtual void		CreateCorpse( void ) { CopyToBodyQue( this ); };
+#endif
 
 	virtual void		Precache( void );
 	virtual void		Spawn(void);

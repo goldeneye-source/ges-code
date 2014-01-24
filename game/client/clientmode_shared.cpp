@@ -193,6 +193,18 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 	
 	msg.ReadString( panelname, sizeof(panelname) );
 
+#ifdef GE_DLL
+	ClientModeShared *cms = (ClientModeShared*) GetClientModeNormal();
+	if ( !cms )
+		return;
+
+	if ( !Q_stricmp( panelname, PANEL_CLEARQUEUE ) )
+	{
+		cms->ClearPanelQueue();
+		return;
+	}
+#endif
+
 	bool  bShow = msg.ReadByte()!=0;
 	
 	IViewPortPanel *viewport = gViewPortInterface->FindPanelByName( panelname );
@@ -202,7 +214,34 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 		// DevMsg("VGUIMenu: couldn't find panel '%s'.\n", panelname );
 		return;
 	}
+	
+#ifdef GE_DLL
+	KeyValues *keys = NULL;
+	int count = msg.ReadByte();
+	if ( count > 0 )
+	{
+		keys = new KeyValues("data");
+		for ( int i=0; i < count; i++ )
+		{
+			char name[255];
+			char data[255];
 
+			msg.ReadString( name, sizeof(name) );
+			msg.ReadString( data, sizeof(data) );
+
+			keys->SetString( name, data );
+		}
+	}
+
+	if ( bShow && cms->QueuePanel( panelname, keys ) )
+		return;
+
+	if ( keys )
+	{
+		viewport->SetData( keys );
+		keys->deleteThis();
+	}
+#else
 	int count = msg.ReadByte();
 
 	if ( count > 0 )
@@ -241,6 +280,7 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 		keys->deleteThis();
 	}
 
+	// GE_DLL defines an end_game screenshot in ge_roundreport.cpp
 	// is the server telling us to show the scoreboard (at the end of a map)?
 	if ( Q_stricmp( panelname, "scores" ) == 0 )
 	{
@@ -263,6 +303,7 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 			mode->InfoPanelDisplayed();
 		}
 	}
+#endif
 
 	gViewPortInterface->ShowPanel( viewport, bShow );
 }
@@ -570,6 +611,9 @@ void ClientModeShared::AdjustEngineViewport( int& x, int& y, int& width, int& he
 //-----------------------------------------------------------------------------
 void ClientModeShared::PreRender( CViewSetup *pSetup )
 {
+#ifdef GE_DLL
+	ProcessPanelQueue();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1028,6 +1072,11 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 			return;
 
 		int team = event->GetInt( "team" );
+#ifdef GE_DLL
+		// Don't print Team Joining if its the unassigned team
+		if ( team == TEAM_UNASSIGNED )
+			return;
+#endif
 		bool bAutoTeamed = event->GetInt( "autoteam", false );
 		bool bSilent = event->GetInt( "silent", false );
 
@@ -1184,13 +1233,15 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 				if ( !pPlayer->IsDormant() && pPlayer->ShouldAnnounceAchievement() )
 				{
 					pPlayer->SetNextAchievementAnnounceTime( gpGlobals->curtime + ACHIEVEMENT_ANNOUNCEMENT_MIN_TIME );
-
+				
+				#ifndef GE_DLL
 					// no particle effect if the local player is the one with the achievement or the player is dead
 					if ( !pPlayer->IsLocalPlayer() && pPlayer->IsAlive() ) 
 					{
 						//tagES using the "head" attachment won't work for CS and DoD
 						pPlayer->ParticleProp()->Create( "achieved", PATTACH_POINT_FOLLOW, "head" );
 					}
+				#endif
 
 					pPlayer->OnAchievementAchieved( iAchievement );
 				}
@@ -1297,6 +1348,85 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 		DevMsg( 2, "Unhandled GameEvent in ClientModeShared::FireGameEvent - %s\n", event->GetName()  );
 	}
 }
+
+#ifdef GE_DLL
+bool ClientModeShared::QueuePanel( const char *panelName, KeyValues *data /*=NULL*/ )
+{
+	// Default is not to queue anything
+	return false;
+}
+
+void ClientModeShared::AddPanelToQueue( const char *panelName, KeyValues *data, float delay /*=0.25f*/ )
+{
+	QueueSlot_t *slot = new QueueSlot_t;
+	slot->panel = gViewPortInterface->FindPanelByName( panelName );
+	slot->data = data;
+	slot->delay = delay;
+	slot->showtime = gpGlobals->curtime + delay;
+	slot->shown = false;
+	m_vPanelQueue.AddToTail( slot );
+}
+
+bool ClientModeShared::IsPanelQueued( const char *panelName )
+{
+	FOR_EACH_VEC( m_vPanelQueue, i )
+	{
+		if ( !m_vPanelQueue[i]->shown && !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
+			return true;
+	}
+	return false;
+}
+
+void ClientModeShared::ClearPanelQueue( const char *panelName /*=NULL*/ )
+{
+	FOR_EACH_VEC( m_vPanelQueue, i )
+	{
+		if ( !panelName || !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
+		{
+			if ( m_vPanelQueue[i]->data )
+				m_vPanelQueue[i]->data->deleteThis();
+			delete m_vPanelQueue[i];
+
+			// If we defined a panel name remove this entry and set our iterator back 1
+			if ( panelName )
+				m_vPanelQueue.FastRemove( i-- );
+		}
+	}
+
+	if ( !panelName )
+		m_vPanelQueue.RemoveAll();
+}
+
+void ClientModeShared::ProcessPanelQueue( void )
+{
+	if ( !m_vPanelQueue.Count() )
+		return;
+
+	QueueSlot_t *slot = m_vPanelQueue[0];
+
+	if ( slot->shown && !slot->panel->IsVisible()  )
+	{
+		// We have finished with this panel, time for the next item
+		delete slot;
+		m_vPanelQueue.FastRemove( 0 );
+
+		if ( m_vPanelQueue.Count() )
+			m_vPanelQueue[0]->showtime = gpGlobals->curtime + m_vPanelQueue[0]->delay;
+	}
+	else if ( !slot->shown && gpGlobals->curtime >= slot->showtime )
+	{
+		if ( slot->data )
+		{
+			slot->panel->SetData( slot->data );
+			slot->data->deleteThis();
+			slot->data = NULL;
+		}
+		
+		slot->panel->ShowPanel( true );
+		slot->shown = true;
+	}
+}
+#endif
 
 void ClientModeShared::UpdateReplayMessages()
 {

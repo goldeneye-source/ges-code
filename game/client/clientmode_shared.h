@@ -84,6 +84,19 @@ public:
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *cmd );
 	virtual void	Update();
 
+#ifdef GE_DLL
+	// Support for queued panels!
+	virtual bool QueuePanel( const char *panelName, KeyValues *data = NULL );
+	bool IsPanelQueued( const char *panelName );
+	void ClearPanelQueue( const char *panelName = NULL );
+
+protected:
+	void ProcessPanelQueue();
+	void AddPanelToQueue( const char *panelName, KeyValues *data, float delay = 0.25f );
+	
+public:
+#endif
+
 	// Input
 	virtual int		KeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding );
 	virtual int		HudElementKeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding );
@@ -136,6 +149,19 @@ public:
 
 protected:
 	CBaseViewport			*m_pViewport;
+
+#ifdef GE_DLL
+	struct QueueSlot_t
+	{
+		IViewPortPanel *panel;
+		KeyValues *data;
+		float delay;
+		float showtime;
+		bool shown;
+	};
+
+	CUtlVector<QueueSlot_t*> m_vPanelQueue;
+#endif
 
 	void			DisplayReplayReminder();
 

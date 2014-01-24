@@ -1659,6 +1659,16 @@ void CTempEnts::EjectBrass( const Vector &pos1, const QAngle &angles, const QAng
 	{
 		pTemp->hitSound = BOUNCE_SHOTSHELL;
 	}
+#ifdef GE_DLL
+	else if ( type == 3 )
+	{
+		pTemp->hitSound = BOUNCE_GRENADE;
+	}
+	else if ( type > 3 )
+	{
+		pTemp->hitSound = BOUNCE_METAL;
+	}
+#endif
 	else
 	{
 		pTemp->hitSound = BOUNCE_SHELL;
@@ -2191,6 +2201,14 @@ void CTempEnts::PlaySound ( C_LocalTempEntity *pTemp, float damp )
 		}
 		break;
 
+#ifdef GE_DLL
+	case BOUNCE_GRENADE:
+		{
+			soundname = "Grenade.ImpactHard";
+		}
+		break;
+#endif
+
 #ifdef CSTRIKE_DLL
 
 		case TE_PISTOL_SHELL:
@@ -2402,9 +2420,21 @@ void CTempEnts::LevelInit()
 	m_pSpriteCombineFlash[0] = (model_t *)engine->LoadModel( "effects/combinemuzzle1.vmt" );
 	m_pSpriteCombineFlash[1] = (model_t *)engine->LoadModel( "effects/combinemuzzle2.vmt" );
 
+	#ifdef GE_DLL
+	m_pShells[0] = (model_t *) engine->LoadModel( "models/weapons/shells/pistolcase.mdl" );
+	m_pShells[1] = (model_t *) engine->LoadModel( "models/weapons/shells/riflecase.mdl" );
+	m_pShells[2] = (model_t *) engine->LoadModel( "models/weapons/shells/shotgunshell.mdl" );
+	m_pShells[3] = (model_t *) engine->LoadModel( "models/weapons/shells/grenadeshell.mdl" );
+	m_pShells[4] = (model_t *) engine->LoadModel( "models/weapons/mags/mag_pistol.mdl" );
+	m_pShells[5] = (model_t *) engine->LoadModel( "models/weapons/mags/mag_ar33.mdl" );
+	m_pShells[6] = (model_t *) engine->LoadModel( "models/weapons/mags/mag_d5k.mdl" );
+	m_pShells[7] = (model_t *) engine->LoadModel( "models/weapons/mags/mag_kf7.mdl" );
+	m_pShells[8] = (model_t *) engine->LoadModel( "models/weapons/mags/mag_phantom.mdl" );
+	#else
 	m_pShells[0] = (model_t *) engine->LoadModel( "models/weapons/shell.mdl" );
 	m_pShells[1] = (model_t *) engine->LoadModel( "models/weapons/rifleshell.mdl" );
 	m_pShells[2] = (model_t *) engine->LoadModel( "models/weapons/shotgun_shell.mdl" );
+	#endif
 #endif
 
 #if defined( HL1_CLIENT_DLL )
@@ -2443,6 +2473,9 @@ void CTempEnts::Init (void)
 	m_pShells[0] = NULL;
 	m_pShells[1] = NULL;
 	m_pShells[2] = NULL;
+#ifdef GE_DLL
+	m_pShells[3] = NULL;
+#endif
 
 #if defined( HL1_CLIENT_DLL )
 	m_pHL1Shell			= NULL;

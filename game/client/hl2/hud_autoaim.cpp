@@ -32,6 +32,8 @@ ConVar hud_reticle_maxalpha( "hud_reticle_maxalpha", "255" );
 ConVar hud_alpha_speed("hud_reticle_alpha_speed", "700" );
 ConVar hud_magnetism("hud_magnetism", "0.3" );
 
+#ifndef GE_DLL
+
 enum 
 {
 	AUTOAIM_METHOD_RETICLE = 1,
@@ -146,7 +148,6 @@ void CHUDAutoAim::VidInit( void )
 //-----------------------------------------------------------------------------
 bool CHUDAutoAim::ShouldDraw( void )
 {	
-#ifndef HL1_CLIENT_DLL
 	C_BaseHLPlayer *pLocalPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( pLocalPlayer )
 	{
@@ -155,7 +156,6 @@ bool CHUDAutoAim::ShouldDraw( void )
 			return false;
 		}
 	}
-#endif
 
 	return ( (hud_draw_fixed_reticle.GetBool() || hud_draw_active_reticle.GetBool()) && CHudElement::ShouldDraw() && !engine->IsDrawingLoadingImage() );
 }
@@ -470,3 +470,5 @@ void CHUDAutoAim::Paint()
 		vgui::surface()->DrawTexturedPolygon( 4, vert );
 	}
 }
+
+#endif // GE_DLL

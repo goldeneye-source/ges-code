@@ -1797,11 +1797,18 @@ void CViewRender::SetupVis( const CViewSetup& view, unsigned int &visFlags, View
 // Purpose: Renders voice feedback and other sprites attached to players
 // Input  : none
 //-----------------------------------------------------------------------------
+#ifdef GE_DLL
+extern void RenderGEPlayerSprites();
+#endif
 void CViewRender::RenderPlayerSprites()
 {
 	tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s", __FUNCTION__ );
 
 	GetClientVoiceMgr()->DrawHeadLabels();
+
+#ifdef GE_DLL
+	RenderGEPlayerSprites();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -4983,6 +4990,13 @@ void CShadowDepthView::Draw()
 		render->Push3DView( (*this), VIEW_CLEAR_DEPTH, m_pRenderTarget, GetFrustum() );
 	}
 
+#ifdef GE_DLL
+	// TODO: Why is this here????
+	pRenderContext.GetFrom(materials);
+	pRenderContext->PushRenderTargetAndViewport(m_pRenderTarget, m_pDepthTexture, 0, 0, m_pDepthTexture->GetMappingWidth(), m_pDepthTexture->GetMappingWidth());
+	pRenderContext.SafeRelease();
+#endif
+
 	SetupCurrentView( origin, angles, VIEW_SHADOW_DEPTH_TEXTURE );
 
 	MDLCACHE_CRITICAL_SECTION();
@@ -5026,6 +5040,11 @@ void CShadowDepthView::Draw()
 		//Resolve() the depth texture here. Before the pop so the copy will recognize that the resolutions are the same
 		pRenderContext->CopyRenderTargetToTextureEx( m_pDepthTexture, -1, NULL, NULL );
 	}
+
+#ifdef GE_DLL
+	// TODO: Why is this here???
+	pRenderContext->PopRenderTargetAndViewport();
+#endif
 
 	render->PopView( GetFrustum() );
 

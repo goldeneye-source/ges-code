@@ -96,6 +96,9 @@ void CHintMessage::Send( CBasePlayer * client )
 	// client can handle 1 string only
 	UserMessageBegin( user, "HintText" );
 		WRITE_STRING( m_hintString );
+	#ifdef GE_DLL
+		WRITE_FLOAT( m_duration );
+	#endif
 	MessageEnd();
 #endif
 }

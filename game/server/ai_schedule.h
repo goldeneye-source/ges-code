@@ -76,6 +76,11 @@ public:
 	CAI_Schedule*	GetScheduleFromID( int schedID );	// Function to return schedule from linked list 
 	CAI_Schedule*	GetScheduleByName( const char *name );
 
+#ifdef GE_DLL
+	bool RemoveSchedule( const char *name );
+	bool RemoveSchedule( CAI_Schedule *oldSchedule );
+#endif
+
 	bool LoadAllSchedules(void);
 
 	bool LoadSchedules( const char* prefix, CAI_ClassScheduleIdSpace *pIdSpace  );
@@ -83,6 +88,10 @@ public:
 
 private:
 	friend class CAI_SystemHook;
+#ifdef GE_DLL
+	friend class CGEPyAiManager;
+	friend class CGEPySchedule;
+#endif
 	
 	int				m_CurLoadSig;					// Note when schedules reset
 	CAI_Schedule*	allSchedules;						// A linked list of all schedules
@@ -146,6 +155,10 @@ public:
 	
 private:
 	friend class CAI_SchedulesManager;
+#ifdef GE_DLL
+	friend class CGEPyAiManager;
+	friend class CGEPySchedule;
+#endif
 
 	int			m_iScheduleID;				// The id number of this schedule
 

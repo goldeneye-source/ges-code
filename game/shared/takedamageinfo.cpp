@@ -52,6 +52,10 @@ void CTakeDamageInfo::Init( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBa
 	m_bitsDamageType = bitsDamageType;
 	m_iDamageCustom = iCustomDamage;
 
+#ifdef GE_DLL
+	m_iDamageStats = 0;
+#endif
+
 	m_flMaxDamage = flDamage;
 	m_vecDamageForce = damageForce;
 	m_vecDamagePosition = damagePosition;
@@ -244,6 +248,9 @@ void AddMultiDamage( const CTakeDamageInfo &info, CBaseEntity *pEntity )
 	g_MultiDamage.SetReportedPosition( info.GetReportedPosition() );
 	g_MultiDamage.SetMaxDamage( MAX( g_MultiDamage.GetMaxDamage(), info.GetDamage() ) );
 	g_MultiDamage.SetAmmoType( info.GetAmmoType() );
+#ifdef GE_DLL
+	g_MultiDamage.SetDamageStats( info.GetDamageStats() );
+#endif
 
 	if ( g_MultiDamage.GetPlayerPenetrationCount() == 0 )
 	{

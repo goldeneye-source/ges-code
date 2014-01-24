@@ -903,7 +903,9 @@ int CAI_BlendedMotor::BuildTurnScript( int i, int j )
 
 	float totalTime = m_scriptTurn[j].flElapsedTime - m_scriptTurn[i].flElapsedTime;
 
+#ifndef GE_DLL
 	Assert( totalTime >  0 );
+#endif
 
 	if (t1 < 0.01)
 	{
@@ -1477,7 +1479,9 @@ void CAI_BlendedMotor::BuildVelocityScript( const AILocalMoveGoal_t &move )
 		if (m_scriptMove[i].flMaxVelocity == 0 && m_scriptMove[i+1].flMaxVelocity == 0)
 		{
 			// force a minimum velocity 
+#ifndef GE_DLL
 			Assert( 0 );
+#endif
 			m_scriptMove[i+1].flMaxVelocity = 1.0;
 		}
 

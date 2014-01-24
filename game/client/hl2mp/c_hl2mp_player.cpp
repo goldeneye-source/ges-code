@@ -325,7 +325,9 @@ void C_HL2MP_Player::PreThink( void )
 
 	BaseClass::PreThink();
 
+#ifndef GE_DLL
 	HandleSpeedChanges();
+#endif
 
 	if ( m_HL2Local.m_flSuitPower <= 0.0f )
 	{
@@ -661,12 +663,14 @@ void C_HL2MP_Player::ItemPreFrame( void )
 	if ( GetFlags() & FL_FROZEN )
 		 return;
 
+#ifndef GE_DLL
 	// Disallow shooting while zooming
 	if ( m_nButtons & IN_ZOOM )
 	{
 		//FIXME: Held weapons like the grenade get sad when this happens
 		m_nButtons &= ~(IN_ATTACK|IN_ATTACK2);
 	}
+#endif
 
 	BaseClass::ItemPreFrame();
 
@@ -800,6 +804,12 @@ void C_HL2MPRagdoll::Interp_Copy( C_BaseAnimatingOverlay *pSourceEntity )
 
 void C_HL2MPRagdoll::ImpactTrace( trace_t *pTrace, int iDamageType, const char *pCustomImpactName )
 {
+#ifdef GE_DLL
+	static bool bInTrace = false;
+	if ( bInTrace )
+		return;
+#endif
+
 	IPhysicsObject *pPhysicsObject = VPhysicsGetObject();
 
 	if( !pPhysicsObject )
@@ -826,8 +836,12 @@ void C_HL2MPRagdoll::ImpactTrace( trace_t *pTrace, int iDamageType, const char *
 		// apply force where we hit it
 		pPhysicsObject->ApplyForceOffset( dir, hitpos );	
 
-		// Blood spray!
-//		FX_CS_BloodSpray( hitpos, dir, 10 );
+	#ifdef GE_DLL
+		UTIL_BloodDrips( pTrace->endpos, dir, BLOOD_COLOR_RED, 20 );
+		bInTrace = true; //<-- Prevent infinite recursion! Silly Valve...
+		C_BaseEntity::ImpactTrace( pTrace, iDamageType, pCustomImpactName );
+		bInTrace = false;
+	#endif
 	}
 
 	m_pRagdoll->ResetRagdollSleepAfterTime();
@@ -839,6 +853,12 @@ void C_HL2MPRagdoll::CreateHL2MPRagdoll( void )
 	// First, initialize all our data. If we have the player's entity on our client,
 	// then we can make ourselves start out exactly where the player is.
 	C_HL2MP_Player *pPlayer = dynamic_cast< C_HL2MP_Player* >( m_hPlayer.Get() );
+#ifdef GE_DLL
+	// Cache away our skin before we start medling (setting it later down)
+	int skin = 0;
+	if ( pPlayer )
+		skin = pPlayer->GetSkin();
+#endif
 	
 	if ( pPlayer && !pPlayer->IsDormant() )
 	{
@@ -915,6 +935,10 @@ void C_HL2MPRagdoll::CreateHL2MPRagdoll( void )
 	{
 		GetRagdollInitBoneArrays( boneDelta0, boneDelta1, currentBones, boneDt );
 	}
+
+#ifdef GE_DLL
+		m_nSkin = skin;
+#endif
 
 	InitAsClientRagdoll( boneDelta0, boneDelta1, currentBones, boneDt );
 }

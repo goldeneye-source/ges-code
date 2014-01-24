@@ -191,6 +191,24 @@ float CAmmoDef::DamageForce(int nAmmoIndex)
 	return m_AmmoType[nAmmoIndex].physicsForceImpulse;
 }
 
+#ifdef GE_DLL
+int CAmmoDef::CrateAmount( int nAmmoIndex )
+{
+	if ( nAmmoIndex < 1 || nAmmoIndex >= m_nAmmoIndex )
+		return 0;
+
+	return m_AmmoType[nAmmoIndex].nCrateAmt;
+}
+
+char *CAmmoDef::AmmoIcon( int nAmmoIndex )
+{
+	if ( nAmmoIndex < 1 || nAmmoIndex >= m_nAmmoIndex )
+		return 0;
+
+	return m_AmmoType[nAmmoIndex].pIcon;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Create an Ammo type with the name, decal, and tracer.
 // Does not increment m_nAmmoIndex because the functions below do so and 
@@ -272,6 +290,26 @@ void CAmmoDef::AddAmmoType(char const* name, int damageType, int tracerType,
 	m_nAmmoIndex++;
 }
 
+#ifdef GE_DLL
+//-----------------------------------------------------------------------------
+// Purpose: Add an ammo type with it's damage & carrying capability specified via integers
+//-----------------------------------------------------------------------------
+void CAmmoDef::AddAmmoTypeGE(char const* name, int damageType, int tracerType, int carry, float physicsForceImpulse, int crateAmt, char const* icon )
+{
+	if ( AddAmmoType( name, damageType, tracerType, 0, 4, 8 ) == false )
+		return;
+
+	int len = strlen( icon );
+	m_AmmoType[m_nAmmoIndex].pIcon = new char[len+1];
+	Q_strncpy(m_AmmoType[m_nAmmoIndex].pIcon, icon,len+1);
+	m_AmmoType[m_nAmmoIndex].pMaxCarry = carry;
+	m_AmmoType[m_nAmmoIndex].physicsForceImpulse = physicsForceImpulse;
+	m_AmmoType[m_nAmmoIndex].nCrateAmt = crateAmt;
+
+	m_nAmmoIndex++;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 // Input  :
@@ -289,6 +327,9 @@ CAmmoDef::~CAmmoDef( void )
 	for ( int i = 1; i < MAX_AMMO_TYPES; i++ )
 	{
 		delete[] m_AmmoType[ i ].pName;
+#ifdef GE_DLL
+		delete[] m_AmmoType[ i ].pIcon;
+#endif
 	}
 }
 

@@ -187,6 +187,10 @@ bool CGameRules::CanHaveAmmo( CBaseCombatCharacter *pPlayer, const char *szName 
 CBaseEntity *CGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	CBaseEntity *pSpawnSpot = pPlayer->EntSelectSpawnPoint();
+#ifdef GE_DLL
+	if ( !pSpawnSpot )
+		return NULL;
+#endif
 	Assert( pSpawnSpot );
 
 	pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
@@ -204,7 +208,7 @@ bool CGameRules::IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer  )
 {
 	CBaseEntity *ent = NULL;
 
-	if ( !pSpot->IsTriggered( pPlayer ) )
+	if ( !pSpot || !pSpot->IsTriggered( pPlayer ) )
 	{
 		return false;
 	}
@@ -620,8 +624,10 @@ float CGameRules::WeaponTraceEntity( CBaseEntity *pEntity, const Vector &vecStar
 
 void CGameRules::CreateStandardEntities()
 {
+#ifndef GE_DLL
 	g_pPlayerResource = (CPlayerResource*)CBaseEntity::Create( "player_manager", vec3_origin, vec3_angle );
 	g_pPlayerResource->AddEFlags( EFL_KEEP_ON_RECREATE_ENTITIES );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -790,7 +796,7 @@ float CGameRules::GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, i
 	float flDamage = 0;
 	CAmmoDef *pAmmoDef = GetAmmoDef();
 
-	if ( pAttacker->IsPlayer() )
+	if ( pAttacker && pAttacker->IsPlayer() )
 	{
 		flDamage = pAmmoDef->PlrDamage( nAmmoType );
 	}

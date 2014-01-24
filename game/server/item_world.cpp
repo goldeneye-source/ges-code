@@ -302,8 +302,9 @@ void CItem::FallThink ( void )
 
 		m_vOriginalSpawnOrigin = GetAbsOrigin();
 		m_vOriginalSpawnAngles = GetAbsAngles();
-
+#ifndef GE_DLL
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
+#endif
 	}
 #endif // HL2MP
 
@@ -447,8 +448,10 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 		{
 			UTIL_Remove( this );
 
+#ifndef GE_DLL
 #ifdef HL2MP
 			HL2MPRules()->RemoveLevelDesignerPlacedObject( this );
+#endif
 #endif
 		}
 	}
@@ -472,7 +475,7 @@ CBaseEntity* CItem::Respawn( void )
 	UTIL_SetOrigin( this, g_pGameRules->VecItemRespawnSpot( this ) );// blip to whereever you should respawn.
 	SetAbsAngles( g_pGameRules->VecItemRespawnAngles( this ) );// set the angles.
 
-#if !defined( TF_DLL )
+#if !defined( TF_DLL ) && !defined( GE_DLL )
 	UTIL_DropToFloor( this, MASK_SOLID );
 #endif
 
@@ -485,16 +488,25 @@ CBaseEntity* CItem::Respawn( void )
 
 void CItem::Materialize( void )
 {
+#ifdef GE_DLL
+	SetSolid( SOLID_BBOX );
+	AddSolidFlags( FSOLID_TRIGGER );
+#endif
+
 	CreateItemVPhysicsObject();
 
 	if ( IsEffectActive( EF_NODRAW ) )
 	{
 		// changing from invisible state to visible.
 
-#ifdef HL2MP
-		EmitSound( "AlyxEmp.Charge" );
-#else
+#ifdef GE_DLL
 		EmitSound( "Item.Materialize" );
+#else
+	#ifdef HL2MP
+		EmitSound( "AlyxEmp.Charge" );
+	#else
+		EmitSound( "Item.Materialize" );
+	#endif
 #endif
 		RemoveEffects( EF_NODRAW );
 		DoMuzzleFlash();

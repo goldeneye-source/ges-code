@@ -114,6 +114,35 @@ bool CHintSystem::HintMessage( int hint, bool bForce /* = false */, bool bOnlyIf
 // Purpose: Displays a hint message to the player
 // Input  : *pMessage - 
 //-----------------------------------------------------------------------------
+#ifdef GE_DLL
+void CHintSystem::HintMessage( const char *pMessage, float duration )
+{
+	Assert( m_pPlayer );
+
+#ifdef GAME_DLL
+	// On the server, we send it down to the queue who sends it to the client
+	if ( !m_pPlayer->IsNetClient() || !m_pHintMessageQueue )
+		return;
+
+	if ( !m_bShowHints )
+		return;
+
+	m_pHintMessageQueue->AddMessage( pMessage, duration );
+#else
+	// On the client, we just send it straight to the hint hud element
+	if ( cl_showhelp.GetBool() )
+	{
+		IGameEvent *event = gameeventmanager->CreateEvent( "player_hintmessage" );
+		if ( event )
+		{
+			event->SetString( "hintmessage", pMessage );
+			event->SetFloat( "duration", duration );
+			gameeventmanager->FireEventClientSide( event );
+		}
+	}
+#endif
+}
+#else
 void CHintSystem::HintMessage( const char *pMessage )
 {
 	Assert( m_pPlayer );
@@ -140,6 +169,7 @@ void CHintSystem::HintMessage( const char *pMessage )
 	}
 #endif
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Clear out the existing timers, and register new ones for any

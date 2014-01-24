@@ -245,9 +245,10 @@ void CAI_MoveAndShootOverlay::RunShootWhileMove()
 					Assert( activity != ACT_INVALID );
 
 					pOuter->RestartGesture( activity );
-
+#ifndef GE_DLL
 					// FIXME: this seems a bit wacked
 					pOuter->Weapon_SetActivity( pOuter->Weapon_TranslateActivity( ACT_RANGE_ATTACK1 ), 0 );
+#endif
 				}
 			}
 		}

@@ -143,6 +143,15 @@ void C_BaseViewModel::FireEvent( const Vector& origin, const QAngle& angles, int
 	}
 }
 
+#ifdef GE_DLL
+void C_BaseViewModel::ProcessMuzzleFlashEvent()
+{
+	// Hand the muzzle flash off to the weapon so that it can be virtualized easily
+	if ( GetWeapon() )
+		GetWeapon()->ProcessMuzzleFlashEvent();
+}
+#endif
+
 bool C_BaseViewModel::Interpolate( float currentTime )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
@@ -211,7 +220,7 @@ bool C_BaseViewModel::ShouldFlipViewModel()
 		return pWeapon->m_bFlipViewModel != cl_flipviewmodels.GetBool();
 	}
 #endif
-
+	
 	return false;
 }
 
@@ -270,7 +279,11 @@ bool C_BaseViewModel::ShouldDraw()
 #endif
 	else
 	{
+#ifdef GE_DLL
+		return true;
+#else
 		return BaseClass::ShouldDraw();
+#endif
 	}
 }
 

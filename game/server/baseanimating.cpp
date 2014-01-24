@@ -2847,9 +2847,11 @@ int CBaseAnimating::DrawDebugTextOverlays(void)
 			text_offset++;
 		}
 
+#ifndef GE_DLL // This is a really annoying output with no useful information
 		Q_snprintf(tempstr, sizeof(tempstr), "Cycle: %.5f (%.5f)", (float)GetCycle(), m_flAnimTime.Get() );
 		EntityText(text_offset,tempstr,0);
 		text_offset++;
+#endif
 	}
 
 	// Visualize attachment points

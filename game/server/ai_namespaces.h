@@ -76,13 +76,18 @@ public:
 	CAI_GlobalNamespace *GetGlobalNamespace() { return m_pGlobalNamespace; }
 	const CAI_GlobalNamespace *GetGlobalNamespace() const { return m_pGlobalNamespace; }
 
+#ifndef GE_DLL
 private:
+#endif
 	bool IsLocalBaseSet() const	{ return ( m_localBase != MAX_STRING_INDEX );	}
 	int GetLocalBase() const	{ return m_localBase;  }
 	int GetGlobalBase() const	{ return m_globalBase; }
 	int GetLocalTop() const		{ return m_localTop;  }
 	int GetGlobalTop() const	{ return m_globalTop; }
 
+#ifdef GE_DLL
+private:
+#endif
 	bool SetLocalBase( int newBase );
 
 	// --------------------------------
@@ -162,6 +167,12 @@ public:
 	bool AddCondition( const char *pszSymbol, int localId, const char *pszDebugOwner = "" );
 	int ConditionGlobalToLocal( int globalID ) const;
 	int ConditionLocalToGlobal( int localID ) const;
+
+#ifdef GE_DLL
+	int GetScheduleIdTop()	{ return m_ScheduleIds.GetLocalTop();	}
+	int GetTaskIdTop()		{ return m_TaskIds.GetLocalTop();		}
+	int GetConditionIdTop() { return m_ConditionIds.GetLocalTop();	}
+#endif
 
 private:
 	const char *	 m_pszClassName;

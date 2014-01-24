@@ -633,7 +633,7 @@ void CMultiPlayerAnimState::AddToGestureSlot( int iGestureSlot, Activity iGestur
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_nSequence = iGestureSequence;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flWeight = 1.0f;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendIn = 0.0f;
-	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendOut = 0.0f;
+	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendOut = 0.15f;  //<-- GE_DLL
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_bSequenceFinished = false;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flLastEventCheck = 0.0f;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flLastEventCheck = gpGlobals->curtime;
@@ -1319,9 +1319,15 @@ void CMultiPlayerAnimState::Update( float eyeYaw, float eyePitch )
 //-----------------------------------------------------------------------------
 bool CMultiPlayerAnimState::ShouldUpdateAnimState()
 {
+#ifdef GE_DLL
+	// We want to keep updating the anim state of the Bot Player Proxies!
+	if ( (GetBasePlayer()->GetFlags() & FL_FAKECLIENT) == 0 && GetBasePlayer()->IsEffectActive( EF_NODRAW ) )
+		return false;
+#else
 	// Don't update anim state if we're not visible
 	if ( GetBasePlayer()->IsEffectActive( EF_NODRAW ) )
 		return false;
+#endif
 
 	// By default, don't update their animation state when they're dead because they're
 	// either a ragdoll or they're not drawn.

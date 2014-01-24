@@ -23,6 +23,10 @@
 #include "client_textmessage.h"
 #include "VGuiMatSurface/IMatSystemSurface.h"
 
+#ifdef GE_DLL
+	#include "ge_utils.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -36,12 +40,30 @@ using namespace vgui;
 #define NETWORK_MESSAGE4 "__NETMESSAGE__4"
 #define NETWORK_MESSAGE5 "__NETMESSAGE__5"
 #define NETWORK_MESSAGE6 "__NETMESSAGE__6"
-#define MAX_NETMESSAGE	6
+#ifdef GE_DLL
+	#define NETWORK_MESSAGE7 "__NETMESSAGE__7"
+	#define NETWORK_MESSAGE8 "__NETMESSAGE__8"
+	#define NETWORK_MESSAGE9 "__NETMESSAGE__9"
+	#define NETWORK_MESSAGE10 "__NETMESSAGE__10"
+	#define MAX_NETMESSAGE	10
+#else
+	#define MAX_NETMESSAGE  6
+#endif
 
 // Simultaneous message limit
 #define MAX_TEXTMESSAGE_CHARS 2048
 
+#ifdef GE_DLL
+// Override the stupid engine
+static client_textmessage_t s_NetworkMessages[MAX_NETMESSAGE];
+// Grab our globally defined colors
+extern CUtlMap<wchar_t, Color> g_mColorList;
+
+static const char *s_NetworkMessageNames[MAX_NETMESSAGE] = { NETWORK_MESSAGE1, NETWORK_MESSAGE2, NETWORK_MESSAGE3, NETWORK_MESSAGE4, NETWORK_MESSAGE5, 
+															 NETWORK_MESSAGE6, NETWORK_MESSAGE7, NETWORK_MESSAGE8, NETWORK_MESSAGE9, NETWORK_MESSAGE10 };
+#else
 static const char *s_NetworkMessageNames[MAX_NETMESSAGE] = { NETWORK_MESSAGE1, NETWORK_MESSAGE2, NETWORK_MESSAGE3, NETWORK_MESSAGE4, NETWORK_MESSAGE5, NETWORK_MESSAGE6 };
+#endif
 
 const int maxHUDMessages = 16;
 struct message_parms_t
@@ -183,6 +205,16 @@ ITextMessage *textmessage = NULL;
 CHudMessage::CHudMessage( const char *pElementName ) :
 	CHudElement( pElementName ), BaseClass( NULL, "HudMessage" )
 {
+#ifdef GE_DLL
+	// Generate our "engine messages"
+	for ( int i=0; i < MAX_NETMESSAGE; i++ )
+	{
+		s_NetworkMessages[i].pVGuiSchemeFontName = NULL;
+		s_NetworkMessages[i].pMessage = new char[512];
+		s_NetworkMessages[i].bRoundedRectBackdropBox = false;
+	}
+#endif
+
 	vgui::Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );
 	textmessage = this;
@@ -195,6 +227,12 @@ CHudMessage::CHudMessage( const char *pElementName ) :
 CHudMessage::~CHudMessage()
 {
 	textmessage = NULL;
+
+#ifdef GE_DLL
+	// Clear out the "engine messages"
+	for ( int i=0; i < MAX_NETMESSAGE; i++ )
+		delete [] s_NetworkMessages[i].pMessage;
+#endif
 }
 
 void CHudMessage::ApplySchemeSettings( IScheme *scheme )
@@ -223,6 +261,10 @@ void CHudMessage::VidInit( void )
 {
 	m_iconTitleHalf = gHUD.GetIcon( "title_half" );
 	m_iconTitleLife = gHUD.GetIcon( "title_life" );
+
+#ifdef GE_DLL
+	SetSize( ScreenWidth(), ScreenHeight() );
+#endif
 };
 
 
@@ -465,6 +507,9 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	int i, j, length, width;
 	const wchar_t *pText;
 	wchar_t textBuf[ 1024 ];
+#ifdef GE_DLL
+	wchar_t nohintBuf[ 1024 ];
+#endif
 
 	{
 		// look up in localization table
@@ -473,6 +518,19 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		int tempLen = len + 2;
 		char *localString = (char *)_alloca( tempLen );
 		Q_strncpy( localString, pMessage->pMessage, tempLen );
+#ifdef GE_DLL
+		// We have to take into account we can trail a \r if we are advanced localized!
+		// therefore we do not want to remove all the special characters
+		if ( localString[len-1] == '\n' )
+			localString[len-1] = 0;
+
+		// Parse the localization then remove color hints for message length
+		GEUTIL_ParseLocalization( textBuf, 1024, localString );
+		wcsncpy( nohintBuf, textBuf, 1024 );
+		GEUTIL_RemoveColorHints( nohintBuf );
+		// Point to the no hint buffer first
+		pText = nohintBuf;
+#else
 		if (V_iscntrl(localString[len - 1]))
 		{
 			localString[len - 1] = 0;
@@ -484,9 +542,15 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 			g_pVGuiLocalize->ConvertANSIToUnicode( pMessage->pMessage, textBuf, sizeof( textBuf ) );
 			pText = textBuf;
 		}
+#endif
 	}
 
 	const wchar_t *pPerm = pText;
+
+#ifdef GE_DLL
+	// For line width (simple!!)
+	CUtlVector<int> line_widths;
+#endif
 
 	// Count lines
 	m_parms.lines = 1;
@@ -506,6 +570,9 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 			m_parms.lines++;
 			if ( width > m_parms.totalWidth )
 				m_parms.totalWidth = width;
+		#ifdef GE_DLL
+			line_widths.AddToTail( width );
+		#endif
 			width = 0;
 		}
 		else
@@ -518,6 +585,10 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	if ( width > m_parms.totalWidth )
 		m_parms.totalWidth = width;
 	m_parms.length = length;
+
+#ifdef GE_DLL
+	line_widths.AddToTail( width );
+#endif
 
 	int fontHeight = vgui::surface()->GetFontTall( m_parms.font );
 
@@ -554,6 +625,15 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		DrawBox( boxx, boxy, m_parms.totalWidth + 2.0f * flBoxPixels, m_parms.totalHeight + 2.0f * flBoxPixels * 0.5f, boxColor, 1.0f );
 	}
 
+#ifdef GE_DLL
+	// Now point back to the hinted buffer :-)
+	pText = textBuf;
+	// Store our colors (x1 == x2)
+	int base_r = m_parms.pMessage->r1;
+	int base_g = m_parms.pMessage->g1;
+	int base_b = m_parms.pMessage->b1;
+#endif
+
 	wchar_t line[ 512 ];
 	for ( i = 0; i < m_parms.lines; i++ )
 	{
@@ -563,7 +643,9 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		{
 			wchar_t c = *pText;
 			line[m_parms.lineLength] = c;
+		#ifndef GE_DLL
 			m_parms.width += vgui::surface()->GetCharacterWidth( m_parms.font, c);
+		#endif
 			m_parms.lineLength++;
 			if ( m_parms.lineLength > (ARRAYSIZE(line)-1) )
 			{
@@ -574,6 +656,10 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		pText++;		// Skip LF
 		line[m_parms.lineLength] = 0;
 
+	#ifdef GE_DLL
+		m_parms.width = line_widths[i];
+	#endif
+
 		m_parms.x = XPosition( pMessage->x, m_parms.width, m_parms.totalWidth );
 
 		textmessage->SetPosition( m_parms.x, m_parms.y );
@@ -583,9 +669,45 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		
 		for ( j = 0; j < m_parms.lineLength; j++ )
 		{
-			m_parms.text = line[j];
-			MessageScanNextChar();
-			textmessage->AddChar( m_parms.r, m_parms.g, m_parms.b, 255 - m_parms.fadeBlend, m_parms.text );
+		#ifdef GE_DLL
+			if ( line[j] == L'^' && j < (m_parms.lineLength - 1) )
+			{
+				int idx = g_mColorList.Find( line[j+1] );
+				if ( idx != g_mColorList.InvalidIndex() )
+				{
+					// Begin color
+					Color col = g_mColorList[idx];
+					m_parms.pMessage->r1 = m_parms.pMessage->r2 = col.r();
+					m_parms.pMessage->g1 = m_parms.pMessage->g2 = col.g();
+					m_parms.pMessage->b1 = m_parms.pMessage->b2 = col.b();
+					j++;
+				}
+				else if ( line[j+1] == L'|' )
+				{
+					// End color
+					m_parms.pMessage->r1 = m_parms.pMessage->r2 = base_r;
+					m_parms.pMessage->g1 = m_parms.pMessage->g2 = base_g;
+					m_parms.pMessage->b1 = m_parms.pMessage->b2 = base_b;
+					j++;
+				}
+				else
+				{
+					// Not a valid hint
+					m_parms.text = line[j];
+					MessageScanNextChar();
+					textmessage->AddChar( m_parms.r, m_parms.g, m_parms.b, 255 - m_parms.fadeBlend, m_parms.text );
+				}
+			}
+			else
+			{
+		#endif
+				// Normal drawing
+				m_parms.text = line[j];
+				MessageScanNextChar();
+				textmessage->AddChar( m_parms.r, m_parms.g, m_parms.b, 255 - m_parms.fadeBlend, m_parms.text );
+		#ifdef GE_DLL
+			}
+		#endif
 		}
 
 		m_parms.y += vgui::surface()->GetFontTall( m_parms.font );
@@ -832,8 +954,12 @@ void CHudMessage::MsgFunc_HudMsg(bf_read &msg)
 
 	int channel = msg.ReadByte() % MAX_NETMESSAGE;	// Pick the buffer
 	
+#ifdef GE_DLL
+	client_textmessage_t *pNetMessage = &s_NetworkMessages[ channel ];
+#else
 	client_textmessage_t *pNetMessage = TextMessageGet( s_NetworkMessageNames[ channel ] );
-	
+#endif
+
 	if ( !pNetMessage || !pNetMessage->pMessage )
 		return;
 
@@ -862,7 +988,23 @@ void CHudMessage::MsgFunc_HudMsg(bf_read &msg)
 	// see tmessage.cpp why 512
 	msg.ReadString( (char*)pNetMessage->pMessage, 512 );
 
+#ifdef GE_DLL
+	// If we are currently showing this message, do not "fade in"
+	if ( m_pMessages[channel] )
+		pNetMessage->fadein = 0;
+
+	m_pMessages[channel] = pNetMessage;
+	m_startTime[channel] = gpGlobals->curtime;
+
+	m_parms.time = gpGlobals->curtime;
+
+	m_bHaveMessage = true;
+
+	// Force this now so that SCR_UpdateScreen will paint the panel immediately!!!
+	SetVisible( true );
+#else
 	MessageAdd( pNetMessage->pName );
+#endif
 }
 
 //-----------------------------------------------------------------------------

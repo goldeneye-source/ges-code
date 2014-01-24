@@ -146,7 +146,12 @@ BEGIN_DATADESC( CBreakable )
 	DEFINE_FIELD( m_angle, FIELD_FLOAT ),
 	DEFINE_FIELD( m_iszGibModel, FIELD_STRING ),
 	DEFINE_FIELD( m_iszSpawnObject, FIELD_STRING ),
+#ifdef GE_DLL
+	DEFINE_KEYFIELD( m_ExplosionMagnitude, FIELD_INTEGER, "ExplodeDamage" ),
+	DEFINE_KEYFIELD( m_explodeRadius, FIELD_INTEGER, "ExplodeRadius" ),
+#else
 	DEFINE_KEYFIELD( m_ExplosionMagnitude, FIELD_INTEGER, "explodemagnitude" ),
+#endif
 	DEFINE_KEYFIELD( m_flPressureDelay, FIELD_FLOAT, "PressureDelay" ),
 	DEFINE_KEYFIELD( m_iMinHealthDmg, FIELD_INTEGER, "minhealthdmg" ),
 	DEFINE_FIELD( m_bTookPhysicsDamage, FIELD_BOOLEAN ),
@@ -178,7 +183,9 @@ BEGIN_DATADESC( CBreakable )
 	DEFINE_FIELD( m_iMaxBreakableSize, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iszBasePropData, FIELD_STRING ),
 	DEFINE_FIELD( m_iInteractions, FIELD_INTEGER ),
+#ifndef GE_DLL
 	DEFINE_FIELD( m_explodeRadius, FIELD_FLOAT ),
+#endif
 	DEFINE_FIELD( m_iszModelName, FIELD_STRING ),
 	
 	// Physics Influence
@@ -302,6 +309,17 @@ void CBreakable::Spawn( void )
 
 	CreateVPhysics();
 }
+
+#ifdef GE_DLL
+void CBreakable::UpdateBulletProof( void )
+{
+	// First check our bullet proof flag
+	if ( HasSpawnFlags( SF_BREAK_NO_BULLET_PENETRATION ) || !IsBreakable() )
+		SetBulletProof( true );
+	else
+		SetBulletProof( false );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Parse this prop's data, if it has a keyvalues section.
@@ -722,7 +740,8 @@ bool CBreakable::UpdateHealth( int iNewHealth, CBaseEntity *pActivator )
 //-----------------------------------------------------------------------------
 void CBreakable::Break( CBaseEntity *pBreaker )
 {
-	if ( IsBreakable() )
+	// GE_DLL - Only let us break ONCE per spawn
+	if ( IsBreakable() && !m_hBreaker.Get() )
 	{
 		QAngle angles = GetLocalAngles();
 		angles.y = m_angle;
@@ -1120,8 +1139,16 @@ void CBreakable::Die( void )
 
 	if ( Explodable() )
 	{
+		
+	#ifdef GE_DLL
+		CBaseEntity *pAttacker = this;
+		if ( m_hBreaker->IsPlayer() )
+			pAttacker = m_hBreaker;
+		ExplosionCreate( vecSpot, pCollisionProp->GetCollisionAngles(), pAttacker, GetExplosiveDamage(), GetExplosiveRadius(), true );
+	#else
 		ExplosionCreate( vecSpot, pCollisionProp->GetCollisionAngles(), this, GetExplosiveDamage(), GetExplosiveRadius(), true );
-	}
+	#endif
+		}
 }
 
 

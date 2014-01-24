@@ -26,6 +26,8 @@ using namespace vgui;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
+
 //-----------------------------------------------------------------------------
 // Purpose: HDU Damage indication
 //-----------------------------------------------------------------------------
@@ -153,3 +155,4 @@ void CHudPoisonDamageIndicator::ApplySchemeSettings(vgui::IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 }
+#endif

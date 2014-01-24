@@ -34,6 +34,7 @@ const char *CHL2MP_Player::GetPlayerModelSoundPrefix( void )
 
 void CHL2MP_Player::PrecacheFootStepSounds( void )
 {
+#ifndef GE_DLL
 	int iFootstepSounds = ARRAYSIZE( g_ppszPlayerSoundPrefixNames );
 	int i;
 
@@ -47,6 +48,7 @@ void CHL2MP_Player::PrecacheFootStepSounds( void )
 		Q_snprintf( szFootStepName, sizeof( szFootStepName ), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[i] );
 		PrecacheScriptSound( szFootStepName );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

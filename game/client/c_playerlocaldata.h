@@ -46,6 +46,9 @@ public:
 	bool					m_bDucked;
 	bool					m_bDucking;
 	bool					m_bInDuckJump;
+#ifdef GE_DLL
+	bool					m_bStartedUnduckFromJump;
+#endif
 	float					m_flDucktime;
 	float					m_flDuckJumpTime;
 	float					m_flJumpTime;

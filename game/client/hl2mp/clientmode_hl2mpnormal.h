@@ -6,6 +6,8 @@
 // $Date:         $
 // $NoKeywords: $
 //=============================================================================//
+#ifndef GE_DLL
+
 #if !defined( CLIENTMODE_HLNORMAL_H )
 #define CLIENTMODE_HLNORMAL_H
 #ifdef _WIN32
@@ -45,3 +47,5 @@ extern vgui::HScheme g_hVGuiCombineScheme;
 extern ClientModeHL2MPNormal* GetClientModeHL2MPNormal();
 
 #endif // CLIENTMODE_HLNORMAL_H
+
+#endif

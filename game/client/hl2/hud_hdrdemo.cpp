@@ -20,6 +20,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -172,3 +173,4 @@ void mat_show_ab_hdr_hudelement_changed( IConVar *pConVar, const char *pOldStrin
 	}
 }
 ConVar mat_show_ab_hdr_hudelement( "mat_show_ab_hdr_hudelement", "0", FCVAR_CHEAT, "HDR Demo HUD Element toggle.", mat_show_ab_hdr_hudelement_changed );
+#endif // GE_DLL

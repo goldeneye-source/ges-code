@@ -17,8 +17,9 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-static ConVar mat_slopescaledepthbias_shadowmap( "mat_slopescaledepthbias_shadowmap", "16", FCVAR_CHEAT );
-static ConVar mat_depthbias_shadowmap(	"mat_depthbias_shadowmap", "0.0005", FCVAR_CHEAT  );
+// GE_DLL
+static ConVar mat_slopescaledepthbias_shadowmap( "mat_slopescaledepthbias_shadowmap", "4" /*"16"*/, FCVAR_CHEAT );
+static ConVar mat_depthbias_shadowmap(	"mat_depthbias_shadowmap", "0.00001" /*"0.0005"*/, FCVAR_CHEAT  );
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -153,21 +154,12 @@ void C_EnvProjectedTexture::UpdateLight( bool bForceUpdate )
 		}
 		else
 		{
-			vForward = m_hTargetEntity->GetAbsOrigin() - GetAbsOrigin();
-			VectorNormalize( vForward );
-
-			// JasonM - unimplemented
-			Assert (0);
-
-			//Quaternion q = DirectionToOrientation( dir );
-
-
-			//
-			// JasonM - set up vRight, vUp
-			//
-
-//			VectorNormalize( vRight );
-//			VectorNormalize( vUp );
+		#ifdef GE_DLL
+			Vector vecToTarget = m_hTargetEntity->GetAbsOrigin() - GetAbsOrigin();
+			QAngle vecAngles;
+			VectorAngles( vecToTarget, vecAngles );
+			AngleVectors( vecAngles, &vForward, &vRight, &vUp );
+		#endif
 		}
 	}
 	else
@@ -221,7 +213,9 @@ void C_EnvProjectedTexture::UpdateLight( bool bForceUpdate )
 
 	g_pClientShadowMgr->SetFlashlightLightWorld( m_LightHandle, m_bLightWorld );
 
+#ifndef GE_DLL
 	if ( bForceUpdate == false )
+#endif
 	{
 		g_pClientShadowMgr->UpdateProjectedTexture( m_LightHandle, true );
 	}
@@ -229,7 +223,11 @@ void C_EnvProjectedTexture::UpdateLight( bool bForceUpdate )
 
 void C_EnvProjectedTexture::Simulate( void )
 {
+#ifdef GE_DLL
+	UpdateLight( GetMoveParent() != NULL );
+#else
 	UpdateLight( false );
+#endif
 
 	BaseClass::Simulate();
 }

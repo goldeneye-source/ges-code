@@ -158,6 +158,10 @@ public:
 	bool				DispatchInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt )	{ return ( interactionType > 0 ) ? HandleInteraction( interactionType, data, sourceEnt ) : false; }
 	virtual bool		HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt );
 
+#ifdef GE_DLL
+	virtual Vector		BodyTarget( const Vector &posSrc, bool bNoisy = true );
+#endif
+
 	virtual QAngle		BodyAngles();
 	virtual Vector		BodyDirection2D( void );
 	virtual Vector		BodyDirection3D( void );

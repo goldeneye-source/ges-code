@@ -67,7 +67,11 @@ public: // CBaseGameSystem overrides
 	virtual void	Shutdown();
 	virtual void	FrameUpdatePostEntityThink();
 	virtual void	LevelInitPostEntity();
+#ifdef GE_DLL
+	virtual char	*GetFixedCameraEntityName( void ) { return "info_player_spectator"; }
+#else
 	virtual char	*GetFixedCameraEntityName( void ) { return "point_viewcontrol"; }
+#endif
 
 			bool	SetCameraMan( int iPlayerIndex );
 			int		GetCameraMan() { return m_iCameraManIndex; }

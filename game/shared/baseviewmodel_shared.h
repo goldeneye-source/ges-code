@@ -118,6 +118,9 @@ public:
 
 #endif
 
+#ifdef GE_DLL
+	virtual void ProcessMuzzleFlashEvent();
+#endif
 
 	virtual void			FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options );
 
@@ -145,7 +148,8 @@ public:
 	// Should this object receive shadows?
 	virtual bool			ShouldReceiveProjectedTextures( int flags )
 	{
-		return false;
+		//GE_DLL
+		return true;
 	}
 
 	// Add entity to visible view models list?

@@ -121,7 +121,11 @@ protected:
 	void EvaluateNewAchievement();
 	void AwardAchievement();
 	void ShowProgressNotification();
+#ifdef GE_DLL
+	virtual void HandleProgressUpdate();
+#else
 	void HandleProgressUpdate();
+#endif
 	virtual void CalcProgressMsgIncrement();
 	void SetNextThink( float flThinkTime );
 	void ClearThink( void );

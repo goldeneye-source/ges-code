@@ -31,6 +31,10 @@
 #else
 	#include "te_effect_dispatch.h"
 
+#ifdef GE_DLL
+	#include "gebot_player.h"
+#endif
+
 bool NPC_CheckBrushExclude( CBaseEntity *pEntity, CBaseEntity *pBrush );
 #endif
 
@@ -227,6 +231,11 @@ bool PassServerEntityFilter( const IHandleEntity *pTouch, const IHandleEntity *p
 	if ( pEntPass->GetOwnerEntity() == pEntTouch )
 		return false;	
 
+#if defined(GE_DLL) && defined (GAME_DLL)
+	CGEBotPlayer *pBot = ToGEBotPlayer( pEntTouch->GetOwnerEntity() );
+	if ( pBot && pBot->GetNPC() == pEntPass )
+		return false;
+#endif
 
 	return true;
 }
@@ -626,9 +635,12 @@ void UTIL_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, const Ve
 {
 	ICollideable *pCollision = pEntity->GetCollideable();
 
+	// Commenting this assert out because its bogus
+#ifndef GE_DLL
 	// Adding this assertion here so game code catches it, but really the assertion belongs in the engine
 	// because one day, rotated collideables will work!
 	Assert( pCollision->GetCollisionAngles() == vec3_angle );
+#endif
 
 	CTraceFilterEntity traceFilter( pEntity, pCollision->GetCollisionGroup() );
 
@@ -783,13 +795,13 @@ void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, 
 
 	if ( g_Language.GetInt() == LANGUAGE_GERMAN && color == BLOOD_COLOR_RED )
 		color = 0;
-
+#ifndef GE_DLL
 	if ( g_pGameRules->IsMultiplayer() )
 	{
 		// scale up blood effect in multiplayer for better visibility
 		amount *= 5;
 	}
-
+#endif
 	if ( amount > 255 )
 		amount = 255;
 

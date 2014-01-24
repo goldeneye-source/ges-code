@@ -755,13 +755,23 @@ void CCollisionProperty::WorldSpaceTriggerBounds( Vector *pVecWorldMins, Vector 
 
 	pVecWorldMaxs->x += m_triggerBloat;
 	pVecWorldMaxs->y += m_triggerBloat;
+#ifdef GE_DLL
+	pVecWorldMaxs->z += min( (float)m_triggerBloat * 0.5f, 64.0f );
+#else
 	pVecWorldMaxs->z += (float)m_triggerBloat * 0.5f;
+#endif
 }
 
 void CCollisionProperty::UseTriggerBounds( bool bEnable, float flBloat )
 {
+#ifdef GE_DLL
+	flBloat = min( flBloat, 255.0f );
+	m_triggerBloat = (unsigned char) flBloat;
+#else
 	Assert( flBloat <= 127.0f );
 	m_triggerBloat = (char )flBloat;
+#endif
+
 	if ( bEnable )
 	{
 		AddSolidFlags( FSOLID_USE_TRIGGER_BOUNDS );

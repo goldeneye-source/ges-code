@@ -471,9 +471,11 @@ BEGIN_PREDICTION_DATA( CWeaponCrossbow )
 END_PREDICTION_DATA()
 #endif
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_crossbow, CWeaponCrossbow );
 
 PRECACHE_WEAPON_REGISTER( weapon_crossbow );
+#endif
 
 #ifndef CLIENT_DLL
 

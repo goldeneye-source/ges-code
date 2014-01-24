@@ -34,6 +34,8 @@ using namespace vgui;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
+
 #define INIT_HEALTH -1
 
 //-----------------------------------------------------------------------------
@@ -168,3 +170,5 @@ void CHudHealth::MsgFunc_Damage( bf_read &msg )
 		}
 	}
 }
+
+#endif

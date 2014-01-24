@@ -38,6 +38,8 @@ extern ConVar crosshair;
 #define	QUICKINFO_FADE_IN_TIME		0.5f
 #define QUICKINFO_FADE_OUT_TIME		2.0f
 
+#ifndef GE_DLL
+
 /*
 ==================================================
 CHUDQuickInfo 
@@ -406,3 +408,4 @@ bool CHUDQuickInfo::EventTimeElapsed( void )
 	return false;
 }
 
+#endif

@@ -19,6 +19,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
+
 using namespace vgui;
 
 //-----------------------------------------------------------------------------
@@ -500,3 +502,4 @@ private:
 
 DECLARE_HUDELEMENT( CHudSecondaryAmmo );
 
+#endif
