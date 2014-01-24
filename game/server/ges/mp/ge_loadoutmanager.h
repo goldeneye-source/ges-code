@@ -1,0 +1,68 @@
+//////////  Copyright © 2008, Goldeneye Source. All rights reserved. ///////////
+// 
+// File: ge_spawnermanager.h
+// Description: Manages all spawner types and links them with the loadouts
+//
+// Created On: 3/22/2008
+// Created By: KillerMonkey
+///////////////////////////////////////////////////////////////////////////////
+
+#ifndef GE_SPAWNERMANAGER_H
+#define GE_SPAWNERMANAGER_H
+
+#include "ge_gameplay.h"
+#include "ge_loadout.h"
+#include "ge_spawner.h"
+
+class CGELoadoutManager
+{
+public:
+	DECLARE_CLASS_NOBASE(CGELoadoutManager);
+
+	CGELoadoutManager( void );
+	~CGELoadoutManager( void );
+
+	void ParseLoadouts( void );
+	void AddLoadout( CGELoadout *pNew );
+
+	void		GetLoadouts( CUtlVector<CGELoadout*> &loadouts );
+	CGELoadout *GetLoadout( const char* szIdent );
+	bool		IsLoadout( const char *name );
+	
+	inline const CGELoadout *CurrLoadout() const { return m_pCurrentLoadout; }
+
+	// Get the current active weapon in the slot provided or the entire enchilada
+	int  GetWeaponInSlot( int slot );
+	bool GetWeaponSet( CUtlVector<int> &set );
+
+	void OnTokenAdded( const char *szClassname );
+
+	bool SpawnWeapons();
+	void RemoveWeapons( const char *weap = NULL );
+
+	void KeepLoadoutOnNextChange() { m_bKeepCurrLoadout = true; }
+
+	static void GetWeaponLists( CUtlVector<int> &vWeaponIds, CUtlVector<int> &vWeaponWeights );
+	
+private:
+	void ParseGameplayAffinity( void );
+	void ClearLoadouts( void );
+
+	struct GameplaySet
+	{
+		CUtlVector<char*>	loadouts;
+		CUtlVector<int>		weights;
+	};
+
+	// Our loadout information
+	CGELoadout *m_pCurrentLoadout;
+	CUtlDict<CGELoadout*, int>	m_Loadouts;
+	CUtlDict<GameplaySet*, int> m_GameplaySets;
+	// Used to select random_loadout or cycle_loadout
+	CUtlVector<char*>	m_RandomSet;
+	CUtlVector<int>		m_RandomSetWeights;
+	// Flags
+	bool				m_bKeepCurrLoadout;
+};
+
+#endif //GE_SPAWNERMANAGER_H
