@@ -37,10 +37,12 @@ extern CBaseEntity				*g_pLastSpawn;
 
 void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( player, CHL2MP_Player );
 
 LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
+#endif
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
@@ -137,6 +139,7 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheModel ( "sprites/glow01.vmt" );
 
+#ifndef GE_DLL
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
 	int i;	
@@ -155,6 +158,7 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+#endif
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -287,6 +291,14 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+#ifdef GE_DLL
+	BaseClass::Spawn();
+	
+	SetNumAnimOverlays( 3 );
+	ResetAnimation();
+	
+	m_iSpawnInterpCounter = (m_iSpawnInterpCounter + 1) % 8;
+#else
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
@@ -331,6 +343,7 @@ void CHL2MP_Player::Spawn(void)
 	SetPlayerUnderwater(false);
 
 	m_bReady = false;
+#endif
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -560,10 +573,12 @@ void CHL2MP_Player::PostThink( void )
 {
 	BaseClass::PostThink();
 	
+#ifndef GE_DLL
 	if ( GetFlags() & FL_DUCKING )
 	{
 		SetCollisionBounds( VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX );
 	}
+#endif
 
 	m_PlayerAnimState.Update();
 
@@ -585,6 +600,7 @@ void CHL2MP_Player::PlayerDeathThink()
 
 void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 {
+#ifndef GE_DLL
 	// Move other players back to history positions based on local player's lag
 	lagcompensation->StartLagCompensation( this, this->GetCurrentCommand() );
 
@@ -603,6 +619,9 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 
 	// Move other players back to history positions based on local player's lag
 	lagcompensation->FinishLagCompensation( this );
+#else
+	BaseClass::FireBullets( info );
+#endif
 }
 
 void CHL2MP_Player::NoteWeaponFired( void )
@@ -898,7 +917,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		ClientPrint( this, HUD_PRINTTALK, szReturnString );
 		return;
 	}*/
-
+#ifndef GE_DLL
 	bool bKill = false;
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
@@ -939,10 +958,14 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	{
 		CommitSuicide();
 	}
+#else
+	BaseClass::ChangeTeam( iTeam );
+#endif
 }
 
 bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
+#ifndef GE_DLL
 	if ( !GetGlobalTeam( team ) || team == 0 )
 	{
 		Warning( "HandleCommand_JoinTeam( %d ) - invalid team index.\n", team );
@@ -982,6 +1005,9 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 	ChangeTeam( team );
 
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool CHL2MP_Player::ClientCommand( const CCommand &args )
@@ -1019,6 +1045,9 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 
 void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
 {
+#ifdef GE_DLL
+	BaseClass::CheatImpulseCommands( iImpulse );
+#else
 	switch ( iImpulse )
 	{
 		case 101:
@@ -1033,6 +1062,7 @@ void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
 		default:
 			BaseClass::CheatImpulseCommands( iImpulse );
 	}
+#endif
 }
 
 bool CHL2MP_Player::ShouldRunRateLimitedCommand( const CCommand &args )
@@ -1173,16 +1203,25 @@ void CHL2MP_Player::FlashlightTurnOn( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::FlashlightTurnOff( void )
 {
+#ifdef GE_DLL
+	// Only play the flashlight sound if the light was actually on before hand
+	if ( IsEffectActive( EF_DIMLIGHT ) && IsAlive() )
+		EmitSound( "HL2Player.FlashlightOff" );
+#endif
+
 	RemoveEffects( EF_DIMLIGHT );
 	
+#ifndef GE_DLL
 	if( IsAlive() )
 	{
 		EmitSound( "HL2Player.FlashlightOff" );
 	}
+#endif
 }
 
 void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget, const Vector *pVelocity )
 {
+#ifndef GE_DLL
 	//Drop a grenade if it's primed.
 	if ( GetActiveWeapon() )
 	{
@@ -1197,6 +1236,7 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 			}
 		}
 	}
+#endif
 
 	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
 }
@@ -1204,6 +1244,7 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 
 void CHL2MP_Player::DetonateTripmines( void )
 {
+#ifndef GE_DLL
 	CBaseEntity *pEntity = NULL;
 
 	while ((pEntity = gEntList.FindEntityByClassname( pEntity, "npc_satchel" )) != NULL)
@@ -1217,6 +1258,7 @@ void CHL2MP_Player::DetonateTripmines( void )
 
 	// Play sound for pressing the detonator
 	EmitSound( "Weapon_SLAM.SatchelDetonate" );
+#endif
 }
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
@@ -1226,12 +1268,21 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	subinfo.SetDamageForce( m_vecTotalBulletForce );
 
 	SetNumAnimOverlays( 0 );
+	
+#ifdef GE_DLL
+	// Since we fixed force application, give the ragdoll an extra oomph to emphasize his death
+	m_vecTotalBulletForce.x *= 2.5f;
+	m_vecTotalBulletForce.y *= 2.5f;
+	m_vecTotalBulletForce.z *= 2.0f;
+#endif
 
 	// Note: since we're dead, it won't draw us on the client, but we don't set EF_NODRAW
 	// because we still want to transmit to the clients in our PVS.
 	CreateRagdollEntity();
 
+#ifndef GE_DLL
 	DetonateTripmines();
+#endif
 
 	BaseClass::Event_Killed( subinfo );
 
@@ -1243,6 +1294,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		}
 	}
 
+#ifndef GE_DLL
 	CBaseEntity *pAttacker = info.GetAttacker();
 
 	if ( pAttacker )
@@ -1256,6 +1308,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 		GetGlobalTeam( pAttacker->GetTeamNumber() )->AddScore( iScoreToAdd );
 	}
+#endif
 
 	FlashlightTurnOff();
 
@@ -1265,8 +1318,13 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	StopZooming();
 }
 
+#ifdef GE_DLL
+float DamageForce( const Vector&, float );
+#endif
+
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 {
+#ifndef GE_DLL
 	//return here if the player is in the respawn grace period vs. slams.
 	if ( gpGlobals->curtime < m_flSlamProtectTime &&  (inputInfo.GetDamageType() == DMG_BLAST ) )
 		return 0;
@@ -1274,6 +1332,21 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
 	
 	gamestats->Event_PlayerDamage( this, inputInfo );
+#else
+	CBaseEntity *attacker = inputInfo.GetAttacker();
+	Vector force = inputInfo.GetDamageForce();
+	if ( force == vec3_origin && attacker )
+	{
+		Vector vecDir = vec3_origin;
+		if ( inputInfo.GetInflictor() && GetMoveType() == MOVETYPE_WALK && !attacker->IsSolidFlagSet(FSOLID_TRIGGER) )
+		{
+			vecDir = inputInfo.GetInflictor()->WorldSpaceCenter() - Vector ( 0, 0, 10 ) - WorldSpaceCenter();
+			VectorNormalize( vecDir );
+			force = vecDir * -DamageForce( WorldAlignSize(), inputInfo.GetBaseDamage() );
+		}
+	}
+	m_vecTotalBulletForce += force;
+#endif
 
 	return BaseClass::OnTakeDamage( inputInfo );
 }
@@ -1409,7 +1482,7 @@ ReturnSpot:
 	return pSpot;
 } 
 
-
+#ifndef GE_DLL
 CON_COMMAND( timeleft, "prints the time remaining in the match" )
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
@@ -1449,7 +1522,7 @@ CON_COMMAND( timeleft, "prints the time remaining in the match" )
 		}
 	}	
 }
-
+#endif
 
 void CHL2MP_Player::Reset()
 {	
@@ -1489,9 +1562,11 @@ void CHL2MP_Player::CheckChatText( char *p, int bufsize )
 
 	delete[] buf;	
 
+#ifndef GE_DLL
 	const char *pReadyCheck = p;
 
 	HL2MPRules()->CheckChatForReadySignal( this, pReadyCheck );
+#endif
 }
 
 void CHL2MP_Player::State_Transition( HL2MPPlayerState newState )
@@ -1568,7 +1643,9 @@ void CHL2MP_Player::StopObserverMode()
 void CHL2MP_Player::State_Enter_OBSERVER_MODE()
 {
 	int observerMode = m_iObserverLastMode;
-	if ( IsNetClient() )
+#ifdef GE_DLL
+	if ( !(GetFlags() & FL_FAKECLIENT) && IsNetClient() )
+#endif
 	{
 		const char *pIdealMode = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_spec_mode" );
 		if ( pIdealMode )
@@ -1588,7 +1665,9 @@ void CHL2MP_Player::State_PreThink_OBSERVER_MODE()
 {
 	// Make sure nobody has changed any of our state.
 	//	Assert( GetMoveType() == MOVETYPE_FLY );
+#ifndef GE_DLL
 	Assert( m_takedamage == DAMAGE_NO );
+#endif
 	Assert( IsSolidFlagSet( FSOLID_NOT_SOLID ) );
 	//	Assert( IsEffectActive( EF_NODRAW ) );
 

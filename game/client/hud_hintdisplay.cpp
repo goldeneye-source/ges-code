@@ -50,6 +50,9 @@ protected:
 	Color		m_bgColor;
 	vgui::Label *m_pLabel;
 	CUtlVector<vgui::Label *> m_Labels;
+#ifdef GE_DLL
+	CUtlVector<float> m_LabelsTimeout;
+#endif
 	CPanelAnimationVarAliasType( int, m_iTextX, "text_xpos", "8", "proportional_int" );
 	CPanelAnimationVarAliasType( int, m_iTextY, "text_ypos", "8", "proportional_int" );
 	CPanelAnimationVarAliasType( int, m_iCenterX, "center_x", "0", "proportional_int" );
@@ -92,7 +95,9 @@ void CHudHintDisplay::Init()
 //-----------------------------------------------------------------------------
 void CHudHintDisplay::Reset()
 {
+#ifndef GE_DLL
 	SetHintText( NULL );
+#endif
 	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageHide" ); 
 	m_bLastLabelUpdateHack = true;
 }
@@ -116,6 +121,7 @@ void CHudHintDisplay::ApplySchemeSettings( vgui::IScheme *pScheme )
 //-----------------------------------------------------------------------------
 bool CHudHintDisplay::SetHintText( wchar_t *text )
 {
+#ifndef GE_DLL
 	if ( text == NULL || text[0] == L'\0' )
 	{
 		return false;
@@ -127,7 +133,11 @@ bool CHudHintDisplay::SetHintText( wchar_t *text )
 		m_Labels[i]->MarkForDeletion();
 	}
 	m_Labels.RemoveAll();
-
+#else
+	// Check if we recieved the clear text signal
+	if ( !Q_wcscmp( text, L"" ) )
+		return false;
+#endif
 	wchar_t *p = text;
 
 	while ( p )
@@ -243,7 +253,22 @@ void CHudHintDisplay::OnThink()
 	m_pLabel->SetFgColor(GetFgColor());
 	for (int i = 0; i < m_Labels.Count(); i++)
 	{
-		m_Labels[i]->SetFgColor(GetFgColor());
+#ifdef GE_DLL
+		// Update whether this label should be visible anymore
+		if ( m_LabelsTimeout[i] < gpGlobals->curtime )
+		{
+			m_Labels[i]->MarkForDeletion();
+			m_Labels.Remove(i);
+			m_LabelsTimeout.Remove(i);
+			InvalidateLayout();
+			--i;
+
+			if ( m_Labels.Count() == 0 )
+				g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageHide" );
+		}
+		else
+#endif
+			m_Labels[i]->SetFgColor(GetFgColor());
 	}
 
 	// If our label size isn't at the extreme's, we're sliding open / closed
@@ -265,6 +290,11 @@ void CHudHintDisplay::MsgFunc_HintText( bf_read &msg )
 	char szString[255];
 	msg.ReadString( szString, sizeof(szString) );
 
+#ifdef GE_DLL
+	float duration = msg.ReadFloat();
+	m_LabelsTimeout.AddToTail( gpGlobals->curtime + duration );
+#endif
+
 	char *tmpStr = hudtextmessage->LookupString( szString, NULL );
 	LocalizeAndDisplay( tmpStr, szString );
 }
@@ -276,6 +306,9 @@ void CHudHintDisplay::FireGameEvent( IGameEvent * event)
 {
 	const char *hintmessage = event->GetString( "hintmessage" );
 	char *tmpStr = hudtextmessage->LookupString( hintmessage, NULL );
+#ifdef GE_DLL
+	m_LabelsTimeout.AddToTail( event->GetFloat("duration") );
+#endif
 	LocalizeAndDisplay( tmpStr, hintmessage );
 }
 
@@ -314,8 +347,13 @@ void CHudHintDisplay::LocalizeAndDisplay( const char *pszHudTxtMsg, const char *
 	// make it visible
 	if ( SetHintText( pszBuf ) )
 	{
-		SetVisible( true );
-		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageShow" ); 
+#ifdef GE_DLL
+		if ( !IsVisible() || GetAlpha() == 0 )
+		{
+			SetVisible( true );
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageShow" );
+		}
+#endif
 
 		C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
 		if ( pLocalPlayer )
@@ -335,7 +373,17 @@ void CHudHintDisplay::LocalizeAndDisplay( const char *pszHudTxtMsg, const char *
 	}
 	else
 	{
+#ifdef GE_DLL
+		// We recieved the "clear" signal
+		for (int i = 0; i < m_Labels.Count(); i++)
+		{
+			m_Labels[i]->MarkForDeletion();
+		}
+		m_Labels.RemoveAll();
+		m_LabelsTimeout.RemoveAll();
+
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageHide" ); 
+#endif
 	}
 }
 

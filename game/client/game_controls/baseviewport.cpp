@@ -270,10 +270,12 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 		newpanel = new CMapOverview( this );
 	}
 	*/
+#ifndef GE_DLL
 	else if ( Q_strcmp(PANEL_TEAM, szPanelName) == 0 )
 	{
 		newpanel = new CTeamMenu( this );
 	}
+#endif
 	else if ( Q_strcmp(PANEL_SPECMENU, szPanelName) == 0 )
 	{
 		newpanel = new CSpectatorMenu( this );
@@ -399,6 +401,9 @@ void CBaseViewport::ShowPanel( const char *pName, bool state )
 
 void CBaseViewport::ShowPanel( IViewPortPanel* pPanel, bool state )
 {
+	if ( !pPanel )
+		return;
+
 	if ( state )
 	{
 		// if this is an 'active' panel, deactivate old active panel
@@ -411,6 +416,7 @@ void CBaseViewport::ShowPanel( IViewPortPanel* pPanel, bool state )
 			if ( engine->IsPlayingDemo() && !engine->IsHLTV() )
 #endif
 				return;
+
 			if ( (m_pActivePanel != NULL) && (m_pActivePanel != pPanel) && (m_pActivePanel->IsVisible()) )
 			{
 				// store a pointer to the currently active panel
@@ -458,6 +464,9 @@ void CBaseViewport::RemoveAllPanels( void)
 	for ( int i=0; i < m_Panels.Count(); i++ )
 	{
 		vgui::VPANEL vPanel = m_Panels[i]->GetVPanel();
+
+		Msg("Deleteing panel: %s\n", vgui::ipanel()->GetClassName(vPanel) );
+
 		vgui::ipanel()->DeletePanel( vPanel );
 	}
 #ifndef _XBOX

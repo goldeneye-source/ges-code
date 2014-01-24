@@ -19,6 +19,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Purpose: Shows the flashlight icon
 //-----------------------------------------------------------------------------
@@ -160,3 +161,5 @@ void CHudFlashlight::Paint()
 	}
 #endif // HL2_EPISODIC
 }
+
+#endif // GE_DLL

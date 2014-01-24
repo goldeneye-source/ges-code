@@ -68,8 +68,11 @@ CRagdollExplosionEnumerator::~CRagdollExplosionEnumerator()
 		UTIL_TraceLine( m_vecOrigin, position, MASK_SHOT_HULL, NULL, COLLISION_GROUP_NONE, &tr );
 
 		// debugoverlay->AddLineOverlay( m_vecOrigin, position, 0,255,0, true, 18.0 );
-
+#ifdef GE_DLL
+		if ( (tr.fraction < 1.0f && tr.m_pEnt != pModel) || !tr.m_pEnt )
+#else
 		if ( tr.fraction < 1.0f && tr.m_pEnt != pModel )
+#endif
 			continue;	
 
 		dir *= force; // scale force

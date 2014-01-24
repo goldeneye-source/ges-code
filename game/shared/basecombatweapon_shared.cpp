@@ -992,6 +992,17 @@ void CBaseCombatWeapon::Equip( CBaseCombatCharacter *pOwner )
 	VPhysicsDestroyObject();
 #endif
 
+#ifdef GE_DLL
+	SetModel( GetViewModel() );
+
+	if ( !pOwner->IsPlayer() )
+	{
+		// Make the weapon ready as soon as any NPC picks it up.
+		m_flNextPrimaryAttack = gpGlobals->curtime;
+		m_flNextSecondaryAttack = gpGlobals->curtime;
+		SetModel( GetWorldModel() );
+	}
+#else
 	if ( pOwner->IsPlayer() )
 	{
 		SetModel( GetViewModel() );
@@ -1003,6 +1014,7 @@ void CBaseCombatWeapon::Equip( CBaseCombatCharacter *pOwner )
 		m_flNextSecondaryAttack = gpGlobals->curtime;
 		SetModel( GetWorldModel() );
 	}
+#endif
 }
 
 void CBaseCombatWeapon::SetActivity( Activity act, float duration ) 
@@ -1389,7 +1401,12 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 
 	// Weapons that don't autoswitch away when they run out of ammo 
 	// can still be deployed when they have no ammo.
+#ifdef GE_DLL
+	// Stupid Valve didn't take into account ITEM_FLAG_SELECTONEMPTY
+	if ( !HasAmmo() && AllowsAutoSwitchFrom() )
+#else
 	if ( !HasAnyAmmo() && AllowsAutoSwitchFrom() )
+#endif
 		return false;
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
@@ -1690,12 +1707,16 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 			// For instance, the crossbow doesn't have a 'real' secondary fire, but it still 
 			// stops the crossbow from firing on the 360 if the player chooses to hold down their
 			// zoom button. (sjb) Orange Box 7/25/2007
+
+			// Read note above, this breaks primary fire in GE if you hold down the primary and secondary buttons
+#ifndef GE_DLL
 #if !defined(CLIENT_DLL)
 			if( !IsX360() || !ClassMatches("weapon_crossbow") )
 #endif
 			{
 				bFired = ShouldBlockPrimaryFire();
 			}
+#endif
 
 			SecondaryAttack();
 

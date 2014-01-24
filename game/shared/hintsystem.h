@@ -54,7 +54,11 @@ public:
 	// Hint addition
 	// Call these to add a hint directly onscreen
 	bool 				HintMessage( int hint, bool bForce = false, bool bOnlyIfClear = false );
+#ifdef GE_DLL
+	void 				HintMessage( const char *pMessage, float duration = 6.0f );
+#else
 	void 				HintMessage( const char *pMessage );
+#endif
 
 	// Call this to add a hint timer. It'll be reset for you automatically 
 	// everytime ResetHintTimers() is called.

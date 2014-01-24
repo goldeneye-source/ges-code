@@ -112,7 +112,11 @@ public:
 #define TIME_TO_UNDUCK		0.2
 #define TIME_TO_UNDUCK_MS	200.0f
 
-#define MAX_WEAPON_SLOTS		6	// hud item selection slots
+#ifdef GE_DLL
+	#define MAX_WEAPON_SLOTS		7   // Incorporates token slot!
+#else
+	#define MAX_WEAPON_SLOTS		6	// hud item selection slots
+#endif
 #define MAX_WEAPON_POSITIONS	20	// max number of items within a slot
 #define MAX_ITEM_TYPES			6	// hud item selection slots
 #define MAX_WEAPONS				48	// Max number of weapons available
@@ -340,6 +344,7 @@ enum
 #define HITGROUP_RIGHTARM	5
 #define HITGROUP_LEFTLEG	6
 #define HITGROUP_RIGHTLEG	7
+#define HITGROUP_HAT		8 // GE_DLL
 #define HITGROUP_GEAR		10			// alerts NPC, but doesn't do damage or bleed (1/100th damage)
 
 //
@@ -377,7 +382,11 @@ enum PLAYER_ANIM
 #define PLAYER_MIN_BOUNCE_SPEED		200
 #define PLAYER_FALL_PUNCH_THRESHOLD (float)350 // won't punch player's screen/make scrape noise unless player falling at least this fast.
 #endif
+#ifdef GE_DLL
+#define DAMAGE_FOR_FALL_SPEED		160.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
+#else
 #define DAMAGE_FOR_FALL_SPEED		100.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
+#endif
 
 
 #define AUTOAIM_2DEGREES  0.0348994967025
@@ -664,6 +673,10 @@ enum FireBulletsFlags_t
 	FIRE_BULLETS_DONT_HIT_UNDERWATER = 0x2,		// If the shot hits its target underwater, don't damage it
 	FIRE_BULLETS_ALLOW_WATER_SURFACE_IMPACTS = 0x4,	// If the shot hits water surface, still call DoImpactEffect
 	FIRE_BULLETS_TEMPORARY_DANGER_SOUND = 0x8,		// Danger sounds added from this impact can be stomped immediately if another is queued
+#ifdef GE_DLL
+	FIRE_BULLETS_PENETRATED_SHOT = 0x10, // This is set if this shot is actually a refire after a penetration (prevents multiple lag compensations per frame)
+	FIRE_BULLETS_FORCE_TRACER = 0x20,
+#endif
 };
 
 
@@ -688,6 +701,9 @@ struct FireBulletsInfo_t
 		m_vecDirShooting.Init( VEC_T_NAN, VEC_T_NAN, VEC_T_NAN );
 #endif
 		m_bPrimaryAttack = true;
+	#ifdef GE_DLL
+		m_flPenetrateDepth = 0;
+	#endif
 	}
 
 	FireBulletsInfo_t( int nShots, const Vector &vecSrc, const Vector &vecDir, const Vector &vecSpread, float flDistance, int nAmmoType, bool bPrimaryAttack = true )
@@ -706,6 +722,9 @@ struct FireBulletsInfo_t
 		m_pAdditionalIgnoreEnt = NULL;
 		m_flDamageForceScale = 1.0f;
 		m_bPrimaryAttack = bPrimaryAttack;
+	#ifdef GE_DLL
+		m_flPenetrateDepth = 0;
+	#endif
 	}
 
 	int m_iShots;
@@ -722,6 +741,9 @@ struct FireBulletsInfo_t
 	CBaseEntity *m_pAttacker;
 	CBaseEntity *m_pAdditionalIgnoreEnt;
 	bool m_bPrimaryAttack;
+#ifdef GE_DLL
+	float m_flPenetrateDepth;
+#endif
 };
 
 //-----------------------------------------------------------------------------

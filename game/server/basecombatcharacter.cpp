@@ -691,6 +691,7 @@ bool CBaseCombatCharacter::FInAimCone( const Vector &vecSpot )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt )
 {
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	if ( interactionType == g_interactionBarnacleVictimReleased )
 	{
@@ -699,6 +700,7 @@ bool CBaseCombatCharacter::HandleInteraction( int interactionType, void *data, C
 		return true;
 	}
 #endif // HL2_DLL
+#endif
 	return false;
 }
 
@@ -1645,6 +1647,7 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 				pDroppedWeapon->Dissolve( NULL, gpGlobals->curtime, false, nDissolveType );
 			}
 		}
+#ifndef GE_DLL
 #ifdef HL2_DLL
 		else if ( PlayerHasMegaPhysCannon() )
 		{
@@ -1653,6 +1656,7 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 				pDroppedWeapon->Dissolve( NULL, gpGlobals->curtime, false, ENTITY_DISSOLVE_NORMAL );
 			}
 		}
+#endif
 #endif
 
 		if ( !bRagdollCreated && ( info.GetDamageType() & DMG_REMOVENORAGDOLL ) == 0 )
@@ -1905,6 +1909,7 @@ void CBaseCombatCharacter::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector
 	if ( !pWeapon )
 		return;
 
+#ifndef GE_DLL
 	// If I'm an NPC, fill the weapon with ammo before I drop it.
 	if ( GetFlags() & FL_NPC )
 	{
@@ -1930,6 +1935,28 @@ void CBaseCombatCharacter::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector
 			pWeapon->AddEffects( EF_ITEM_BLINK );
 		}
 	}
+#endif
+
+#ifdef GE_DLL
+	// Always give the default ammo for a dropped weapon
+	if ( pWeapon->UsesClipsForAmmo1() )
+		pWeapon->m_iClip1 = pWeapon->GetDefaultClip1();
+	else
+		pWeapon->SetPrimaryAmmoCount( pWeapon->GetDefaultClip1() );
+
+	Vector vThrowPos = Weapon_ShootPosition() - Vector(0,0,12);
+
+	if( UTIL_PointContents(vThrowPos) & CONTENTS_SOLID )
+	{
+		Msg("Weapon spawning in solid!\n");
+	}
+
+	pWeapon->SetAbsOrigin( vThrowPos );
+
+	QAngle gunAngles;
+	VectorAngles( BodyDirection2D(), gunAngles );
+	pWeapon->SetAbsAngles( gunAngles );
+#else
 
 	if ( IsPlayer() )
 	{
@@ -2012,6 +2039,7 @@ void CBaseCombatCharacter::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector
 			pWeapon->SetAbsOrigin( Weapon_ShootPosition() + vFacingDir );
 		}
 	}
+#endif // GE_DLL
 
 	Vector vecThrow;
 	if (pvecTarget)
@@ -2034,7 +2062,11 @@ void CBaseCombatCharacter::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector
 		else
 		{
 			// Nowhere in particular; just drop it.
+#ifdef GE_DLL
+			float throwForce = 300.0f;
+#else
 			float throwForce = ( IsPlayer() ) ? 400.0f : random->RandomInt( 64, 128 );
+#endif
 			vecThrow = BodyDirection3D() * throwForce;
 		}
 	}
@@ -2081,7 +2113,10 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 	}
 
 	// Weapon is now on my team
+#ifndef GE_DLL
+	// Why the fuck does a weapon join a team
 	pWeapon->ChangeTeam( GetTeamNumber() );
+#endif
 
 	// ----------------------
 	//  Give Primary Ammo
@@ -2127,6 +2162,7 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 
 	pWeapon->Equip( this );
 
+#ifndef GE_DLL
 	// Players don't automatically holster their current weapon
 	if ( IsPlayer() == false )
 	{
@@ -2151,6 +2187,7 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 			m_hActiveWeapon->m_fMaxRange2 = 999999999;
 		}
 	}
+#endif
 
 	WeaponProficiency_t proficiency;
 	proficiency = CalcWeaponProficiency( pWeapon );
@@ -2426,10 +2463,14 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 				pPhysics->EnableCollisions( false );
 			}
 			
+		#ifndef GE_DLL //Prevent stupid compiler warning
 			bool bGibbed = false;
+		#endif
 
 			Event_Killed( info );
-
+		#ifdef GE_DLL
+			Event_Dying( info );
+		#else
 			// Only classes that specifically request it are gibbed
 			if ( ShouldGib( info ) )
 			{
@@ -2440,6 +2481,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 			{
 				Event_Dying( info );
 			}
+		#endif // GE_DLL
 		}
 		return retVal;
 		break;
@@ -2515,6 +2557,22 @@ int CBaseCombatCharacter::OnTakeDamage_Dead( const CTakeDamageInfo &info )
 
 	return 1;
 }
+
+#ifdef GE_DLL
+// This allows NPC's to have a decent body target in addition to players
+Vector CBaseCombatCharacter::BodyTarget( const Vector &posSrc, bool bNoisy /* = true */ )
+{
+	if ( IsInAVehicle() )
+	{
+		return GetVehicle()->GetVehicleEnt()->BodyTarget( posSrc, bNoisy );
+	}
+
+	if ( bNoisy )
+		return GetAbsOrigin() + (GetViewOffset() * random->RandomFloat( 0.5, 0.9 ));
+	else
+		return WorldSpaceCenter();
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Sets vBodyDir to the body direction (2D) of the combat character.  

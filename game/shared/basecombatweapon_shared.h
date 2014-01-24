@@ -602,8 +602,15 @@ public:
 
 	IPhysicsConstraint		*GetConstraint() { return m_pConstraint; }
 
-private:
+#ifdef GE_DLL
+	// This is so the generic token can precache itself...
 	WEAPON_FILE_INFO_HANDLE	m_hWeaponFileInfo;
+#endif
+
+private:
+#ifndef GE_DLL
+	WEAPON_FILE_INFO_HANDLE	m_hWeaponFileInfo;
+#endif
 	IPhysicsConstraint		*m_pConstraint;
 
 	int						m_iAltFireHudHintCount;		// How many times has this weapon displayed its alt-fire HUD hint?

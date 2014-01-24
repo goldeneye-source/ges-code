@@ -13,6 +13,10 @@
 #include "iclientmode.h"
 #include "vgui_controls/AnimationController.h"
 
+#ifdef GE_DLL
+	#include "ammodef.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -228,6 +232,11 @@ void CHudHistoryResource::MsgFunc_ItemPickup( bf_read &msg )
 //-----------------------------------------------------------------------------
 void CHudHistoryResource::MsgFunc_AmmoDenied( bf_read &msg )
 {
+#ifdef GE_DLL
+	// We don't want to display ammo when we don't pick it up
+	return;
+#endif
+
 	int iAmmo = msg.ReadShort();
 
 	// see if there are any existing ammo items of that type
@@ -306,7 +315,15 @@ void CHudHistoryResource::Paint( void )
 	int wide, tall;
 	GetSize( wide, tall );
 
+#ifdef GE_DLL
+	// Keep a persistent ypos so we can draw our icons appropriately
+	int ypos = tall;
+
+	// Draw icons w/ the last on the bottom
+	for ( int i = m_PickupHistory.Count()-1; i >= 0 ; i-- )
+#else
 	for ( int i = 0; i < m_PickupHistory.Count(); i++ )
+#endif
 	{
 		if ( m_PickupHistory[i].type )
 		{
@@ -347,6 +364,12 @@ void CHudHistoryResource::Paint( void )
 					}
 					else
 #endif // HL2MP
+#ifdef GE_DLL
+					{
+						itemIcon = gHUD.GetIcon( GetAmmoDef()->AmmoIcon(m_PickupHistory[i].iId) );
+						itemAmmoIcon = NULL;
+					}
+#else
 					{
 						itemIcon = gWR.GetAmmoIconFromWeapon( m_PickupHistory[i].iId );
 						itemAmmoIcon = NULL;
@@ -361,7 +384,7 @@ void CHudHistoryResource::Paint( void )
 						bHalfHeight = false;
 					}
 #endif
-
+#endif // GE_DLL
 					iAmount = m_PickupHistory[i].iCount;
 				}
 				break;
@@ -417,7 +440,15 @@ void CHudHistoryResource::Paint( void )
 				m_bNeedsDraw = true;
 			}
 
+		#ifdef GE_DLL
+			ypos -= itemIcon->Height() + m_flHistoryGap;
+
+			// Don't try to draw the icon if it is clearly out of the box
+			if ( ypos < 0 )
+				continue;
+		#else
 			int ypos = tall - (m_flHistoryGap * (i + 1));
+		#endif
 			int xpos = wide - itemIcon->Width() - m_flIconInset;
 
 #ifndef HL2MP
@@ -441,21 +472,41 @@ void CHudHistoryResource::Paint( void )
 				_snwprintf( text, sizeof( text ) / sizeof(wchar_t), L"%i", m_PickupHistory[i].iCount );
 
 				// offset the number to sit properly next to the icon
+			#ifdef GE_DLL
+				// Don't overwrite our persistent ypos for the icons...
+				// and place the ammo amount at the bottom
+				int ammo_ypos = ypos + itemIcon->Height() - surface()->GetFontTall( m_hNumberFont );
+			#else
 				ypos -= ( surface()->GetFontTall( m_hNumberFont ) - itemIcon->Height() ) / 2;
+			#endif
 
 				vgui::surface()->DrawSetTextFont( m_hNumberFont );
 				vgui::surface()->DrawSetTextColor( clr );
+			#ifdef GE_DLL
+				vgui::surface()->DrawSetTextPos( wide - m_flTextInset, ammo_ypos );
+			#else
 				vgui::surface()->DrawSetTextPos( wide - m_flTextInset, ypos );
+			#endif
 				vgui::surface()->DrawUnicodeString( text );
 			}
 			else if ( bUseAmmoFullMsg )
 			{
+			#ifdef GE_DLL
+				// Don't overwrite our persistent ypos for the icons...
+				// and place the ammo amount at the bottom
+				int ammo_ypos = ypos + itemIcon->Height() - surface()->GetFontTall( m_hNumberFont );
+			#else
 				// offset the number to sit properly next to the icon
 				ypos -= ( surface()->GetFontTall( m_hTextFont ) - itemIcon->Height() ) / 2;
+			#endif
 
 				vgui::surface()->DrawSetTextFont( m_hTextFont );
 				vgui::surface()->DrawSetTextColor( clr );
+			#ifdef GE_DLL
+				vgui::surface()->DrawSetTextPos( wide - m_flTextInset, ammo_ypos );
+			#else
 				vgui::surface()->DrawSetTextPos( wide - m_flTextInset, ypos );
+			#endif
 				vgui::surface()->DrawUnicodeString( m_wcsAmmoFullMsg );
 			}
 		}

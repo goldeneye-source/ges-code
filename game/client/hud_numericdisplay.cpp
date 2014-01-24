@@ -128,6 +128,25 @@ void CHudNumericDisplay::PaintNumbers(HFont font, int xpos, int ypos, int value)
 		else
 			V_snwprintf( unicode, ARRAYSIZE(unicode), L"%d`%d", iMinutes, iSeconds );
 #endif
+
+#ifdef GE_DLL
+		if ( value < 0 )
+			swprintf( unicode, L"--:--" );
+		else if ( iSeconds < 10 && iMinutes < 10 )
+			swprintf( unicode, L"0%d:0%d", iMinutes, iSeconds );
+		else if ( iSeconds < 10 && iMinutes >= 10 )
+			swprintf( unicode, L"%d:0%d", iMinutes, iSeconds );
+		else if ( iMinutes < 10 )
+			swprintf( unicode, L"0%d:%d", iMinutes, iSeconds );
+		else
+			swprintf( unicode, L"%d:%d", iMinutes, iSeconds );
+
+		int txt_w, txt_h;
+		surface()->GetTextSize( font, unicode, txt_w, txt_h );
+
+		xpos = max( (GetWide() - txt_w) / 2.0, 0 );
+#endif
+
 	}
 
 	// adjust the position to take into account 3 characters

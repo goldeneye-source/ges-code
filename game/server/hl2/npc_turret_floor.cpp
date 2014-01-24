@@ -567,6 +567,7 @@ bool CNPC_FloorTurret::HasPreferredCarryAnglesForPlayer( CBasePlayer *pPlayer )
 //-----------------------------------------------------------------------------
 bool CNPC_FloorTurret::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
 {
+#ifndef GE_DLL
 	// Prevent players pulling enemy turrets from afar if they're in front of the turret
 	if ( reason == PICKED_UP_BY_CANNON && IRelationType( pPhysGunUser ) == D_HT )
 	{
@@ -583,6 +584,7 @@ bool CNPC_FloorTurret::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGu
 				return false;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -592,6 +594,7 @@ bool CNPC_FloorTurret::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGu
 //-----------------------------------------------------------------------------
 bool CNPC_FloorTurret::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter *sourceEnt)
 {
+#ifndef GE_DLL
 	if ( interactionType == g_interactionCombineBash )
 	{
 		// We've been bashed by a combine soldier. Remember who it was, if we haven't got an active kicker
@@ -612,6 +615,7 @@ bool CNPC_FloorTurret::HandleInteraction(int interactionType, void *data, CBaseC
 		EmitSound( "NPC_Combine.WeaponBash" );
 		return true;
 	}
+#endif
 
 	return BaseClass::HandleInteraction( interactionType, data, sourceEnt );
 }

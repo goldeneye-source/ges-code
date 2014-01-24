@@ -17,7 +17,11 @@
 #include "fmtstr.h"
 #include "tier1/utlbuffer.h"
 #ifdef CLIENT_DLL
+#ifdef GE_DLL
+#include "vgui/ge_achievementnotification.h"
+#else
 #include "achievement_notification_panel.h"
+#endif
 #include "c_playerresource.h"
 #include "gamestats.h"
 #ifdef TF_CLIENT_DLL
@@ -26,6 +30,12 @@
 #else
 #include "enginecallback.h"
 #endif // CLIENT_DLL
+#ifdef GE_DLL
+#include "utlbuffer.h"
+#include "ge_utils.h"
+#include "ge_achievement.h"
+#include "ge_achievement_defs.h"
+#endif
 #ifndef _X360
 #include "steam/isteamuserstats.h"
 #include "steam/isteamfriends.h"
@@ -104,6 +114,12 @@ static void WriteAchievementGlobalState( KeyValues *pKV, bool bPersistToSteamClo
 	{
 		Q_snprintf( szFilename, sizeof( szFilename ), "GameState.txt" );
 	}
+#ifdef GE_DLL
+	CUtlBuffer buffer;
+	pKV->WriteAsBinary( buffer );
+	filesystem->WriteFile( szFilename, "MOD", buffer );
+	pKV->deleteThis();
+	GEUTIL_DEncryptFile( szFilename, CAchievementMgr::GetEncryptionKey() );
 
 	// Never call pKV->SaveToFile!!!!
 	// Save to a buffer instead.
@@ -171,8 +187,9 @@ static void WriteAchievementGlobalState( KeyValues *pKV, bool bPersistToSteamClo
                 }
             }
         }
-#endif
-    }
+#endif // NO_STEAM
+	}
+#endif // GE_DLL
 
     //=============================================================================
     // HPE_END
@@ -318,7 +335,11 @@ bool CAchievementMgr::Init()
 	ListenForGameEvent( "game_init" );
 #else
 	ListenForGameEvent( "player_death" );
+#ifndef GE_DLL
 	ListenForGameEvent( "player_stats_updated" );
+#else
+	ListenForGameEvent( "round_end" );
+#endif
 	usermessages->HookMessage( "AchievementEvent", MsgFunc_AchievementEvent );
 #endif // CLIENT_DLL
 
@@ -493,6 +514,7 @@ void CAchievementMgr::LevelInitPreEntity()
 	// load global state if we haven't already; X360 users may not have had a storage device available or selected at boot time
 	EnsureGlobalStateLoaded();
 
+#ifndef GE_DLL
 #ifdef GAME_DLL
 	// For single-player games, achievement mgr must live on the server.  (Only the server has detailed knowledge of game state.)
 	Assert( !GameRules()->IsMultiplayer() );	
@@ -500,6 +522,7 @@ void CAchievementMgr::LevelInitPreEntity()
 	// For multiplayer games, achievement mgr must live on the client.  (Only the client can read/write player state from Steam/XBox Live.)
 	Assert( GameRules()->IsMultiplayer() );
 #endif 
+#endif
 
 	// clear list of achievements listening for events
 	m_vecKillEventListeners.RemoveAll();
@@ -626,6 +649,51 @@ bool CAchievementMgr::HasAchieved( const char *pchName )
 		return pAchievement->IsAchieved();
 	return false;
 }
+
+#ifdef GE_DLL
+void CAchievementMgr::SendAchievementProgress( void )
+{
+#ifdef CLIENT_DLL
+	// Send out our percentage of achievements achieved
+	if ( g_pGameRules && g_pGameRules->IsMultiplayer() )
+	{
+		C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+		if ( pLocalPlayer )
+		{
+			char cmd[256];
+			int iPlayerID = pLocalPlayer->GetUserID();
+			unsigned short mask = UTIL_GetAchievementEventMask();
+
+			int percent = ((float)m_iCompletionCount / (float)GetAchievementCount()) * 100.0f;
+
+			CBaseAchievement *pAch = NULL;
+
+			int size = ceil((float)(MAX_GES_ACH - FIRST_GES_ACH) / 7.0f) + 2;
+			unsigned char *str = new unsigned char[size];
+			str[0] = '|';  // Token to start the sequence for server to find us easier
+
+			int r = 1, k = 1;
+			for ( int i=FIRST_GES_ACH; r < (size-1) && i < MAX_GES_ACH; r++ )
+			{
+				str[r] = 0x1;
+
+				for ( k=1; k < 8 && i < MAX_GES_ACH; k++, i++ )
+				{
+					pAch = GetAchievementByID( i );
+					str[r] |= (pAch && pAch->IsAchieved() ? 0x1 : 0) << k;
+				}
+			}
+			str[size-1] = '\0';
+
+			Q_snprintf( cmd, sizeof( cmd ), "achievement_progress %d %d %s", percent ^ mask, ( iPlayerID ^ percent ) ^ mask, str );
+			engine->ClientCmd_Unrestricted( cmd );
+
+			delete [] str;
+		}
+	}
+#endif
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: downloads user data from Steam or XBox Live
@@ -810,7 +878,21 @@ void CAchievementMgr::LoadGlobalState()
     //=============================================================================
 
 	KeyValues *pKV = new KeyValues("GameState" );
+#ifdef GE_DLL
+	// Clear out completion count
+	m_iCompletionCount = 0;
+
+	CUtlBuffer buffer;
+	// Decrypt the file so we can read it
+	GEUTIL_DEncryptFile( szFilename, CAchievementMgr::GetEncryptionKey(), false );
+	filesystem->ReadFile( szFilename, "MOD", buffer );
+	// Don't let people edit their file while in game
+	GEUTIL_DEncryptFile( szFilename, CAchievementMgr::GetEncryptionKey() );
+
+	if ( pKV->ReadAsBinary( buffer ) )
+#else
 	if ( pKV->LoadFromFile( filesystem, szFilename, "MOD" ) )
+#endif
 	{
 		KeyValues *pNode = pKV->GetFirstSubKey();
 		while ( pNode )
@@ -915,6 +997,19 @@ void CAchievementMgr::AwardAchievement( int iAchievementID )
 	}
 	pAchievement->SetAchieved( true );
 
+#ifdef GE_DLL
+	FOR_EACH_MAP( m_mapAchievement, i )
+	{
+		// Setup our the achievements that depended on us being achieved so they are intialized properly
+		CGEAchievement *pGEAch = (CGEAchievement*)m_mapAchievement[i];
+		if ( pGEAch->GetDependent() == iAchievementID && pGEAch->IsActive() )
+		{
+			pGEAch->Init();
+			pGEAch->ListenForEvents();
+		}
+	}
+#endif
+
 #ifdef CLIENT_DLL
 	if ( gamestats )
 	{
@@ -950,7 +1045,28 @@ void CAchievementMgr::AwardAchievement( int iAchievementID )
 	SetDirty( true );
 
 	if ( IsPC() )
-	{		
+	{
+#ifdef GE_DLL
+		// Update our known achievement count
+		m_iCompletionCount++;
+
+	#ifdef CLIENT_DLL
+		// send a message to the server about our achievement
+		if ( g_pGameRules && g_pGameRules->IsMultiplayer() )
+		{
+			C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+			if ( pLocalPlayer )
+			{
+				char cmd[256];
+				int iPlayerID = pLocalPlayer->GetUserID();
+				unsigned short mask = UTIL_GetAchievementEventMask();
+
+				Q_snprintf( cmd, sizeof( cmd ), "achievement_earned %d %d", iAchievementID ^ mask, ( iPlayerID ^ iAchievementID ) ^ mask );
+				engine->ClientCmd_Unrestricted( cmd );
+			}
+		}
+	#endif
+#else
 #ifndef NO_STEAM
 		if ( steamapicontext->SteamUserStats() )
 		{
@@ -964,7 +1080,8 @@ void CAchievementMgr::AwardAchievement( int iAchievementID )
 			}
 		}
 #endif
-    }
+#endif // GE_DLL
+	}
 	else if ( IsX360() )
 	{
 #ifdef _X360
@@ -1033,12 +1150,14 @@ extern bool IsInCommentaryMode( void );
 //-----------------------------------------------------------------------------
 bool CAchievementMgr::CheckAchievementsEnabled()
 {
+#ifndef GE_DLL
 	// if PC, Steam must be running and user logged in
 	if ( IsPC() && !LoggedIntoSteam() )
 	{
 		Msg( "Achievements disabled: Steam not running.\n" );
 		return false;
 	}
+#endif
 
 #if defined( _X360 )
 	uint state = XUserGetSigninState( XBX_GetPrimaryUserId() );
@@ -1302,6 +1421,11 @@ int	CalcTeammateCount()
 //-----------------------------------------------------------------------------
 int	CalcPlayerCount()
 {
+#if defined(GE_DLL)
+	if ( cc_achievement_debug.GetInt() > 0 )
+		return MAX_PLAYERS;
+#endif
+
 	int iCount = 0;
 	for( int iPlayerIndex = 1 ; iPlayerIndex <= MAX_PLAYERS; iPlayerIndex++ )
 	{
@@ -1326,12 +1450,13 @@ void CAchievementMgr::ResetAchievements()
 		DevMsg( "Only available on PC\n" );
 		return;
 	}
-
+#ifndef GE_DLL
 	if ( !LoggedIntoSteam() )
 	{
 		Msg( "Steam not running, achievements disabled. Cannot reset achievements.\n" );
 		return;
 	}
+#endif
 
 	FOR_EACH_MAP( m_mapAchievement, i )
 	{
@@ -1344,11 +1469,14 @@ void CAchievementMgr::ResetAchievements()
 	{
 		steamapicontext->SteamUserStats()->StoreStats();
 	}
-#endif
+#ifdef GE_DLL
+	SaveGlobalState();
+#else
 	if ( cc_achievement_debug.GetInt() > 0 )
 	{
 		Msg( "All achievements reset.\n" );
 	}
+#endif
 }
 
 void CAchievementMgr::ResetAchievement( int iAchievementID )
@@ -1376,10 +1504,15 @@ void CAchievementMgr::ResetAchievement( int iAchievementID )
 			steamapicontext->SteamUserStats()->StoreStats();
 		}
 #endif
+
+#ifdef GE_DLL
+		SaveGlobalState();
+#else
 		if ( cc_achievement_debug.GetInt() > 0 )
 		{
 			Msg( "Achievement %s reset.\n", pAchievement->GetName() );
 		}
+#endif
 	}
 }
 
@@ -1399,6 +1532,10 @@ void CAchievementMgr::PrintAchievementStatus()
 	FOR_EACH_MAP( m_mapAchievement, i )
 	{
 		CBaseAchievement *pAchievement = m_mapAchievement[i];
+	#ifdef GE_DLL
+		if ( !pAchievement )
+			continue;
+	#endif
 
 		Msg( "%42s ", pAchievement->GetName() );	
 
@@ -1453,6 +1590,12 @@ void CAchievementMgr::FireGameEvent( IGameEvent *event )
 #endif // GAME_DLL
 	}
 #ifdef CLIENT_DLL
+#ifdef GE_DLL
+	else if ( 0 == Q_strcmp(name, "round_end") )
+	{
+		SaveGlobalStateIfDirty();
+	}
+#endif
 	else if ( 0 == Q_strcmp( name, "player_death" ) )
 	{
 		CBaseEntity *pVictim = ClientEntityList().GetEnt( engine->GetPlayerForUserID( event->GetInt("userid") ) );
@@ -1688,7 +1831,9 @@ void CAchievementMgr::Steam_OnUserStatsReceived( UserStatsReceived_t *pUserStats
 
 	if ( pUserStatsReceived->m_eResult != k_EResultOK )
 	{
+#ifndef GE_DLL
 		DevMsg( "CTFSteamStats: failed to download stats from Steam, EResult %d\n", pUserStatsReceived->m_eResult );
+#endif
 		return;
 	}
 
@@ -1910,6 +2055,7 @@ void MsgFunc_AchievementEvent( bf_read &msg )
 	pAchievementMgr->OnAchievementEvent( iAchievementID, iCount );
 }
 
+// NOTE: FOR TESTING GES ONLY!!
 #if defined(_DEBUG) || defined(STAGING_ONLY) || DEBUG_ACHIEVEMENTS_IN_RELEASE
 CON_COMMAND_F( achievement_reset_all, "Clears all achievements", FCVAR_CHEAT )
 {
@@ -2050,6 +2196,31 @@ CON_COMMAND_F( achievement_mark_dirty, "Mark achievement data as dirty", FCVAR_C
 	if ( !pAchievementMgr )
 		return;
 	pAchievementMgr->SetDirty( true );
+}
+
+CON_COMMAND_F( achievement_setprogress, "Set the progress of a named achievement", FCVAR_CHEAT )
+{
+	CAchievementMgr *pAchievementMgr = dynamic_cast<CAchievementMgr *>( engine->GetAchievementMgr() );
+	if ( !pAchievementMgr )
+		return;
+
+	if ( 3 != args.ArgC() )
+	{
+		Msg( "Usage: achievement_setprogress <internal name> <count>\n" );
+		return;
+	}
+	CBaseAchievement *pAchievement = pAchievementMgr->GetAchievementByName( args[1] );
+	if ( !pAchievement )
+	{
+		Msg( "Achievement %s not found\n", args[1] );
+		return;
+	}
+
+	int cnt = atoi(args[2]);
+	if ( cnt > 0 && cnt <= pAchievement->GetGoal() )
+		pAchievement->SetCount( cnt );
+	else
+		Msg( "Invalid count specified\n" );
 }
 #endif // _DEBUG
 

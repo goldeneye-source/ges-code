@@ -191,7 +191,7 @@ ConVar  sv_player_display_usercommand_errors( "sv_player_display_usercommand_err
 
 ConVar  player_debug_print_damage( "player_debug_print_damage", "0", FCVAR_CHEAT, "When true, print amount and type of all damage received by player to console." );
 
-
+#ifndef GE_DLL
 void CC_GiveCurrentAmmo( void )
 {
 	CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
@@ -232,7 +232,7 @@ void CC_GiveCurrentAmmo( void )
 	}
 }
 static ConCommand givecurrentammo("givecurrentammo", CC_GiveCurrentAmmo, "Give a supply of ammo for current weapon..\n", FCVAR_CHEAT );
-
+#endif
 
 // pl
 BEGIN_SIMPLE_DATADESC( CPlayerState )
@@ -244,7 +244,6 @@ BEGIN_SIMPLE_DATADESC( CPlayerState )
 	// DEFINE_FIELD( fixangle, FIELD_INTEGER ),
 	// DEFINE_FIELD( anglechange, FIELD_FLOAT ),
 	// DEFINE_FIELD( hltv, FIELD_BOOLEAN ),
-	// DEFINE_FIELD( replay, FIELD_BOOLEAN ),
 	// DEFINE_FIELD( frags, FIELD_INTEGER ),
 	// DEFINE_FIELD( deaths, FIELD_INTEGER ),
 END_DATADESC()
@@ -740,7 +739,17 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, cons
 
 	// get max distance player could have moved within max lag compensation time, 
 	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
+#ifdef GE_DLL
+	float maxspeed;
+	CBasePlayer *myPlayer = ToBasePlayer((CBaseEntity*)pPlayer);
+	if ( myPlayer )
+		maxspeed = myPlayer->MaxSpeed();
+	else
+		maxspeed = 600;
+	float maxDistance = 1.5 * maxspeed * sv_maxunlag.GetFloat();
+#else
 	float maxDistance = 1.5 * pPlayer->MaxSpeed() * sv_maxunlag.GetFloat();
+#endif
 
 	// If the player is within this distance, lag compensate them in case they're running past us.
 	if ( vHisOrigin.DistTo( vMyOrigin ) < maxDistance )
@@ -916,7 +925,7 @@ void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 					return;
 			}
 		}
-
+#ifndef GE_DLL
 		SetLastHitGroup( ptr->hitgroup );
 
 		
@@ -944,15 +953,25 @@ void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 		default:
 			break;
 		}
-
+#endif
 #ifdef HL2_EPISODIC
 		// If this damage type makes us bleed, then do so
 		bool bShouldBleed = !g_pGameRules->Damage_ShouldNotBleed( info.GetDamageType() );
 		if ( bShouldBleed )
 #endif
 		{
+#ifdef GE_DLL
+			// GES uses server side blood decals
+			const CBaseEntity *pSuppress = te->GetSuppressHost();
+			te->SetSuppressHost( NULL );
+#endif
+
 			SpawnBlood(ptr->endpos, vecDir, BloodColor(), info.GetDamage());// a little surface blood.
 			TraceBleed( info.GetDamage(), vecDir, ptr, info.GetDamageType() );
+
+#ifdef GE_DLL
+			te->SetSuppressHost( (CBaseEntity*) pSuppress );
+#endif
 		}
 
 		AddMultiDamage( info, this );
@@ -1022,7 +1041,11 @@ void CBasePlayer::DamageEffect(float flDamage, int fDamageType)
 #define OLD_ARMOR_BONUS  0.5	// Each Point of Armor is work 1/x points of health
 
 // New values
+#ifdef GE_DLL
+#define ARMOR_RATIO 0.0 // Armor takes 100% damage!
+#else
 #define ARMOR_RATIO	0.2
+#endif
 #define ARMOR_BONUS	1.0
 
 //---------------------------------------------------------
@@ -1155,6 +1178,46 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	m_lastDamageAmount = info.GetDamage();
 
 	// Armor. 
+#ifdef GE_DLL
+	float flArmorDmg = 0,
+		  flHealthDmg = 0;
+
+	// armor doesn't protect against fall or drown damage!
+	if ( m_ArmorValue && !(info.GetDamageType() & (DMG_FALL | DMG_DROWN | DMG_POISON | DMG_RADIATION)) )
+	{
+		float flDmg = info.GetDamage();
+		if( flDmg < 1.0 )
+			flDmg = 1.0;
+
+		// Does this use more armor than we have?
+		if ( flDmg > m_ArmorValue )
+		{
+			flArmorDmg = m_DmgSave = m_ArmorValue;
+			flHealthDmg = flDmg - m_ArmorValue;
+		}
+		else
+		{
+			flArmorDmg = flDmg;
+			m_DmgSave += flDmg;
+		}
+	}
+	else
+	{
+		// No armor or health-type dmg deal it directly to the health
+		flHealthDmg = info.GetDamage();
+	}
+
+	// Call into our gameplay to get any custom damage figures
+	// we do this after the calculations above so that we can give the gameplay
+	// our desired application of damage
+	g_pGameRules->CalculateCustomDamage( this, info, flHealthDmg, flArmorDmg );
+
+	flArmorDmg = min( flArmorDmg, m_ArmorValue );
+
+	// Record the final damage amounts (actually apply armor dmg here!)
+	info.SetDamage( (int)flHealthDmg );
+	m_ArmorValue -= (int)flArmorDmg;
+#else
 	if (m_ArmorValue && !(info.GetDamageType() & (DMG_FALL | DMG_DROWN | DMG_POISON | DMG_RADIATION)) )// armor doesn't protect against fall or drown damage!
 	{
 		float flNew = info.GetDamage() * flRatio;
@@ -1188,7 +1251,7 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		
 		info.SetDamage( flNew );
 	}
-
+#endif // GE_DLL
 
 #if defined( WIN32 ) && !defined( _X360 )
 	// NVNT if player's client has a haptic device send them a user message with the damage.
@@ -1408,8 +1471,14 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 // Input  : &info - 
 //			damageAmount - 
 //-----------------------------------------------------------------------------
+#ifdef GE_DLL
+//Increase the default settings so that the frequency of ear ringing is reduced to more GE levels
+#define MIN_SHOCK_AND_CONFUSION_DAMAGE	110.0f
+#define MIN_EAR_RINGING_DISTANCE		60.0f  // 5 feet
+#else
 #define MIN_SHOCK_AND_CONFUSION_DAMAGE	30.0f
 #define MIN_EAR_RINGING_DISTANCE		240.0f  // 20 feet
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1565,10 +1634,16 @@ bool CBasePlayer::IsDead() const
 	return m_lifeState == LIFE_DEAD;
 }
 
+#ifdef GE_DLL
+float DamageForce( const Vector &size, float damage )
+{ 
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 3;
+#else
 static float DamageForce( const Vector &size, float damage )
 { 
 	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5;
-	
+#endif
+
 	if ( force > 1000.0) 
 	{
 		force = 1000.0;
@@ -1597,6 +1672,7 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( !attacker )
 		return 0;
 
+#ifndef GE_DLL
 	Vector vecDir = vec3_origin;
 	if ( info.GetInflictor() )
 	{
@@ -1636,7 +1712,7 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
         gameeventmanager->FireEvent( event );
 	}
-	
+#endif
 	// Insert a combat sound so that nearby NPCs hear battle
 	if ( attacker->IsNPC() )
 	{
@@ -2067,7 +2143,9 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 	MessageEnd();
 }
 
-
+#ifdef GE_DLL
+extern ConVar ge_respawndelay;
+#endif
 void CBasePlayer::PlayerDeathThink(void)
 {
 	float flForward;
@@ -2117,15 +2195,35 @@ void CBasePlayer::PlayerDeathThink(void)
 	StopAnimation();
 
 	IncrementInterpolationFrame();
+	
+#ifdef GE_DLL
+	// TODO: Is this still needed??
+	AddEffects( EF_NODRAW | EF_NOINTERP );
+#endif
 	m_flPlaybackRate = 0.0;
 	
 	int fAnyButtonDown = (m_nButtons & ~IN_SCORE);
+#ifdef GE_DLL
+	int fAttackDown = (m_nButtons & IN_ATTACK);
+#endif
 	
 	// Strip out the duck key from this check if it's toggled
 	if ( (fAnyButtonDown & IN_DUCK) && GetToggledDuckState())
 	{
 		fAnyButtonDown &= ~IN_DUCK;
 	}
+
+#ifdef GE_DLL
+	// Force a hard 20 second death limit to prevent annoyances
+	if ( !fAttackDown && gpGlobals->curtime < (m_flDeathTime + 20.0f) )
+	{
+		// Force respawn is active and we haven't passed the respawn time, wait
+		if ( !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && gpGlobals->curtime > (m_flDeathTime + ge_respawndelay.GetFloat()) ) )
+			return;
+	}
+
+#else
+	// GES NOTE: We disable this entire code block because GES implements a robust spawn system
 
 	// wait for all buttons released
 	if (m_lifeState == LIFE_DEAD)
@@ -2154,6 +2252,7 @@ void CBasePlayer::PlayerDeathThink(void)
 	if (!fAnyButtonDown 
 		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))) )
 		return;
+#endif
 
 	m_nButtons = 0;
 	m_iRespawnFrames = 0;
@@ -2418,8 +2517,11 @@ void CBasePlayer::CheckObserverSettings()
 	}
 
 	// check if our spectating target is still a valid one
-	
+#ifndef GE_DLL
 	if (  m_iObserverMode == OBS_MODE_IN_EYE || m_iObserverMode == OBS_MODE_CHASE || m_iObserverMode == OBS_MODE_FIXED )
+#else
+	if (  m_iObserverMode == OBS_MODE_IN_EYE || m_iObserverMode == OBS_MODE_CHASE )
+#endif
 	{
 		ValidateCurrentObserverTarget();
 				
@@ -2616,7 +2718,17 @@ void CBasePlayer::JumptoPosition(const Vector &origin, const QAngle &angles)
 bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
 {
 	if ( !IsValidObserverTarget( target ) )
+#ifdef GE_DLL
+	{
+		// Find us a valid target
+		target = FindNextObserverTarget( false );
+		// If we still couldn't find one bail out
+		if ( !target )
+			return false;
+	}
+#else
 		return false;
+#endif
 	
 	// set new target
 	m_hObserverTarget.Set( target ); 
@@ -2664,6 +2776,7 @@ bool CBasePlayer::IsValidObserverTarget(CBaseEntity * target)
 	if( player == this )
 		return false; // We can't observe ourselves.
 
+#ifndef GE_DLL
 	if ( player->IsEffectActive( EF_NODRAW ) ) // don't watch invisible players
 		return false;
 
@@ -2677,7 +2790,8 @@ bool CBasePlayer::IsValidObserverTarget(CBaseEntity * target)
 			return false;	// allow watching until 3 seconds after death to see death animation
 		}
 	}
-		
+#endif
+
 	// check forcecamera settings for active players
 	if ( GetTeamNumber() != TEAM_SPECTATOR )
 	{
@@ -2787,6 +2901,9 @@ bool CBasePlayer::IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCa
 bool CBasePlayer::CanPickupObject( CBaseEntity *pObject, float massLimit, float sizeLimit )
 {
 	// UNDONE: Make this virtual and move to HL2 player
+#ifdef GE_DLL
+	return false;
+#else
 #ifdef HL2_DLL
 	//Must be valid
 	if ( pObject == NULL )
@@ -2856,6 +2973,7 @@ bool CBasePlayer::CanPickupObject( CBaseEntity *pObject, float massLimit, float 
 #else
 	return false;
 #endif
+#endif // GE_DLL
 }
 
 float CBasePlayer::GetHeldObjectMass( IPhysicsObject *pHeldObject )
@@ -2940,10 +3058,14 @@ void CBasePlayer::AddPoints( int score, bool bAllowNegativeScore )
 
 void CBasePlayer::AddPointsToTeam( int score, bool bAllowNegativeScore )
 {
+#ifndef GE_DLL
 	if ( GetTeam() )
 	{
 		GetTeam()->AddScore( score );
 	}
+#else
+	Warning( "game_score is not supported in GoldenEye: Source!\n" );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3807,9 +3929,14 @@ void CBasePlayer::HandleFuncTrain(void)
 
 
 void CBasePlayer::PreThink(void)
-{						
+{
+#ifdef GE_DLL
+	if ( m_iPlayerLocked )
+		return;
+#else
 	if ( g_fGameOver || m_iPlayerLocked )
 		return;         // intermission or finale
+#endif
 
 	if ( Hints() )
 	{
@@ -4499,7 +4626,11 @@ void CBasePlayer::PostThink()
 {
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
+#ifdef GE_DLL
+	if ( !m_iPlayerLocked )
+#else
 	if ( !g_fGameOver && !m_iPlayerLocked )
+#endif
 	{
 		if ( IsAlive() )
 		{
@@ -4896,7 +5027,9 @@ void CBasePlayer::Spawn( void )
 
 	m_ArmorValue		= SpawnArmorValue();
 	SetBlocksLOS( false );
+#ifndef GE_DLL
 	m_iMaxHealth		= m_iHealth;
+#endif
 
 	// Clear all flags except for FL_FULLEDICT
 	if ( GetFlags() & FL_FAKECLIENT )
@@ -4906,8 +5039,18 @@ void CBasePlayer::Spawn( void )
 	}
 	else
 	{
+	#ifdef GE_DLL
+		// Add in no target support
+		bool notarget = (GetFlags() & FL_NOTARGET) == FL_NOTARGET;
+	#endif
+		
 		ClearFlags();
 		AddFlag( FL_CLIENT );
+
+	#ifdef GE_DLL
+		if ( notarget )
+			AddFlag( FL_NOTARGET );
+	#endif
 	}
 
 	AddFlag( FL_AIMTARGET );
@@ -4917,7 +5060,11 @@ void CBasePlayer::Spawn( void )
 	
  // only preserve the shadow flag
 	int effects = GetEffects() & EF_NOSHADOW;
+#ifdef GE_DLL
+	SetEffects( effects | EF_NOINTERP | EF_NODRAW );
+#else
 	SetEffects( effects );
+#endif
 
 	IncrementInterpolationFrame();
 
@@ -4947,7 +5094,10 @@ void CBasePlayer::Spawn( void )
 	if ( !m_fGameHUDInitialized )
 		g_pGameRules->SetDefaultPlayerTeam( this );
 
+#ifndef GE_DLL
+	// We take care of this in CGEMPPlayer::Spawn()
 	g_pGameRules->GetPlayerSpawnSpot( this );
+#endif
 
 	m_Local.m_bDucked = false;// This will persist over round restart if you hold duck otherwise. 
 	m_Local.m_bDucking = false;
@@ -4993,6 +5143,8 @@ void CBasePlayer::Spawn( void )
 		LockPlayerInPlace();
 	}
 
+#ifndef GE_DLL
+	// GE - we don't want this to happen due to various reasons
 	if ( GetTeamNumber() != TEAM_SPECTATOR )
 	{
 		StopObserverMode();
@@ -5001,6 +5153,12 @@ void CBasePlayer::Spawn( void )
 	{
 		StartObserverMode( m_iObserverLastMode );
 	}
+#else
+	if ( GetTeamNumber() == TEAM_SPECTATOR )
+	{
+		StartObserverMode( m_iObserverLastMode );
+	}
+#endif
 
 	StopReplayMode();
 
@@ -5012,7 +5170,10 @@ void CBasePlayer::Spawn( void )
 
 	m_flLaggedMovementValue = 1.0f;
 	m_vecSmoothedVelocity = vec3_origin;
-	InitVCollision( GetAbsOrigin(), GetAbsVelocity() );
+#ifdef GE_DLL
+	if ( !IsObserver() )
+		InitVCollision( GetAbsOrigin(), GetAbsVelocity() );
+#endif
 
 #if !defined( TF_DLL )
 	IGameEvent *event = gameeventmanager->CreateEvent( "player_spawn" );
@@ -5306,8 +5467,13 @@ void CBasePlayer::CommitSuicide( const Vector &vecForce, bool bExplode /*= false
 	MDLCACHE_CRITICAL_SECTION();
 
 	// Already dead.
+#ifdef GE_DLL
+	if( !IsAlive() && !IsObserver() )
+		return;
+#else
 	if( !IsAlive() )
 		return;
+#endif
 
 	// Prevent suicides for a time.
 	if ( m_fNextSuicideTime > gpGlobals->curtime && !bForce )
@@ -5326,6 +5492,11 @@ void CBasePlayer::CommitSuicide( const Vector &vecForce, bool bExplode /*= false
 	info.SetDamageForce( vecForce );
 	info.SetDamagePosition( WorldSpaceCenter() );
 	TakeDamage( info );
+
+#ifdef GE_DLL
+	// Tell everyone we are dead by our own hand
+	gamestats->Event_PlayerKilledOther( this, this, info );
+#endif
 }
 
 //==============================================
@@ -5662,6 +5833,15 @@ CBaseEntity	*CBasePlayer::GiveNamedItem( const char *pszName, int iSubType )
 	// Msg( "giving %s\n", pszName );
 
 	EHANDLE pent;
+
+#ifdef GE_DLL
+	// Make sure we have a valid factory for this entity (eg don't spawn non existent weapons!
+	if ( !CanCreateEntityClass(pszName) )
+	{
+		Warning( "Tried to create unknown entity %s\n", pszName );
+		return NULL;
+	}
+#endif
 
 	pent = CreateEntityByName(pszName);
 	if ( pent == NULL )
@@ -6622,6 +6802,7 @@ bool CBasePlayer::BumpWeapon( CBaseCombatWeapon *pWeapon )
 		}
 		else
 		{
+#ifndef GE_DLL
 #ifdef HL2_DLL
 
 			if ( IsX360() )
@@ -6642,6 +6823,7 @@ bool CBasePlayer::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 				Weapon_Switch( pWeapon );
 			}
+#endif
 #endif
 		}
 		return true;
@@ -6713,6 +6895,7 @@ QAngle CBasePlayer::BodyAngles()
 //------------------------------------------------------------------------------
 Vector CBasePlayer::BodyTarget( const Vector &posSrc, bool bNoisy ) 
 { 
+#ifndef GE_DLL
 	if ( IsInAVehicle() )
 	{
 		return GetVehicle()->GetVehicleEnt()->BodyTarget( posSrc, bNoisy );
@@ -6725,6 +6908,9 @@ Vector CBasePlayer::BodyTarget( const Vector &posSrc, bool bNoisy )
 	{
 		return EyePosition(); 
 	}
+#else
+	return BaseClass::BodyTarget( posSrc, bNoisy );
+#endif
 };		
 
 /*
@@ -7330,6 +7516,7 @@ void CBasePlayer::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 
 	bool bShouldSwitch = g_pGameRules->FShouldSwitchWeapon( this, pWeapon );
 
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	if ( bShouldSwitch == false && PhysCannonGetHeldEntity( GetActiveWeapon() ) == pWeapon && 
 		 Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType()) )
@@ -7337,6 +7524,7 @@ void CBasePlayer::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 		bShouldSwitch = true;
 	}
 #endif//HL2_DLL
+#endif
 
 	// should we switch to this item?
 	if ( bShouldSwitch )
@@ -7481,7 +7669,11 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 	}
 
 	// Are we being added to a team?
+#ifdef GE_DLL
+	if ( GetGlobalTeam(iTeamNum) )
+#else
 	if ( iTeamNum )
+#endif
 	{
 		GetGlobalTeam( iTeamNum )->AddPlayer( this );
 	}

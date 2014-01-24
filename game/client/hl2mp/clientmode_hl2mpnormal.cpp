@@ -21,6 +21,8 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Globals
 //-----------------------------------------------------------------------------
@@ -125,4 +127,4 @@ void ClientModeHL2MPNormal::Init()
 }
 
 
-
+#endif

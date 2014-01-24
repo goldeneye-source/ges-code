@@ -37,7 +37,9 @@ public:
 
 	virtual void		Precache( void )
 	{
+	#ifndef GE_DLL
 		PrecacheParticleSystem( "achieved" );
+	#endif
 
 		BaseClass::Precache();
 	}

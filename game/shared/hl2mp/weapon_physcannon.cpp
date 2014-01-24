@@ -81,7 +81,9 @@ extern ConVar hl2_walkspeed;
 	//Precahce the effects
 	CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectPhysCannon )
 	CLIENTEFFECT_MATERIAL( "sprites/orangelight1" )
+#ifndef GE_DLL
 	CLIENTEFFECT_MATERIAL( "sprites/orangelight1_noz" )
+#endif
 	CLIENTEFFECT_MATERIAL( PHYSCANNON_GLOW_SPRITE )
 	CLIENTEFFECT_MATERIAL( PHYSCANNON_ENDCAP_SPRITE )
 	CLIENTEFFECT_MATERIAL( PHYSCANNON_CENTER_GLOW )
@@ -1286,9 +1288,10 @@ BEGIN_PREDICTION_DATA( CWeaponPhysCannon )
 END_PREDICTION_DATA()
 #endif
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_physcannon, CWeaponPhysCannon );
 PRECACHE_WEAPON_REGISTER( weapon_physcannon );
-
+#endif
 #ifndef CLIENT_DLL
 
 acttable_t	CWeaponPhysCannon::m_acttable[] = 

@@ -447,8 +447,9 @@ bool CWorld::KeyValue( const char *szKeyName, const char *szValue )
 	return true;
 }
 
-
+#ifndef GE_DLL
 extern bool		g_fGameOver;
+#endif
 static CWorld *g_WorldEntity = NULL;
 
 CWorld* GetWorldEntity()
@@ -577,7 +578,9 @@ const char *GetDefaultLightstyleString( int styleIndex )
 void CWorld::Precache( void )
 {
 	g_WorldEntity = this;
+#ifndef GE_DLL
 	g_fGameOver = false;
+#endif
 	g_pLastSpawn = NULL;
 
 	ConVarRef stepsize( "sv_stepsize" );
@@ -616,7 +619,10 @@ void CWorld::Precache( void )
 	EventList_Free();
 	RegisterSharedEvents();
 
+#ifndef GE_DLL
 	InitBodyQue();
+#endif
+
 // init sentence group playback stuff from sentences.txt.
 // ok to call this multiple times, calls after first are ignored.
 

@@ -936,7 +936,64 @@ void CAI_NetworkManager::InitializeAINetworks()
 	{
 		g_ai_norebuildgraph.SetValue( 0 );
 	}
+
+#ifdef GE_DLL
+	if ( CAI_NetworkManager::IsTextFileNewer( STRING( gpGlobals->mapname ) ) )
+	{
+		char szNodeTextFilename[MAX_PATH];// text node coordinate filename
+		Q_snprintf( szNodeTextFilename, sizeof( szNodeTextFilename ),
+				"maps/graphs/%s%s.txt", STRING( gpGlobals->mapname ), GetPlatformExt() );
+
+		CUtlBuffer buf( 0, 0, CUtlBuffer::TEXT_BUFFER );
+		if ( filesystem->ReadFile( szNodeTextFilename, "game", buf ) )
+		{
+			Msg("Parsing .txt node file!\n");		
+			if (!buf.Size())
+				return;
+
+			const int maxLen = 64;
+			char line[ maxLen ];
+			CUtlVector<char*> floats;
+			int num = 0;
+
+			// loop through every line of the file, read it in
+			while( true )
+			{
+				buf.GetLine( line, maxLen );
+				if ( Q_strlen(line) <= 0 )
+					break; // reached the end of the file
+
+				// we've read in a string containing 3 tab separated floats
+				// we need to split this into 3 floats, which we put in a vector
+				V_SplitString( line, "	", floats );
+				Vector origin( atof( floats[0] ), atof( floats[1] ), atof( floats[2] ) );
+				//Msg("Parsed Vector(%.2f, %.2f, %.2f)\n",origin.x,origin.y,origin.z);
+
+				floats.PurgeAndDeleteElements();
+
+				// now we want to create a CNodeEnt (info_node) at the location these coordinates describe
+				CNodeEnt *pNode = (CNodeEnt*)CreateNoSpawn( "info_node", origin, vec3_angle, NULL );
+				if ( pNode )
+				{//	setting this index stops it moaning, doesn't seem to affect anything else though
+					pNode->m_NodeData.nWCNodeID = g_pAINetworkManager->GetEditOps()->m_nNextWCIndex;
+					pNode->Spawn(); // spawning it adds it into the node graph
+					num ++;
+				}
+
+				if ( !buf.IsValid() )
+					break;
+			}
+
+			// when the DelayedInit is reached, will rebuild the graph from these nodes,
+			// and save it out in the .ain file so we don't need to do this next time
+			pNetwork->SetRebuildNeeded();
+			Msg("Created %i nodes from text file\n",num);
+		}
+	}
+	else if ( CAI_NetworkManager::IsAIFileCurrent( STRING( gpGlobals->mapname ) ) )
+#else
 	if ( CAI_NetworkManager::IsAIFileCurrent( STRING( gpGlobals->mapname ) ) )
+#endif
 	{
 		pNetwork->LoadNetworkGraph(); 
 		if ( !g_bAIDisabledByUser )
@@ -1025,6 +1082,35 @@ bool CAI_NetworkManager::IsAIFileCurrent ( const char *szMapName )
 	}
 	return false;
 }
+
+#ifdef GE_DLL
+//-----------------------------------------------------------------------------
+// Purpose: Returns true if there's a node text file, and its newer than the nodegraph file
+//-----------------------------------------------------------------------------
+bool CAI_NetworkManager::IsTextFileNewer( const char *szMapName )
+{
+	char szGraphFilename[MAX_PATH];
+	char szTextFilename[MAX_PATH];
+	Q_snprintf( szGraphFilename, sizeof( szGraphFilename ), "maps/graphs/%s%s.ain", szMapName, GetPlatformExt() );
+	Q_snprintf( szTextFilename, sizeof( szTextFilename ), "maps/graphs/%s%s.txt", szMapName, GetPlatformExt() );
+
+	if ( !filesystem->FileExists( szTextFilename ) )
+		return false; // if there's no text file, we clearly CANT use it
+
+	int iCompare;
+	if ( engine->CompareFileTime( szTextFilename, szGraphFilename, &iCompare ) )
+	{
+		if ( iCompare > 0 )
+		{
+			Msg("Text file is newer\n");
+			return true; // text file is newer
+		}
+	}
+
+	Msg("Network file is newer\n");
+	return false;				
+}
+#endif
 
 //------------------------------------------------------------------------------
 

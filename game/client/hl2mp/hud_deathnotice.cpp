@@ -8,6 +8,10 @@
 #include "hudelement.h"
 #include "hud_macros.h"
 #include "c_playerresource.h"
+
+#ifdef GE_DLL
+#include "clientmode_ge.h"
+#else
 #include "clientmode_hl2mpnormal.h"
 #include <vgui_controls/Controls.h>
 #include <vgui_controls/Panel.h>
@@ -23,6 +27,7 @@
 
 static ConVar hud_deathnotice_time( "hud_deathnotice_time", "6", 0 );
 
+#ifndef GE_DLL
 // Player entries in a death notice
 struct DeathNoticePlayer
 {
@@ -147,7 +152,11 @@ void CHudDeathNotice::Paint()
 	if ( !m_iconD_skull )
 		return;
 
+#ifdef GE_DLL
+	int yStart = GetClientModeGENormal()->GetDeathMessageStartHeight();
+#else
 	int yStart = GetClientModeHL2MPNormal()->GetDeathMessageStartHeight();
+#endif
 
 	surface()->DrawSetTextFont( m_hTextFont );
 	surface()->DrawSetTextColor( GameResources()->GetTeamColor( 0 ) );
@@ -348,5 +357,5 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 	Msg( "%s", sDeathMsg );
 }
 
-
+#endif
 

@@ -17,6 +17,11 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifdef GE_DLL
+// CHANGE TO ADD LIGHT STYLE!
+ConVar cl_ge_noexpdynlight( "cl_ge_noexpdynlight", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Disables the dynamic light on rolling explosions" );
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Dynamic Light
 //-----------------------------------------------------------------------------
@@ -83,8 +88,28 @@ C_TEDynamicLight::~C_TEDynamicLight( void )
 void TE_DynamicLight( IRecipientFilter& filter, float delay,
 	const Vector* org, int r, int g, int b, int exponent, float radius, float time, float decay, int nLightIndex )
 {
+#ifdef GE_DLL
+	if ( time > 1.0f && cl_ge_noexpdynlight.GetBool() )
+		return;
+#endif
+
+	// Create a "Dynamic" light that will illuminate the world
 	dlight_t *dl = effects->CL_AllocDlight( nLightIndex );
 	if ( !dl )
+		return;
+
+	dl->origin	= *org;
+	dl->radius	= radius;
+	dl->color.r	= r;
+	dl->color.g	= g;
+	dl->color.b	= b;
+	dl->color.exponent	= exponent;
+	dl->die		= gpGlobals->curtime + time;
+	dl->decay	= decay;
+
+	// Create an "Entity" Light that will illumninate entities
+	dlight_t *el = effects->CL_AllocElight( nLightIndex );
+	if ( !el )
 		return;
 
 	dl->origin	= *org;

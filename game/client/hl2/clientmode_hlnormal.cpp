@@ -21,6 +21,8 @@ extern bool g_bRollingCredits;
 
 ConVar fov_desired( "fov_desired", "75", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the base field-of-view.", true, 75.0, true, 90.0 );
 
+#ifndef GE_DLL
+
 //-----------------------------------------------------------------------------
 // Globals
 //-----------------------------------------------------------------------------
@@ -96,4 +98,4 @@ bool ClientModeHLNormal::ShouldDrawCrosshair( void )
 }
 
 
-
+#endif

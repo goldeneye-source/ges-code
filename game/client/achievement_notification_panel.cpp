@@ -27,6 +27,8 @@
 
 using namespace vgui;
 
+#ifndef GE_DLL
+
 #define ACHIEVEMENT_NOTIFICATION_DURATION 10.0f
 
 //-----------------------------------------------------------------------------
@@ -270,3 +272,5 @@ CON_COMMAND_F( achievement_notification_test, "Test the hud notification UI", FC
 
 	iCount++;
 }
+
+#endif // GE_DLL

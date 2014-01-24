@@ -38,7 +38,8 @@ public:
 	void		Event_Killed( const CTakeDamageInfo &info );
 
 public:
-	void EXPORT				Detonate(void);
+	//GE_DLL: Removed EXPORT
+	void 				Detonate(void);
 	CGrenadeAR2(void);
 
 	DECLARE_DATADESC();

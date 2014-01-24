@@ -14,6 +14,8 @@
 #include <vgui_controls/EditablePanel.h>
 #include "hudelement.h"
 
+#ifndef GE_DLL
+
 using namespace vgui;
 
 class CAchievementNotificationPanel : public CHudElement, public EditablePanel
@@ -53,5 +55,6 @@ private:
 
 	CUtlLinkedList<Notification_t> m_queueNotification;
 };
+#endif //GE_DLL
 
 #endif	// ACHIEVEMENT_NOTIFICATION_PANEL_H

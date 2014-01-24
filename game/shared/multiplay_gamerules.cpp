@@ -326,7 +326,9 @@ bool CMultiplayRules::Init()
 
 #else 
 
+#ifndef GE_DLL
 	extern bool			g_fGameOver;
+#endif
 
 	#define ITEM_RESPAWN_TIME	30
 	#define WEAPON_RESPAWN_TIME	20
@@ -342,6 +344,7 @@ bool CMultiplayRules::Init()
 	// override some values for multiplay.
 
 		// suitcharger
+#ifndef GE_DLL
 #ifndef TF_DLL
 //=============================================================================
 // HPE_BEGIN:
@@ -362,6 +365,10 @@ ConVarRef suitcharger( "sk_suitcharger" );
 	//=========================================================
 	void CMultiplayRules::Think ( void )
 	{
+#ifdef GE_DLL
+		// We should never get here in GES!!
+		Assert( 0 );
+#else
 		BaseClass::Think();
 		
 		///// Check game rules /////
@@ -395,6 +402,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 				}
 			}
 		}
+#endif // GE_DLL
 	}
 
 	//=========================================================
@@ -530,8 +538,12 @@ ConVarRef suitcharger( "sk_suitcharger" );
 			// from another weapon, skip it.
 			if ( pCurrentWeapon && !pCheck->AllowsAutoSwitchTo() )
 				continue;
-
+#ifdef GE_DLL
+			// We don't want to stay in the melee category if we have a better weapon
+			if ( pCheck->GetWeight() > 0 && pCheck->GetWeight() == iCurrentWeight && pCheck != pCurrentWeapon )
+#else
 			if ( pCheck->GetWeight() > -1 && pCheck->GetWeight() == iCurrentWeight && pCheck != pCurrentWeapon )
+#endif
 			{
 				// this weapon is from the same category. 
 				if ( pCheck->HasAnyAmmo() )
@@ -641,7 +653,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	//=========================================================
 	//=========================================================
-	bool CMultiplayRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info )
+	bool CMultiplayRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker )
 	{
 		return true;
 	}
@@ -650,6 +662,8 @@ ConVarRef suitcharger( "sk_suitcharger" );
 	//=========================================================
 	void CMultiplayRules::PlayerThink( CBasePlayer *pPlayer )
 	{
+#ifndef GE_DLL
+// GE_DLL: Removing g_fGameOver
 		if ( g_fGameOver )
 		{
 			// clear attack/use commands from player
@@ -657,6 +671,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 			pPlayer->m_nButtons = 0;
 			pPlayer->m_afButtonReleased = 0;
 		}
+#endif
 	}
 
 	//=========================================================
@@ -665,8 +680,11 @@ ConVarRef suitcharger( "sk_suitcharger" );
 	{
 		bool		addDefault;
 		CBaseEntity	*pWeaponEntity = NULL;
-
+#ifdef GE_DLL
+		pPlayer->EquipSuit( false );
+#else
 		pPlayer->EquipSuit();
+#endif
 		
 		addDefault = true;
 
@@ -1123,6 +1141,11 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	void CMultiplayRules::GoToIntermission( void )
 	{
+#ifdef GE_DLL
+		// We should never be here!
+		Assert( 0 );
+#else
+// GE_DLL: Removing g_fGameOver
 		if ( g_fGameOver )
 			return;
 
@@ -1147,6 +1170,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 			pPlayer->ShowViewPortPanel( PANEL_SCOREBOARD );
 		}
+#endif
 	}
 
 	void StripChar(char *szBuffer, const char cWhiteSpace )
@@ -1186,6 +1210,17 @@ ConVarRef suitcharger( "sk_suitcharger" );
 				LoadMapCycleFile();
 			}
 		}
+
+#ifdef GE_DLL
+		for ( int i = 0; i < m_MapList.Count(); i++ )
+		{
+			if ( gpGlobals->mapname.ToCStr() && Q_stricmp(m_MapList[i], gpGlobals->mapname.ToCStr()) == 0)
+			{
+					m_nMapCycleindex = i;
+					IncrementMapCycleIndex();
+			}
+		}
+#endif
 
 		// If somehow we have no maps in the list then add the current one
 		if ( 0 == m_MapList.Count() )
@@ -1334,6 +1369,10 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	void CMultiplayRules::ChangeLevel( void )
 	{
+#ifdef GE_DLL
+		// We should never get here!
+		Assert( 0 );
+#else
 		char szNextMap[MAX_MAP_NAME];
 
 		if ( nextlevel.GetString() && *nextlevel.GetString() && engine->IsMapValid( nextlevel.GetString() ) )
@@ -1482,10 +1521,10 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		m_flTimeLastMapChangeOrPlayerWasConnected = 0.0f;
 		Msg( "CHANGE LEVEL: %s\n", pszMap );
 		engine->ChangeLevel( pszMap, NULL );
+#endif
 	}
 
-
-#endif		
+#endif // GAME_DLL
 
 
 	//-----------------------------------------------------------------------------

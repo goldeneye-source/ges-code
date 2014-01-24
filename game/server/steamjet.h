@@ -53,6 +53,12 @@ public:
 	CNetworkVar( int, m_nType );		// Type of steam (normal, heatwave)
 	CNetworkVar( float, m_flRollSpeed );
 
+#ifdef GE_DLL
+	CNetworkVar( bool, m_bIsForExplosion );
+	CNetworkVar( float, m_flStartFadeTime );
+	CNetworkVar( float, m_flFadeDuration );
+#endif
+
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 };
 

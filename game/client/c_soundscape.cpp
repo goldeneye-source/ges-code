@@ -16,6 +16,11 @@
 #include "engine/ivdebugoverlay.h"
 #include "tier0/icommandline.h"
 
+#ifdef GE_DLL
+	// For special music setup
+	#include "ge_musicmanager.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -75,6 +80,18 @@ struct subsoundscapeparams_t
 	bool	wroteDSPVolume;
 };
 
+#ifdef GE_DLL
+void GESndMixer_Callback( IConVar *var, const char *pOldString, float flOldValue )
+{
+	ConVar *cVar = static_cast<ConVar*>(var);
+
+	if ( !Q_stricmp( cVar->GetString(), "GE_NoMusic" ) )
+		GEMusicManager()->PauseMusic();
+	else if ( !Q_stricmp( pOldString, "GE_NoMusic" ) )
+		GEMusicManager()->ResumeMusic();
+}
+#endif
+
 class C_SoundscapeSystem : public CBaseGameSystemPerFrame
 {
 public:
@@ -109,6 +126,9 @@ public:
 		if ( !m_pSoundMixerVar )
 		{
 			m_pSoundMixerVar = (ConVar *)cvar->FindVar( "snd_soundmixer" );
+		#ifdef GE_DLL
+			m_pSoundMixerVar->InstallChangeCallback( GESndMixer_Callback );
+		#endif
 		}
 		if ( !m_pDSPVolumeVar )
 		{
@@ -614,6 +634,10 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 		params.ambientPositionOverride = -1;
 		StartSubSoundscape( pSoundscape, params );
 
+#ifdef GE_DLL
+		GEMusicManager()->SetSoundscape( pSoundscape->GetName() );
+#endif
+
 		if ( !params.wroteDSPVolume )
 		{
 			m_pDSPVolumeVar->Revert();
@@ -623,6 +647,12 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 			m_pSoundMixerVar->Revert();
 		}
 	}
+#ifdef GE_DLL
+	else
+	{
+		GEMusicManager()->SetSoundscape( "" );
+	}
+#endif
 }
 
 void C_SoundscapeSystem::StartSubSoundscape( KeyValues *pSoundscape, subsoundscapeparams_t &params )

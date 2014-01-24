@@ -32,7 +32,11 @@
 //#define CHAR_TEX_UNUSED		'R'
 #define CHAR_TEX_SLOSH			'S'
 #define CHAR_TEX_TILE			'T'
+#ifdef GE_DLL
+#define CHAR_TEX_BPGLASS		'U'
+#else
 //#define CHAR_TEX_UNUSED		'U'
+#endif
 #define CHAR_TEX_VENT			'V'
 #define CHAR_TEX_WOOD			'W'
 //#define CHAR_TEX_UNUSED		'X'

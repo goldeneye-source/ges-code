@@ -93,7 +93,11 @@ CTextWindow::CTextWindow(IViewPort *pViewPort) : Frame(NULL, PANEL_INFO	)
 	m_bUnloadOnDismissal = false;
 	
 	// load the new scheme early!!
+#ifdef GE_DLL
+	SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/TeamMenuScheme.res", "TeamMenuScheme"));
+#else
 	SetScheme("ClientScheme");
+#endif
 	SetMoveable(false);
 	SetSizeable(false);
 	SetProportional(true);

@@ -10,6 +10,9 @@
 #pragma once
 
 class C_HL2MP_Player;
+#ifdef GE_DLL
+class C_HL2MPRagdoll;
+#endif
 #include "c_basehlplayer.h"
 #include "hl2mp_player_shared.h"
 #include "beamdraw.h"
@@ -65,6 +68,9 @@ public:
 	virtual void CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov );
 	virtual const QAngle& EyeAngles( void );
 
+#ifdef GE_DLL
+	C_HL2MPRagdoll *GetRagdoll( void ) { return (C_HL2MPRagdoll*)m_hRagdoll.Get(); };
+#endif
 	
 	bool	CanSprint( void );
 	void	StartSprinting( void );
@@ -116,9 +122,14 @@ private:
 
 	CountdownTimer m_blinkTimer;
 
+#ifdef GE_DLL
+protected:
+#endif
 	int	  m_iSpawnInterpCounter;
 	int	  m_iSpawnInterpCounterCache;
-
+#ifdef GE_DLL
+private:
+#endif
 	int	  m_iPlayerSoundType;
 
 	void ReleaseFlashlight( void );

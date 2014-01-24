@@ -31,6 +31,7 @@
 //-----------------------------------------------------------------------------
 bool CAI_BaseHumanoid::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
 {
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	// Annoying to ifdef this out. Copy it into all the HL2 specific humanoid NPC's instead?
 	if ( interactionType == g_interactionBarnacleVictimDangle )
@@ -47,6 +48,8 @@ bool CAI_BaseHumanoid::HandleInteraction(int interactionType, void *data, CBaseC
 		return true;
 	}
 #endif
+#endif
+
 	return BaseClass::HandleInteraction( interactionType, data, sourceEnt);
 }
 
@@ -233,7 +236,11 @@ void CAI_BaseHumanoid::StartTaskRangeAttack1( const Task_t *pTask )
 	if ( GetShotRegulator()->ShouldShoot() )
 	{
 		OnRangeAttack1();
+	#ifdef GE_DLL
+		RestartGesture( TranslateActivity( ACT_GESTURE_RANGE_ATTACK1 ) );
+	#else
 		ResetIdealActivity( ACT_RANGE_ATTACK1 );
+	#endif
 	}
 	else
 	{

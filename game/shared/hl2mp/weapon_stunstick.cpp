@@ -145,9 +145,10 @@ END_NETWORK_TABLE()
 BEGIN_PREDICTION_DATA( CWeaponStunStick )
 END_PREDICTION_DATA()
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_stunstick, CWeaponStunStick );
 PRECACHE_WEAPON_REGISTER( weapon_stunstick );
-
+#endif
 
 #ifndef CLIENT_DLL
 

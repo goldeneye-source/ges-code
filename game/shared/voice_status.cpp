@@ -30,6 +30,11 @@
 #include "cdll_int.h"
 #include <vgui/IPanel.h>
 
+#ifdef GE_DLL
+	#include "c_ge_player.h"
+	#include "gemp_gamerules.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -215,6 +220,13 @@ void CVoiceStatus::DrawHeadLabels()
 
 	CMatRenderContextPtr pRenderContext( materials );
 
+#ifdef GE_DLL
+	Vector vLocalOrigin;
+	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+	if ( pLocalPlayer )
+		vLocalOrigin = pLocalPlayer->EyePosition();
+#endif
+
 	for(int i=0; i < VOICE_MAX_PLAYERS; i++)
 	{
 		if ( !m_VoicePlayers[i] )
@@ -233,10 +245,26 @@ void CVoiceStatus::DrawHeadLabels()
 		// Don't show an icon for dead or spectating players (ie: invisible entities).
 		if( pPlayer->IsPlayerDead() )
 			continue;
+		
+	#ifdef GE_DLL
+		// If we have a hat, place the icon above the hat
+		// otherwise place it above the player bounding box
+		float flZOffset = g_flHeadIconSize * 0.5;
+		flZOffset += ToGEPlayer(pPlayer)->GetHeadOffset();
 
+		// Check for line of sight
+		trace_t tr;
+		UTIL_TraceLine( vLocalOrigin, pPlayer->EyePosition() + Vector(0,0,flZOffset), MASK_BLOCKLOS, pLocalPlayer, COLLISION_GROUP_NONE, &tr );
+		if ( tr.fraction != 1.0 )
+			continue;
+
+		Vector vOrigin = pPlayer->GetAbsOrigin();
+		vOrigin.z += pPlayer->WorldAlignSize().z + flZOffset;
+	#else
 		// Place it 20 units above his head.
 		Vector vOrigin = pPlayer->WorldSpaceCenter();
 		vOrigin.z += g_flHeadOffset;
+	#endif
 
 		
 		// Align it so it never points up or down.
@@ -248,6 +276,9 @@ void CVoiceStatus::DrawHeadLabels()
 		vRight.z = 0;
 		VectorNormalize( vRight );
 
+		// GE_DLL
+		static unsigned char col_norm[4] = {255, 255, 255, 200};
+		unsigned char *color = col_norm;
 
 		float flSize = g_flHeadIconSize;
 
@@ -256,22 +287,22 @@ void CVoiceStatus::DrawHeadLabels()
 		CMeshBuilder meshBuilder;
 		meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
-		meshBuilder.Color3f( 1.0, 1.0, 1.0 );
+		meshBuilder.Color4ubv( color );
 		meshBuilder.TexCoord2f( 0,0,0 );
 		meshBuilder.Position3fv( (vOrigin + (vRight * -flSize) + (vUp * flSize)).Base() );
 		meshBuilder.AdvanceVertex();
 
-		meshBuilder.Color3f( 1.0, 1.0, 1.0 );
+		meshBuilder.Color4ubv( color );
 		meshBuilder.TexCoord2f( 0,1,0 );
 		meshBuilder.Position3fv( (vOrigin + (vRight * flSize) + (vUp * flSize)).Base() );
 		meshBuilder.AdvanceVertex();
 
-		meshBuilder.Color3f( 1.0, 1.0, 1.0 );
+		meshBuilder.Color4ubv( color );
 		meshBuilder.TexCoord2f( 0,1,1 );
 		meshBuilder.Position3fv( (vOrigin + (vRight * flSize) + (vUp * -flSize)).Base() );
 		meshBuilder.AdvanceVertex();
 
-		meshBuilder.Color3f( 1.0, 1.0, 1.0 );
+		meshBuilder.Color4ubv( color );
 		meshBuilder.TexCoord2f( 0,0,1 );
 		meshBuilder.Position3fv( (vOrigin + (vRight * -flSize) + (vUp * -flSize)).Base() );
 		meshBuilder.AdvanceVertex();
@@ -299,6 +330,14 @@ void CVoiceStatus::UpdateSpeakerStatus(int entindex, bool bTalking)
 		{
 			// Enable voice for them automatically if they try to talk.
 			engine->ClientCmd( "voice_modenable 1" );
+
+#if defined(_DEBUG) && defined(GE_DLL)
+			m_VoicePlayers[0] = true;
+		}
+		else
+		{
+			m_VoicePlayers[0] = false;
+#endif
 		}
 	}
 	else if( entindex == -2 )

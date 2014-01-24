@@ -42,8 +42,10 @@ END_NETWORK_TABLE()
 BEGIN_PREDICTION_DATA( CWeaponCrowbar )
 END_PREDICTION_DATA()
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_crowbar, CWeaponCrowbar );
 PRECACHE_WEAPON_REGISTER( weapon_crowbar );
+#endif
 
 #ifndef CLIENT_DLL
 

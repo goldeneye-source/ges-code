@@ -78,6 +78,9 @@ float k_flMaxEntitySpinRate = k_flMaxAngularVelocity * 10.0f;
 ConVar	ai_shot_bias_min( "ai_shot_bias_min", "-1.0", FCVAR_REPLICATED );
 ConVar	ai_shot_bias_max( "ai_shot_bias_max", "1.0", FCVAR_REPLICATED );
 ConVar	ai_debug_shoot_positions( "ai_debug_shoot_positions", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
+#ifdef GE_DLL
+ConVar	ai_debug_aim_positions( "ai_debug_aim_positions", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
+#endif
 
 // Utility func to throttle rate at which the "reasonable position" spew goes out
 static double s_LastEntityReasonableEmitTime;
@@ -1593,6 +1596,7 @@ public:
 typedef CTraceFilterSimpleList CBulletsTraceFilter;
 #endif
 
+#ifndef GE_DLL
 void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 {
 	static int	tracerCount;
@@ -1725,7 +1729,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		float fPortalFraction = 2.0f;
 #endif
 
-
+#ifndef GE_DLL
 		if( IsPlayer() && info.m_iShots > 1 && iShot % 2 )
 		{
 			// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
@@ -1766,6 +1770,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 			AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
 #endif //#ifdef PORTAL
 		}
+#endif // GE_DLL
 
 		// Tracker 70354/63250:  ywb 8/2/07
 		// Fixes bug where trace from turret with attachment point outside of Vcollide
@@ -1940,6 +1945,8 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		if ( tr.m_pEnt != NULL )
 		{
 #ifdef GAME_DLL
+#ifdef GE_DLL
+			// GE TODO: PUT PENETRATING SHOTS IN HERE!!!
 			surfacedata_t *psurf = physprops->GetSurfaceData( tr.surface.surfaceProps );
 			if ( ( psurf != NULL ) && ( psurf->game.material == CHAR_TEX_GLASS ) && ( tr.m_pEnt->ClassMatches( "func_breakable" ) ) )
 			{
@@ -1949,6 +1956,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 					bHitGlass = true;
 				}
 			}
+#endif
 #endif
 		}
 
@@ -2005,11 +2013,32 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 
 		// See if we should pass through glass
 #ifdef GAME_DLL
+#ifdef GE_DLL
+		if ( bHitGlass )
+		{
+			FireBulletsInfo_t modinfo = info;
+			modinfo.m_nFlags |= FIRE_BULLETS_PENETRATED_SHOT;
+			HandleShotImpactingGlass( modinfo, tr, vecDir, &traceFilter );
+		}
+
+		// Per bullet damage!
+		ApplyMultiDamage();
+
+		if ( IsPlayer() && flCumulativeDamage > 0.0f )
+		{
+			CBasePlayer *pPlayer = static_cast< CBasePlayer * >( this );
+			CTakeDamageInfo dmgInfo( this, pAttacker, flCumulativeDamage, nDamageType );
+			dmgInfo.SetWeapon(pPlayer->GetActiveWeapon());
+			gamestats->Event_WeaponHit( pPlayer, true, pPlayer->GetActiveWeapon()->GetClassname(), dmgInfo );
+			flCumulativeDamage = 0.0f;
+		}
+#else
 		if ( bHitGlass )
 		{
 			HandleShotImpactingGlass( info, tr, vecDir, &traceFilter );
 		}
-#endif
+#endif // GE_DLL
+#endif // GAME_DLL
 
 		iSeed++;
 	}
@@ -2021,6 +2050,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 	}
 #endif
 
+#ifndef GE_DLL
 #ifdef GAME_DLL
 	ApplyMultiDamage();
 
@@ -2031,8 +2061,9 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		gamestats->Event_WeaponHit( pPlayer, info.m_bPrimaryAttack, pPlayer->GetActiveWeapon()->GetClassname(), dmgInfo );
 	}
 #endif
+#endif // GE_DLL
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Should we draw bubbles underwater?
@@ -2293,6 +2324,24 @@ void CBaseEntity::TraceBleed( float flDamage, const Vector &vecDir, trace_t *ptr
 	}
 #endif
 
+#ifdef GE_DLL
+	int maxHealth = GetMaxHealth();
+	if (flDamage < (maxHealth/3.0f) )
+	{
+		flNoise = 0.1;
+		cCount = 1;
+	}
+	else if (flDamage < (maxHealth/1.5f) )
+	{
+		flNoise = 0.2;
+		cCount = 2;
+	}
+	else
+	{
+		flNoise = 0.3;
+		cCount = 4;
+	}
+#else
 	if (flDamage < 10)
 	{
 		flNoise = 0.1;
@@ -2308,6 +2357,7 @@ void CBaseEntity::TraceBleed( float flDamage, const Vector &vecDir, trace_t *ptr
 		flNoise = 0.3;
 		cCount = 4;
 	}
+#endif // GE_DLL
 
 	float flTraceDist = (bitsDamageType & DMG_AIRBOAT) ? 384 : 172;
 	for ( i = 0 ; i < cCount ; i++ )
@@ -2358,8 +2408,10 @@ void CBaseEntity::FollowEntity( CBaseEntity *pBaseEntity, bool bBoneMerge )
 			AddEffects( EF_BONEMERGE );
 
 		AddSolidFlags( FSOLID_NOT_SOLID );
+#ifndef GE_DLL
 		SetLocalOrigin( vec3_origin );
 		SetLocalAngles( vec3_angle );
+#endif
 	}
 	else
 	{

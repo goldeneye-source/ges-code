@@ -63,6 +63,10 @@ public:
 	CBaseAchievement *GetAchievementByName( const char *pchName );
 	bool	HasAchieved( const char *pchName );
 
+#ifdef GE_DLL
+	void SendAchievementProgress( void );
+#endif
+
 	void UploadUserData();
 	void DownloadUserData();
 	void SaveGlobalState( bool bAsync = false );
@@ -109,6 +113,10 @@ public:
 	float GetTimeLastUpload() { return m_flTimeLastSaved; }			// time we last uploaded to Steam
 
 	bool WereCheatsEverOn( void ) { return m_bCheatsEverOn; }
+
+#ifdef GE_DLL
+	static const unsigned char *GetEncryptionKey() { return (unsigned char *)"e91f-v23"; }
+#endif
 
 #if !defined(NO_STEAM)
 	STEAM_CALLBACK( CAchievementMgr, Steam_OnUserStatsReceived, UserStatsReceived_t, m_CallbackUserStatsReceived );
@@ -159,6 +167,10 @@ private:
     //=============================================================================
     // HPE_END
     //=============================================================================
+	
+#ifdef GE_DLL
+	int m_iCompletionCount;
+#endif
 
     CUtlVector<int> m_AchievementsAwarded;
 };

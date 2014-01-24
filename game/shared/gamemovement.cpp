@@ -15,6 +15,16 @@
 #include "coordsize.h"
 #include "rumble_shared.h"
 
+#ifdef GE_DLL
+	#ifdef GAME_DLL
+		#include "ge_player.h"
+		#include "gemp_player.h"
+	#else
+		#include "c_ge_player.h"
+		#include "c_gemp_player.h"
+	#endif
+#endif
+
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 	#include "hl_movedata.h"
 #endif
@@ -639,6 +649,18 @@ CGameMovement::~CGameMovement( void )
 //-----------------------------------------------------------------------------
 unsigned int CGameMovement::PlayerSolidMask( bool brushOnly )
 {
+#ifdef GE_DLL
+
+		if (player->GetTeamNumber() == FIRST_GAME_TEAM)
+		{
+			return ( brushOnly ) ? MASK_PLAYERSOLID_BRUSHONLY : MASK_PLAYERSOLID | CONTENTS_TEAM1;
+		}
+		else
+		{
+			return ( brushOnly ) ? MASK_PLAYERSOLID_BRUSHONLY : MASK_PLAYERSOLID | CONTENTS_TEAM2;
+		}
+#endif
+
 	return ( brushOnly ) ? MASK_PLAYERSOLID_BRUSHONLY : MASK_PLAYERSOLID;
 }
 
@@ -1831,6 +1853,10 @@ void CGameMovement::Accelerate( Vector& wishdir, float wishspeed, float accel )
 
 	// See if we are changing direction a bit
 	currentspeed = mv->m_vecVelocity.Dot(wishdir);
+#ifdef GE_DLL
+	// Enable the below line to disable wall run speed increase
+	//currentspeed = sqrt( DotProduct(mv->m_vecVelocity, mv->m_vecVelocity) );
+#endif
 
 	// Reduce wishspeed by the amount of veer.
 	addspeed = wishspeed - currentspeed;
@@ -2080,6 +2106,17 @@ void CGameMovement::FullWalkMove( )
 	else
 	// Not fully underwater
 	{
+	#ifdef GE_DLL
+		if ( player->GetGroundEntity() != NULL && ((CGEPlayer*)player)->IsMPPlayer() && !((CGEMPPlayer*)player)->GetNextJumpTime() )
+		{
+			// Ok so we landed but we don't have a next jump time yet, so set it now
+			float delta = abs( ((CGEMPPlayer*)player)->GetStartJumpZ() - player->GetAbsOrigin().z );
+ 			((CGEMPPlayer*)player)->SetNextJumpTime( gpGlobals->curtime + ((delta < 30) ? RemapValClamped(delta,0,30,0.65,0) : 0));
+			// Make sure we don't use crouched hit boxes on landing
+			player->m_Local.m_bInDuckJump = false;
+		}
+	#endif
+
 		// Was jump button pressed?
 		if (mv->m_nButtons & IN_JUMP)
 		{
@@ -2187,10 +2224,12 @@ void CGameMovement::FullObserverMove( void )
 
 	float factor = sv_specspeed.GetFloat();
 
+#ifndef GE_DLL
 	if ( mv->m_nButtons & IN_SPEED )
 	{
 		factor /= 2.0f;
 	}
+#endif
 
 	float fmove = mv->m_flForwardMove * factor;
 	float smove = mv->m_flSideMove * factor;
@@ -2347,6 +2386,9 @@ void CGameMovement::PlaySwimSound()
 	MoveHelper()->StartSound( mv->GetAbsOrigin(), "Player.Swim" );
 }
 
+#ifdef GE_DLL
+extern ConVar ge_allowjump;
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2358,6 +2400,11 @@ bool CGameMovement::CheckJumpButton( void )
 		mv->m_nOldButtons |= IN_JUMP ;	// don't jump again until released
 		return false;
 	}
+
+#ifdef GE_DLL
+	if ( !ge_allowjump.GetBool() || (((CGEPlayer*)player)->IsMPPlayer() && gpGlobals->curtime < ((CGEMPPlayer*)player)->GetNextJumpTime()) )
+		return false;
+#endif
 
 	// See if we are waterjumping.  If so, decrement count and return.
 	if (player->m_flWaterJumpTime)
@@ -2418,6 +2465,14 @@ bool CGameMovement::CheckJumpButton( void )
 
 	// In the air now.
     SetGroundEntity( NULL );
+
+#ifdef GE_DLL
+	if (((CGEPlayer*)player)->IsMPPlayer())
+	{
+		((CGEMPPlayer*)player)->SetStartJumpZ(player->GetAbsOrigin().z);
+		((CGEMPPlayer*)player)->SetNextJumpTime(0.0f);
+	}
+#endif
 	
 	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
 	
@@ -2432,12 +2487,18 @@ bool CGameMovement::CheckJumpButton( void )
 	float flMul;
 	if ( g_bMovementOptimizations )
 	{
+#ifdef GE_DLL
+		Assert( GetCurrentGravity() == 700.0f );
+		//flMul = 250.998007960222f; //45 units
+		flMul = 204.93901531919196f; //30 units
+#else
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 		Assert( GetCurrentGravity() == 600.0f );
 		flMul = 160.0f;	// approx. 21 units.
 #else
 		Assert( GetCurrentGravity() == 800.0f );
 		flMul = 268.3281572999747f;
+#endif
 #endif
 
 	}
@@ -2504,12 +2565,14 @@ bool CGameMovement::CheckJumpButton( void )
 
 	OnJump(mv->m_outJumpVel.z);
 
+#ifndef GE_DLL
 	// Set jump time.
 	if ( gpGlobals->maxClients == 1 )
 	{
 		player->m_Local.m_flJumpTime = GAMEMOVEMENT_JUMP_TIME;
 		player->m_Local.m_bInDuckJump = true;
 	}
+#endif
 
 #if defined( HL2_DLL )
 
@@ -4294,6 +4357,11 @@ void CGameMovement::HandleDuckingSpeedCrop( void )
 	if ( !( m_iSpeedCropped & SPEED_CROPPED_DUCK ) && ( player->GetFlags() & FL_DUCKING ) && ( player->GetGroundEntity() != NULL ) )
 	{
 		float frac = 0.33333333f;
+	#ifdef GE_DLL
+		// Ducked players actually speed up a little when aimed
+		if ( ToGEPlayer(player)->IsInAimMode() )
+			frac = 0.75f;
+	#endif
 		mv->m_flForwardMove	*= frac;
 		mv->m_flSideMove	*= frac;
 		mv->m_flUpMove		*= frac;

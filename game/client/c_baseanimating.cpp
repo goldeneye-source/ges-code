@@ -3300,7 +3300,9 @@ int C_BaseAnimating::InternalDrawModel( int flags )
 }
 
 extern ConVar muzzleflash_light;
-
+#ifdef GE_DLL
+	extern void FormatViewModelAttachment( Vector &vOrigin, bool bInverse );
+#endif
 void C_BaseAnimating::ProcessMuzzleFlashEvent()
 {
 	// If we have an attachment, then stick a light on it.
@@ -3313,6 +3315,12 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 			QAngle dummyAngles;
 			GetAttachment( 1, vAttachment, dummyAngles );
 
+		#ifdef GE_DLL
+			// Format the position for first person view
+			if ( GetOwnerEntity() == CBasePlayer::GetLocalPlayer() )
+				::FormatViewModelAttachment( vAttachment, true );
+		#endif
+
 			// Make an elight
 			dlight_t *el = effects->CL_AllocElight( LIGHT_INDEX_MUZZLEFLASH + index );
 			el->origin = vAttachment;
@@ -3323,6 +3331,19 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 			el->color.g = 192;
 			el->color.b = 64;
 			el->color.exponent = 5;
+
+		#ifdef GE_DLL
+			// Make a dlight (world)
+			dlight_t *dl = effects->CL_AllocDlight( LIGHT_INDEX_MUZZLEFLASH + index );
+			dl->origin = vAttachment;
+			dl->radius = random->RandomInt( 32, 64 ); 
+			dl->decay = el->radius / 0.05f;
+			dl->die = gpGlobals->curtime + 0.05f;
+			dl->color.r = 255;
+			dl->color.g = 192;
+			dl->color.b = 64;
+			dl->color.exponent = 5;
+		#endif
 		}
 	}
 }
@@ -3558,6 +3579,14 @@ bool C_BaseAnimating::DispatchMuzzleEffect( const char *options, bool isFirstPer
 		{
 			weaponType = MUZZLEFLASH_RPG;
 		}
+
+#ifdef GE_DLL
+		else if ( Q_stricmp( token, "RIFLE" ) == 0 )
+		{
+			weaponType = MUZZLEFLASH_SMG1;
+		}
+#endif
+
 		else
 		{
 			//NOTENOTE: This means you specified an invalid muzzleflash type, check your spelling?
@@ -3830,10 +3859,25 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 				Vector attachOrigin;
 				QAngle attachAngles; 
 				
+		#ifdef GE_DLL
+				int type = atoi( options );
+				if ( type > 3 )
+				{
+					if ( GetAttachment( 3, attachOrigin, attachAngles ) )
+					{
+						tempents->EjectBrass( attachOrigin, attachAngles, GetAbsAngles(), type );
+					}
+				}
+				else
+				{
+		#endif
 				if( GetAttachment( 2, attachOrigin, attachAngles ) )
 				{
 					tempents->EjectBrass( attachOrigin, attachAngles, GetAbsAngles(), atoi( options ) );
 				}
+		#ifdef GE_DLL
+				}
+		#endif
 			}
 		}
 		break;
@@ -4405,7 +4449,7 @@ void C_BaseAnimating::PreDataUpdate( DataUpdateType_t updateType )
 	m_flOldCycle = GetCycle();
 	m_nOldSequence = GetSequence();
 	m_flOldModelScale = GetModelScale();
-
+	
 	int i;
 	for ( i=0;i<MAXSTUDIOBONECTRLS;i++ )
 	{

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -23,9 +23,17 @@ namespace vgui
 class CGrid : public Panel
 {
 public:
-						CGrid();
+	//GE_DLL
+	DECLARE_CLASS_SIMPLE( CGrid, Panel );
+
+						CGrid( Panel *parent, const char *panelName );
 	virtual				~CGrid();
 
+	// GE_DLL
+	virtual void		ApplySettings( KeyValues *inResourceData );
+	virtual void		GetSettings( KeyValues *outResourceData );
+
+	void				GetDimensions(int &xCols, int &yRows);
 	bool				SetDimensions(int xCols, int yRows);		// Set how many columns and rows in the grid.
 	void				Term();
 
@@ -50,9 +58,10 @@ public:
 																	// and y spacing).
 
 	void				AutoSetRowHeights();						// Just does SetRowHeight(iRow, CalcFitRowHeight(iRow)) for all rows.
+	void				AutoSizeCells();							// Autosizes the cells so that all columns and rows are equal size respectively
 
-	bool				GetEntryBox(								// Returns the bounding box for the specified entry.
-		int col, int row, int &x, int &y, int &w, int &h);
+	bool				GetEntryBox(int col, int row, int &x, int &y, int &w, int &h);	// Returns the bounding box for the specified entry.
+
 
 	bool				CopyColumnWidths(CGrid *pOther);			// Copy the column widths from the other grid. Fails if the 
 																	// column count is different.
@@ -110,6 +119,10 @@ protected:
 	int			*m_Heights;
 	int			*m_ColOffsets;
 	int			*m_RowOffsets;
+
+	// GE_DLL
+	CPanelAnimationVarAliasType( int, m_xPadding, "pad_x", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_yPadding, "pad_y", "0", "proportional_int" );
 	
 	CGridEntry	*m_GridEntries;
 	

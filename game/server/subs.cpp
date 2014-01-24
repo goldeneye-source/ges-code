@@ -60,7 +60,11 @@ END_DATADESC()
 
 
 // These are the new entry points to entities. 
+#if !defined( SDK_DLL ) && !defined( GE_DLL )
+// GES NOTE: We don't use this!!
 LINK_ENTITY_TO_CLASS(info_player_deathmatch,CBaseDMStart);
+#endif
+
 LINK_ENTITY_TO_CLASS(info_player_start,CPointEntity);
 LINK_ENTITY_TO_CLASS(info_landmark,CPointEntity);
 

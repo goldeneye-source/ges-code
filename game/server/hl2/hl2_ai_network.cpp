@@ -19,8 +19,11 @@ class CHL2NetworkBuildHelper : public CAI_NetworkBuildHelper
 
 	void PostInitNodePosition( CAI_Network *pNetwork, CAI_Node *pNode )
 	{
+	#ifndef GE_DLL
 		AdjustStriderNodePosition( pNetwork, pNode );
+	#endif
 	}
+
 };
 
 LINK_ENTITY_TO_CLASS(ai_network_build_helper,CHL2NetworkBuildHelper);

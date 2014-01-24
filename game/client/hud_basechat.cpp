@@ -24,7 +24,9 @@
 #include "vgui/IInput.h"
 #include "vgui/ILocalize.h"
 #include "multiplay_gamerules.h"
-
+#ifdef GE_DLL
+	#include "ge_utils.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -46,6 +48,54 @@ Color g_ColorDarkGreen( 64, 255, 64, 255 );
 Color g_ColorYellow( 255, 178, 0, 255 );
 Color g_ColorGrey( 204, 204, 204, 255 );
 
+#ifdef GE_DLL
+#include "utlmap.h"
+
+bool colLessThan(const wchar_t& c1, const wchar_t& c2)
+{
+	return c1 < c2;
+}
+
+CUtlMap<wchar_t, Color> g_mColorList(2,26, colLessThan);
+
+//
+// IF YOU ADD COLORS HERE, REMEMBER TO UPDATE THE RANGES
+// FOR GEUTIL_IsValidColorHint() OR ELSE THEY WON'T BE APPLIED!
+//
+void insertDefaultColors()
+{
+	if (g_mColorList.Count() != 0)
+		return;
+
+	g_mColorList.Insert(L'a', Color(0xFF00FFFF)); //aqua
+	g_mColorList.Insert(L'b', Color(0xFF000000)); //black
+	g_mColorList.Insert(L'c', Color(0xFF0000FF)); //blue
+	g_mColorList.Insert(L'd', Color(0xFFFF4500)); //OrangeRed
+	g_mColorList.Insert(L'e', Color(0xFF808080)); //gray
+	g_mColorList.Insert(L'f', Color(0xFFFF00FF)); //fuchsia
+	g_mColorList.Insert(L'g', Color(0xFF008000)); //green
+	g_mColorList.Insert(L'h', Color(0xFF00FF7F)); //SpringGreen
+	g_mColorList.Insert(L'i', Color(0xFF87CEEB)); //SkyBlue
+	g_mColorList.Insert(L'j', Color(0xFF696969)); //DimGray
+	g_mColorList.Insert(L'k', Color(0xFF808000)); //olive
+	g_mColorList.Insert(L'l', Color(0xFF00FF00)); //lime
+	g_mColorList.Insert(L'm', Color(0xFF800000)); //maroon
+	g_mColorList.Insert(L'n', Color(0xFF000080)); //navy
+	g_mColorList.Insert(L'o', Color(0xFFFFA500)); //Orange
+	g_mColorList.Insert(L'p', Color(0xFF800080)); //purple
+	g_mColorList.Insert(L'q', Color(0xFF8B4513)); //SaddleBrown
+	g_mColorList.Insert(L'r', Color(0xFFFF0000)); //red
+	g_mColorList.Insert(L's', Color(0xFFC0C0C0)); //silver
+	g_mColorList.Insert(L't', Color(0xFF008080)); //teal
+	g_mColorList.Insert(L'u', Color(0xFF00FA9A)); //MediumSpringGreen
+	g_mColorList.Insert(L'v', Color(0xFFD3D3D3)); //LightGrey
+	g_mColorList.Insert(L'w', Color(0xFFFFFFFF)); //white
+	g_mColorList.Insert(L'x', Color(0xFFFFFFE0)); //LightYellow
+	g_mColorList.Insert(L'y', Color(0xFFFFFF00)); //yellow
+	g_mColorList.Insert(L'z', Color(0xFFFF1493)); //DeepPink
+}
+
+#endif // GE_DLL
 
 // removes all color markup characters, so Msg can deal with the string properly
 // returns a pointer to str
@@ -212,6 +262,10 @@ CBaseHudChatLine::CBaseHudChatLine( vgui::Panel *parent, const char *panelName )
 	SetPaintBackgroundEnabled( true );
 	
 	SetVerticalScrollbar( false );
+
+#ifdef GE_DLL
+	insertDefaultColors();
+#endif
 }
 
 CBaseHudChatLine::~CBaseHudChatLine()
@@ -601,7 +655,12 @@ int CBaseHudChat::m_nLineCounter = 1;
 // Purpose: Text chat input/output hud element
 //-----------------------------------------------------------------------------
 CBaseHudChat::CBaseHudChat( const char *pElementName )
+#ifdef GE_DLL
+// Fixing more of Valve's Retardations
+: CHudElement( pElementName ), BaseClass( NULL, pElementName )
+#else
 : CHudElement( pElementName ), BaseClass( NULL, "HudChat" )
+#endif
 {
 	vgui::Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );
@@ -834,7 +893,11 @@ void CBaseHudChat::MsgFunc_SayText2( bf_read &msg )
 		// print raw chat text
 		ChatPrintf( client, iFilter, "%s", ansiString );
 
+	#ifdef GE_DLL
+		Msg( "%s\n", GEUTIL_RemoveColorHints(ansiString) );
+	#else
 		Msg( "%s\n", RemoveColorMarkup(ansiString) );
+	#endif
 
 		CLocalPlayerFilter filter;
 		C_BaseEntity::EmitSound( filter, SOUND_FROM_LOCAL_PLAYER, "HudChat.Message" );
@@ -909,6 +972,9 @@ void CBaseHudChat::MsgFunc_TextMsg( bf_read &msg )
 		{
 			Q_strncat( szString, "\n", sizeof(szString), 1 );
 		}
+	#ifdef GE_DLL
+		GEUTIL_RemoveColorHints( szString );
+	#endif
 		Msg( "%s", ConvertCRtoNL( szString ) );
 		break;
 
@@ -921,6 +987,9 @@ void CBaseHudChat::MsgFunc_TextMsg( bf_read &msg )
 			Q_strncat( szString, "\n", sizeof(szString), 1 );
 		}
 		Printf( CHAT_FILTER_NONE, "%s", ConvertCRtoNL( szString ) );
+	#ifdef GE_DLL
+		GEUTIL_RemoveColorHints( szString );
+	#endif
 		Msg( "%s", ConvertCRtoNL( szString ) );
 		break;
 
@@ -932,6 +1001,9 @@ void CBaseHudChat::MsgFunc_TextMsg( bf_read &msg )
 		{
 			Q_strncat( szString, "\n", sizeof(szString), 1 );
 		}
+	#ifdef GE_DLL
+		GEUTIL_RemoveColorHints( szString );
+	#endif
 		Msg( "%s", ConvertCRtoNL( szString ) );
 		break;
 	}
@@ -1161,6 +1233,10 @@ void CBaseHudChat::StartMessageMode( int iMessageModeType )
 #ifndef _XBOX
 	m_nMessageMode = iMessageModeType;
 
+#ifdef GE_DLL
+	MoveToFront();
+#endif
+
 	m_pChatInput->ClearEntry();
 
 	const wchar_t *pszPrompt = ( m_nMessageMode == MM_SAY ) ? g_pVGuiLocalize->Find( "#chat_say" ) : g_pVGuiLocalize->Find( "#chat_say_team" ); 
@@ -1174,6 +1250,17 @@ void CBaseHudChat::StartMessageMode( int iMessageModeType )
 		{
 			m_pChatInput->SetPrompt( L"Say :" );
 		}
+#ifdef GE_DLL
+		else if ( g_PR )
+		{
+			// Print the actual team name, not just TEAM...
+			wchar_t wszSayTeam[12];
+			char szSayTeam[12];
+			Q_snprintf(szSayTeam, 12, "Say (%s) :", g_PR->GetTeamName( g_PR->GetTeam(GetLocalPlayerIndex()) ) );
+			g_pVGuiLocalize->ConvertANSIToUnicode( szSayTeam, wszSayTeam, sizeof(wszSayTeam) );
+			m_pChatInput->SetPrompt( wszSayTeam );
+		}
+#else
 		else
 		{
 			m_pChatInput->SetPrompt( L"Say (TEAM) :" );
@@ -1238,6 +1325,9 @@ void CBaseHudChat::StopMessageMode( void )
 	//Clear the entry since we wont need it anymore.
 	m_pChatInput->ClearEntry();
 
+#ifdef GE_DLL
+	m_nMessageMode = 0;
+#endif
 	//hide filter panel
 	m_pFilterPanel->SetVisible( false );
 
@@ -1306,6 +1396,55 @@ void CBaseHudChat::SetFilterFlag( int iFilter )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+#ifdef GE_DLL
+
+Color CBaseHudChat::GetTextColorForClient( wchar_t colorNum, int clientIndex )
+{
+	if (colorNum == COLOR_NORMAL)
+		colorNum = L'1';
+
+	if (colorNum == COLOR_PLAYERNAME)
+		colorNum = L'3';
+
+	if (colorNum == COLOR_LOCATION)
+		colorNum = L'4';
+
+	if (colorNum == COLOR_ACHIEVEMENT)
+		colorNum = L'5';
+
+	if (colorNum == L'3')
+		return GetClientColor( clientIndex );
+
+	vgui::IScheme *pClientScheme = vgui::scheme()->GetIScheme( vgui::scheme()->GetScheme( "ClientScheme" ) ); 
+
+	if ( pClientScheme )
+	{
+		if (colorNum == L'1')
+			return pClientScheme->GetColor( "GEChatColor", GetDefaultTextColor() );
+
+		if (colorNum == L'4')
+			return pClientScheme->GetColor( "GEChatLocation", GetFgColor() );
+		
+		if (colorNum == L'5')
+			return pClientScheme->GetColor( "GEChatAchievement", GetFgColor() );
+
+		if (colorNum == L'9')
+			return pClientScheme->GetColor( "GEDeathWeapon", GetDefaultTextColor() );
+	}
+
+	if (colorNum >= 'a' && colorNum <= 'z')
+	{
+		int index = g_mColorList.Find(colorNum);
+
+		if (g_mColorList.IsValidIndex(index))
+			return g_mColorList[index];
+	}
+
+	return GetDefaultTextColor();
+}
+
+#else
+
 Color CBaseHudChat::GetTextColorForClient( TextColor colorNum, int clientIndex )
 {
 	Color c;
@@ -1343,6 +1482,7 @@ Color CBaseHudChat::GetTextColorForClient( TextColor colorNum, int clientIndex )
 
 	return Color( c[0], c[1], c[2], 255 );
 }
+#endif // GE_DLL
 
 //-----------------------------------------------------------------------------
 void CBaseHudChat::SetCustomColor( const char *pszColorName )
@@ -1372,6 +1512,47 @@ Color CBaseHudChat::GetClientColor( int clientIndex )
 	return g_ColorYellow;
 }
 
+#ifdef GE_DLL
+void CBaseHudChatLine::ReplaceInvalidColors()
+{
+	int x=0;
+	int y=0;
+
+	while (m_text[y] != '\0')
+	{
+		if ( m_text[y] == '^' )
+		{
+			if ( m_text[y+1] == '^' )
+			{
+				m_text[++y] = m_text[y] = (wchar_t)0x02;
+				x++;
+			}
+			else if ( !GEUTIL_IsValidColorHint(m_text[y+1]) )
+				m_text[y] = (wchar_t)0x02;
+		}
+
+		m_text[x] = m_text[y];
+
+		y++;
+		x++;
+	}
+
+	m_text[x] = '\0';
+}
+
+void CBaseHudChatLine::AddBackInvalidColors( wchar_t *str )
+{
+	int y=0;
+	while ( str[y] != '\0' )
+	{
+		if ( str[y] == (wchar_t)0x02 )
+			str[y] = '^';
+		y++;
+	}
+}
+
+#endif // GE_DLL
+
 //-----------------------------------------------------------------------------
 // Purpose: Parses a line of text for color markup and inserts it via Colorize()
 //-----------------------------------------------------------------------------
@@ -1390,6 +1571,62 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
 
 	if ( pChat == NULL )
 		return;
+
+#ifdef GE_DLL
+	
+	ReplaceInvalidColors();
+
+	wchar_t* tokStr = wcstok(m_text, L"^");
+
+	Color lastCol = pChat->GetTextColorForClient( COLOR_NORMAL, clientIndex );
+
+	while (tokStr)
+	{
+		wchar_t colChar = tokStr[0];
+		int startOffset = 1;
+
+		if ( tokStr == m_text )
+		{
+			TextRange range;
+
+			range.start = tokStr-m_text;
+			range.color = lastCol;
+			range.end = range.start+wcslen(tokStr);
+
+			m_textRanges.AddToTail( range );
+		}
+		else if ( colChar != '\0' )
+		{
+			// Only update our color if it's valid
+			wchar_t *start = tokStr - 1;
+			if ( GEUTIL_IsValidColorHint(colChar) )
+			{
+				lastCol = pChat->GetTextColorForClient( colChar, clientIndex );
+				start = tokStr + startOffset;
+			}
+
+			TextRange range;
+
+			range.start = start - m_text;
+			range.color = lastCol;
+			range.end = range.start + wcslen(tokStr) - 1;
+
+			m_textRanges.AddToTail( range );
+		}
+
+		tokStr = wcstok(NULL, L"^");
+	}
+
+	if (m_textRanges.Count() == 0)
+	{
+		TextRange range;
+		range.start = 0;
+		range.color = lastCol;
+		range.end = wcslen( m_text );
+		m_textRanges.AddToTail( range );
+	}
+
+#else
 
 	wchar_t *txt = m_text;
 	int lineLen = wcslen( m_text );
@@ -1513,6 +1750,8 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
 		}
 	}
 
+#endif // GE_DLL
+
 	Colorize();
 }
 
@@ -1541,6 +1780,9 @@ void CBaseHudChatLine::Colorize( int alpha )
 		{
 			wcsncpy( wText, start, len );
 			wText[len-1] = 0;
+		#ifdef GE_DLL
+			AddBackInvalidColors( wText );
+		#endif
 			color = m_textRanges[i].color;
 			if ( !m_textRanges[i].preserveAlpha )
 			{

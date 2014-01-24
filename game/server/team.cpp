@@ -39,8 +39,14 @@ int SendProxyArrayLength_PlayerArray( const void *pStruct, int objectID )
 // Datatable
 IMPLEMENT_SERVERCLASS_ST_NOBASE(CTeam, DT_Team)
 	SendPropInt( SENDINFO(m_iTeamNum), 5 ),
+#ifdef GE_DLL
+	// We use Round and Match scores instead of a score and number of rounds won
+	SendPropInt( SENDINFO(m_iMatchScore) ),
+	SendPropInt( SENDINFO(m_iRoundScore) ),
+#else
 	SendPropInt( SENDINFO(m_iScore), 0 ),
 	SendPropInt( SENDINFO(m_iRoundsWon), 8 ),
+#endif
 	SendPropString( SENDINFO( m_szTeamname ) ),
 
 	SendPropArray2( 
@@ -126,7 +132,11 @@ void CTeam::Init( const char *pName, int iNumber )
 	InitializeSpawnpoints();
 	InitializePlayers();
 
+#ifdef GE_DLL
+	m_iMatchScore = 0;
+#else
 	m_iScore = 0;
+#endif
 
 	Q_strncpy( m_szTeamname.GetForModify(), pName, MAX_TEAM_NAME_LENGTH );
 	m_iTeamNum = iNumber;
@@ -278,6 +288,33 @@ CBasePlayer *CTeam::GetPlayer( int iIndex )
 //-----------------------------------------------------------------------------
 // Purpose: Add / Remove score for this team
 //-----------------------------------------------------------------------------
+#ifdef GE_DLL
+void CTeam::AddMatchScore( int iScore )
+{
+	m_iMatchScore += iScore;
+}
+
+void CTeam::SetMatchScore( int iScore )
+{
+	m_iMatchScore = iScore;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Get this team's score
+//-----------------------------------------------------------------------------
+int CTeam::GetMatchScore( void )
+{
+	return m_iMatchScore;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTeam::ResetMatchScore( void )
+{
+	SetMatchScore(0);
+}
+#else
 void CTeam::AddScore( int iScore )
 {
 	m_iScore += iScore;
@@ -303,6 +340,7 @@ void CTeam::ResetScores( void )
 {
 	SetScore(0);
 }
+#endif // GE_DLL
 
 //-----------------------------------------------------------------------------
 // Purpose: 

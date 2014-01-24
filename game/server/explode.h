@@ -24,6 +24,10 @@
 #define SF_ENVEXPLOSION_SURFACEONLY	0x00002000 // don't damage the player if he's underwater.
 #define SF_ENVEXPLOSION_GENERIC_DAMAGE	0x00004000 // don't do BLAST damage
 
+#ifdef GE_DLL
+#define GE_EXP_MAX_DURATION 4.0f
+#endif
+
 extern short	g_sModelIndexFireball;
 extern short	g_sModelIndexSmoke;
 

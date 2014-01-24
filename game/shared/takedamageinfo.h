@@ -329,6 +329,17 @@ inline void CTakeDamageInfo::SetDamageCustom( int iDamageCustom )
 	m_iDamageCustom = iDamageCustom;
 }
 
+#ifdef GE_DLL
+inline int CTakeDamageInfo::GetDamageStats() const
+{
+	return m_iDamageStats;
+}
+
+inline void CTakeDamageInfo::SetDamageStats( int iDamageStats )
+{
+	m_iDamageStats = iDamageStats;
+}
+#else
 inline int CTakeDamageInfo::GetDamageStats() const
 {
 	return m_iDamageCustom;
@@ -338,6 +349,7 @@ inline void CTakeDamageInfo::SetDamageStats( int iDamageCustom )
 {
 	m_iDamageCustom = iDamageCustom;
 }
+#endif
 
 inline int CTakeDamageInfo::GetAmmoType() const
 {

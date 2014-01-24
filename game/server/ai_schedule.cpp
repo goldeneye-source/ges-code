@@ -559,6 +559,50 @@ CAI_Schedule *CAI_SchedulesManager::GetScheduleByName( const char *name )
 	return NULL;
 }
 
+#ifdef GE_DLL
+bool CAI_SchedulesManager::RemoveSchedule( const char *name )
+{
+	CAI_Schedule *prevSched = NULL;
+	for ( CAI_Schedule *schedule = CAI_SchedulesManager::allSchedules; schedule != NULL; schedule = schedule->nextSchedule )
+	{
+		if ( FStrEq(schedule->GetName(), name) )
+		{
+			if ( prevSched )
+				prevSched->nextSchedule = schedule->nextSchedule;
+			else
+				CAI_SchedulesManager::allSchedules = schedule->nextSchedule;
+			delete schedule;
+			return true;
+		}
+
+		prevSched = schedule;
+	}
+
+	return false;
+}
+
+bool CAI_SchedulesManager::RemoveSchedule( CAI_Schedule *oldSchedule )
+{
+	CAI_Schedule *prevSched = NULL;
+	for ( CAI_Schedule *schedule = CAI_SchedulesManager::allSchedules; schedule != NULL; schedule = schedule->nextSchedule )
+	{
+		if ( schedule == oldSchedule )
+		{
+			if ( prevSched )
+				prevSched->nextSchedule = schedule->nextSchedule;
+			else
+				CAI_SchedulesManager::allSchedules = schedule->nextSchedule;
+			delete schedule;
+			return true;
+		}
+
+		prevSched = schedule;
+	}
+
+	return false;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Delete all the schedules
 // Input  :

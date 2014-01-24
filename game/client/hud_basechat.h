@@ -170,6 +170,10 @@ private:
 
 	vgui::HFont		m_hFontMarlett;
 
+#ifdef GE_DLL
+	void AddBackInvalidColors( wchar_t *str );
+	void ReplaceInvalidColors();
+#endif
 
 private:
 	CBaseHudChatLine( const CBaseHudChatLine & ); // not defined, not accessible
@@ -286,7 +290,13 @@ public:
 
 	//-----------------------------------------------------------------------------
 	virtual Color	GetDefaultTextColor( void );
+
+#ifdef GE_DLL
+	virtual Color	GetTextColorForClient( wchar_t colorNum, int clientIndex );
+#else
 	virtual Color	GetTextColorForClient( TextColor colorNum, int clientIndex );
+#endif
+
 	virtual Color	GetClientColor( int clientIndex );
 
 	virtual int		GetFilterForString( const char *pString );
@@ -313,15 +323,22 @@ protected:
 	CHudChatFilterPanel		*m_pFilterPanel;
 
 	Color			m_ColorCustom;
+	
+#ifdef GE_DLL
+	int				m_nVisibleHeight;
 
-private:	
+protected:
+#else
+private:
+#endif
 	void			Clear( void );
 
 	int				ComputeBreakChar( int width, const char *text, int textlen );
 
 	int				m_nMessageMode;
-
+#ifndef GE_DLL
 	int				m_nVisibleHeight;
+#endif
 
 	vgui::HFont		m_hChatFont;
 

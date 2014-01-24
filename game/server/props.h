@@ -33,6 +33,10 @@ public:
 	bool KeyValue( const char *szKeyName, const char *szValue );
 	void CalculateBlockLOS( void );
 	int  ParsePropData( void );
+
+#ifdef GE_DLL
+	virtual void UpdateBulletProof( void );
+#endif
 	
 	void DrawDebugGeometryOverlays( void );
 

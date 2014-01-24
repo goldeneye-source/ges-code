@@ -605,6 +605,370 @@ void CHudTexture::DrawSelf( int x, int y, int w, int h, const Color& clr ) const
 	}
 }
 
+#ifdef GE_DLL
+void CHudTexture::DrawSelfRotated( int x, int y, float theta, Color &clr /*= Color(255,255,255,255)*/ ) const
+{
+	DrawSelfRotated( x, y, Width(), Height(), theta, clr );
+}
+
+void CHudTexture::DrawSelfRotated( int x, int y, int w, int h, float theta, Color& clr /*= Color(255,255,255,255)*/ ) const
+{
+	// This is only for textures
+	if ( bRenderUsingFont || theta == 0 )
+	{
+		DrawSelf( x, y, w, h, clr );
+		return;
+	}
+
+	if ( textureId == -1 )
+		return;
+
+	float half_w = w/2.0f;
+	float half_h = h/2.0f;
+
+	VMatrix pMat;
+	pMat.Init( -half_w, -half_h, 0, 0,
+				half_w, -half_h, 0, 0,
+				half_w,  half_h, 0, 0,
+			   -half_w,	 half_h, 0, 0 );
+
+	VMatrix rotMat;
+	rotMat.Init( cos(theta), sin(theta), 0, 0,
+				-sin(theta), cos(theta), 0, 0,
+				 0,			 0,			 0, 0,
+				 0,			 0,			 0, 0 );
+
+	VMatrix rMat;
+	MatrixMultiply( pMat, rotMat, rMat );
+
+	int x1 = x + half_w;
+	int y1 = y + half_h;
+
+	vgui::Vertex_t points[4] =
+	{
+		vgui::Vertex_t( Vector2D(rMat[0][0]+x1, rMat[0][1]+y1), Vector2D(texCoords[0], texCoords[1]) ),
+		vgui::Vertex_t( Vector2D(rMat[1][0]+x1, rMat[1][1]+y1), Vector2D(texCoords[2], texCoords[1]) ),
+		vgui::Vertex_t( Vector2D(rMat[2][0]+x1, rMat[2][1]+y1), Vector2D(texCoords[2], texCoords[3]) ),
+		vgui::Vertex_t( Vector2D(rMat[3][0]+x1, rMat[3][1]+y1), Vector2D(texCoords[0], texCoords[3]) ),
+	};
+
+	vgui::surface()->DrawSetTexture( textureId );
+	vgui::surface()->DrawSetColor( clr );
+	vgui::surface()->DrawTexturedPolygon( 4, points );
+}
+
+void CHudTexture::DrawSelfScaled(int x, int y, float scale, Color& clr /* Color(255,255,255,255) */ ) const
+{
+	DrawSelfScaled( x, y, Width(), Height(), scale, clr );
+}
+
+void CHudTexture::DrawSelfScaled( int x, int y, int w, int h, float scale, Color &clr /* Color(255,255,255,255) */ ) const
+{
+	if ( bRenderUsingFont )
+	{
+		vgui::surface()->DrawSetTextFont( hFont );
+		vgui::surface()->DrawSetTextColor( clr );
+		vgui::surface()->DrawSetTextPos( x, y );
+		vgui::surface()->DrawUnicodeChar( cCharacterInFont );
+	}
+	else
+	{
+		if ( textureId == -1 )
+			return;
+
+		float half_w = (w / 2.0f) * scale;
+		float half_h = (h / 2.0f) * scale;
+
+		int x1 = x + half_w;
+		int y1 = y + half_h;
+
+		VMatrix pMat;
+		pMat.Init( -half_w, -half_h, 0, 0,
+					half_w, -half_h, 0, 0,
+					half_w,  half_h, 0, 0,
+				   -half_w,	 half_h, 0, 0 );
+
+		vgui::Vertex_t points[4] =
+		{
+			vgui::Vertex_t( Vector2D(pMat[0][0]+x1, pMat[0][1]+y1), Vector2D(texCoords[0], texCoords[1]) ),
+			vgui::Vertex_t( Vector2D(pMat[1][0]+x1, pMat[1][1]+y1), Vector2D(texCoords[2], texCoords[1]) ),
+			vgui::Vertex_t( Vector2D(pMat[2][0]+x1, pMat[2][1]+y1), Vector2D(texCoords[2], texCoords[3]) ),
+			vgui::Vertex_t( Vector2D(pMat[3][0]+x1, pMat[3][1]+y1), Vector2D(texCoords[0], texCoords[3]) ),
+		};
+
+		vgui::surface()->DrawSetTexture( textureId );
+		vgui::surface()->DrawSetColor( clr );
+		vgui::surface()->DrawTexturedPolygon( 4, points );
+	}
+}
+
+void CHudTexture::DrawScew_Left( int tex2, int width, int height, float percent, int offset, int radius ) const
+{
+	// ASSUMPTIONS:
+	//	1. The image will be centered vertically about the midline of the screen
+	//	2. The X coordinate will be the midpoint.x - offset - width
+	//	3. The other half of the image will be defined in tex2 to save calculations
+	//	4. The edges of the image will be the pivot points for intersections that don't hit the far side
+
+	// Make sure the percent cut is between 0 and 1
+	percent = clamp( percent, 0.0f, 1.0f );
+	vgui::surface()->DrawSetTexture( textureId );
+	vgui::surface()->DrawSetColor( Color(255,255,255,255) );
+	
+	// This defines the placement of the U,V on the image
+	float scaledV1, scaledV2, scaledU;
+	// These next two values define the left x,y position and the right x,y position that the bisecting
+	// line cross the image at in screen space. x3 is used when we clamp to the bounds to keep a crisp line
+	int x1, y1, x2, y2, x3;
+	int midX, midY, origX;
+	int midH = height / 2;
+
+	vgui::surface()->GetScreenSize( midX, midY );
+	midX /= 2; midY /= 2;
+	// Determine the proper origin X position for a perfect circle based on our image
+	origX = midX - offset + midH;
+
+	// If we aren't doing ANY scaling then skip unnecessary calcs
+	if ( percent == 1.0f )
+	{
+		// Only show the containing texture
+		x1 = midX - offset - width;
+		y1 = midY - midH;
+		vgui::surface()->DrawTexturedRect( x1, y1, x1 + width, y1 + height );
+		return;
+	}
+	else if ( percent == 0.0f )
+	{
+		// Only show the texture thats supposed to be behind
+		x1 = midX - offset - width;
+		y1 = midY - midH;
+		if ( vgui::surface()->IsTextureIDValid( tex2 ) )
+		{
+			vgui::surface()->DrawSetTexture( tex2 );
+			vgui::surface()->DrawTexturedRect( x1, y1, x1 + width, y1 + height );
+		}
+		return;
+	}
+
+	// Find our angle coefficient
+	float ang;
+	if ( percent >= 0.5f )
+		percent = RemapValClamped( percent, 0.5, 1.0, 0.0, 1.0 );
+	else
+		percent = RemapValClamped( percent, 0.0, 0.5, -1.0, 0.0 );
+
+	ang = tan( percent );
+	
+	// First let's calculate our intersection points of the scew line to the image in world space
+	x1 = midX - offset - width;
+	y1 = clamp( midY - ang * (radius), midY-midH, midY+midH );
+
+	x2 = midX - offset;
+	y2 = clamp( midY - ang * (radius-width), midY-midH, midY+midH );
+
+	if ( y1 == (midY - midH) )
+		x3 = x2 - (y2 - (midY - midH)) * tan( M_PI/2.0f - percent );
+	else if ( y1 == (midY + midH) )
+		x3 = x2 - (y2 - (midY + midH)) * tan( M_PI/2.0f - percent );
+	else
+		x3 = x1;
+
+	scaledU = 1.0f - (float)(width - (x3 - x1)) / (float)width;
+
+	// Now calculate our v1, v2 coords by taking the ratio of the difference in the intersection
+	// Y points and the full image location
+	scaledV1 = 1.0f - (float)(height - (y1 - (midY - midH))) / (float)height;
+	scaledV2 = 1.0f - (float)(height - (y2 - (midY - midH))) / (float)height;
+
+	if ( y1 == (midY + midH) )
+	{
+		// If we are clamped to the bottom of our image, we need to draw a triangle to avoid stretching UV
+		vgui::Vertex_t points[3] =
+		{
+			vgui::Vertex_t( Vector2D(x3, y1), Vector2D(scaledU, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x2, y2), Vector2D(1, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x2, midY + midH), Vector2D(1,1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawTexturedPolygon( 3, points );
+	}
+	else
+	{
+		// Now populate our polygon with points
+		vgui::Vertex_t points[5] =
+		{
+			vgui::Vertex_t( Vector2D(x1, y1), Vector2D(0, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x3, y1), Vector2D(scaledU, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x2, y2), Vector2D(1, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x2, midY + midH), Vector2D(1,1) ),
+			vgui::Vertex_t( Vector2D(x1, midY + midH), Vector2D(0,1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawTexturedPolygon( 5, points );
+	}
+
+/*	// Debugging line
+#ifdef _DEBUG
+	vgui::surface()->DrawSetColor( 0, 255, 0, 255 );
+	vgui::surface()->DrawLine( x1, y1, x3, y1 );
+	vgui::surface()->DrawSetColor( 255, 0, 0, 255 );
+	vgui::surface()->DrawLine( x3, y1, x2, y2 );
+	vgui::surface()->DrawSetColor( 0, 0, 255, 255 );
+	vgui::surface()->DrawOutlinedRect( x1, min(y1,y2), x2, midY + midH );
+#endif
+*/
+	if ( vgui::surface()->IsTextureIDValid( tex2 ) )
+	{
+		// Now draw the inverse image
+		vgui::Vertex_t invPoints[5] =
+		{
+			vgui::Vertex_t( Vector2D(x1, midY - midH), Vector2D(0, 0) ),
+			vgui::Vertex_t( Vector2D(x2, midY - midH), Vector2D(1, 0) ),
+			vgui::Vertex_t( Vector2D(x2, y2), Vector2D(1, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x3, y1), Vector2D(scaledU, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x1, y1), Vector2D(0, scaledV1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawSetTexture( tex2 );
+		vgui::surface()->DrawSetColor( 255, 255, 255, 255 );
+		vgui::surface()->DrawTexturedPolygon( 5, invPoints );
+	}
+}
+
+void CHudTexture::DrawScew_Right( int tex2, int width, int height, float percent, int offset, int radius ) const
+{
+	// ASSUMPTIONS:
+	//	1. The image will be centered vertically about the midline of the screen
+	//	2. The X coordinate will be the midpoint.x + offset
+	//	3. The other half of the image will be defined in tex2 to save calculations
+	//	4. The edges of the image will be the pivot points for intersections that don't hit the far side
+
+	// Make sure the percent cut is between 0 and 1
+	percent = clamp( percent, 0.0f, 1.0f );
+	vgui::surface()->DrawSetTexture( textureId );
+	vgui::surface()->DrawSetColor( Color(255,255,255,255) );
+	
+	// This defines the placement of the U,V on the image
+	float scaledV1, scaledV2, scaledU;
+	// These next two values define the left x,y position and the right x,y position that the bisecting
+	// line cross the image at in screen space. x3 is used when we clamp to the bounds to keep a crisp line
+	int x1, y1, x2, y2, x3;
+	int midX, midY;
+	int midH = height / 2;
+
+	vgui::surface()->GetScreenSize( midX, midY );
+	midX /= 2; midY /= 2;
+
+	// If we aren't doing ANY scaling then skip unnecessary calcs
+	if ( percent == 1.0f )
+	{
+		// Only show the containing texture
+		x1 = midX + offset;
+		y1 = midY - midH;
+		vgui::surface()->DrawTexturedRect( x1, y1, x1 + width, y1 + height );
+		return;
+	}
+	else if ( percent == 0.0f )
+	{
+		// Only show the texture thats supposed to be behind
+		x1 = midX + offset;
+		y1 = midY - midH;
+		if ( vgui::surface()->IsTextureIDValid( tex2 ) )
+		{
+			vgui::surface()->DrawSetTexture( tex2 );
+			vgui::surface()->DrawTexturedRect( x1, y1, x1 + width, y1 + height );
+		}
+		return;
+	}
+
+	// Find our angle coefficient
+	float ang;
+	if ( percent >= 0.5f )
+		percent = RemapValClamped( percent, 0.5, 1.0, 0.0, 1.0 );
+	else
+		percent = RemapValClamped( percent, 0.0, 0.5, -1.0, 0.0 );
+
+	ang = tan( percent );
+	
+	// First let's calculate our intersection points of the scew line to the image in world space
+	// Note: X1 is closest to middle now! (opposite of LeftScew)
+	x1 = midX + offset;
+	y1 = clamp( midY - ang * (radius-width), midY-midH, midY+midH );
+
+	x2 = midX + offset + width;
+	y2 = clamp( midY - ang * radius, midY-midH, midY+midH );
+
+	if ( y2 == (midY - midH) )
+		x3 = x1 + (y1 - (midY - midH)) * tan( M_PI/2 - percent );
+	else if ( y2 == (midY + midH) )
+		x3 = x1 + (y1 - (midY + midH)) * tan( M_PI/2 - percent );
+	else
+		x3 = x2;
+
+	scaledU = 1.0f - (float)(x2 - x3) / (float)width;
+
+	// Now calculate our v1, v2 coords by taking the ratio of the difference in the intersection
+	// Y points and the full image location
+	scaledV1 = 1.0f - (float)(height - (y1 - (midY - midH))) / (float)height;
+	scaledV2 = 1.0f - (float)(height - (y2 - (midY - midH))) / (float)height;
+
+	if ( y2 == (midY + midH) )
+	{
+		// Since we are at the bottom of the image we can ignore X2's coords
+		// otherwise we get tearing in our UV mapping
+		vgui::Vertex_t points[3] =
+		{
+			vgui::Vertex_t( Vector2D(x1, y1), Vector2D(0, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x3, y2), Vector2D(scaledU, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x1, midY + midH), Vector2D(0,1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawTexturedPolygon( 3, points );
+	}
+	else
+	{
+		// Now populate our polygon with points
+		vgui::Vertex_t points[5] =
+		{
+			vgui::Vertex_t( Vector2D(x1, y1), Vector2D(0, scaledV1) ),
+			vgui::Vertex_t( Vector2D(x3, y2), Vector2D(scaledU, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x2, y2), Vector2D(1, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x2, midY + midH), Vector2D(1,1) ),
+			vgui::Vertex_t( Vector2D(x1, midY + midH), Vector2D(0,1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawTexturedPolygon( 5, points );
+	}
+
+/*	// Debugging line
+#ifdef _DEBUG
+	vgui::surface()->DrawSetColor( 0, 255, 0, 255 );
+	vgui::surface()->DrawLine( x2, y2, x3, y2 );
+	vgui::surface()->DrawSetColor( 255, 0, 0, 255 );
+	vgui::surface()->DrawLine( x3, y2, x1, y1 );
+	vgui::surface()->DrawSetColor( 0, 0, 255, 255 );
+	vgui::surface()->DrawOutlinedRect( x1, min(y1,y2), x2, midY + midH );
+#endif
+*/
+	if ( vgui::surface()->IsTextureIDValid( tex2 ) )
+	{
+		// Now draw the inverse image
+		vgui::Vertex_t invPoints[5] =
+		{
+			vgui::Vertex_t( Vector2D(x1, midY - midH), Vector2D(0, 0) ),
+			vgui::Vertex_t( Vector2D(x2, midY - midH), Vector2D(1, 0) ),
+			vgui::Vertex_t( Vector2D(x2, y2), Vector2D(1, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x3, y2), Vector2D(scaledU, scaledV2) ),
+			vgui::Vertex_t( Vector2D(x1, y1), Vector2D(0, scaledV1) ),
+		};
+		// Draw it on the screen
+		vgui::surface()->DrawSetTexture( tex2 );
+		vgui::surface()->DrawSetColor( 255, 255, 255, 255 );
+		vgui::surface()->DrawTexturedPolygon( 5, invPoints );
+	}
+}
+#endif
+
 void CHudTexture::DrawSelfCropped( int x, int y, int cropx, int cropy, int cropw, int croph, int finalWidth, int finalHeight, Color clr ) const
 {
 	if ( bRenderUsingFont )

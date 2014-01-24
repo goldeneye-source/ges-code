@@ -28,6 +28,9 @@
 #include "sixense/in_sixense.h"
 #endif
 
+#ifdef GE_DLL
+	#include "vgui/ge_panelhelper.h"
+#endif
 #if defined( TF_CLIENT_DLL )
 #include "tf_gamerules.h"
 #endif
@@ -197,6 +200,10 @@ void VGui_CreateGlobalPanels( void )
 {
 	VPANEL gameToolParent = enginevgui->GetPanel( PANEL_CLIENTDLL_TOOLS );
 	VPANEL toolParent = enginevgui->GetPanel( PANEL_TOOLS );
+#ifdef GE_DLL
+	VPANEL uiParent = enginevgui->GetPanel( PANEL_GAMEUIDLL );
+	createGEPanels( uiParent );
+#endif
 #if defined( TRACK_BLOCKING_IO )
 	VPANEL gameDLLPanel = enginevgui->GetPanel( PANEL_GAMEDLL );
 #endif
@@ -236,6 +243,10 @@ void VGui_Shutdown()
 	iopanel->Destroy();
 #endif
 	fps->Destroy();
+
+#ifdef GE_DLL
+	destroyGEPanels();
+#endif
 
 	messagechars->Destroy();
 	loadingdisc->Destroy();

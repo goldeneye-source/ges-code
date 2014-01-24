@@ -225,6 +225,7 @@ public:
 //------------------------------------------------------------------------------
 void CC_ToggleZoom( void )
 {
+#ifndef GE_DLL
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 
 	if( pPlayer )
@@ -236,6 +237,7 @@ void CC_ToggleZoom( void )
 			pHL2Player->ToggleZoom();
 		}
 	}
+#endif
 }
 
 static ConCommand toggle_zoom("toggle_zoom", CC_ToggleZoom, "Toggles zoom display" );
@@ -289,7 +291,9 @@ void CC_ToggleDuck( void )
 	pPlayer->ToggleDuck();
 }
 
+#ifndef GE_DLL
 static ConCommand toggle_duck("toggle_duck", CC_ToggleDuck, "Toggles duck" );
+#endif
 
 #ifndef HL2MP
 #ifndef PORTAL
@@ -297,7 +301,9 @@ LINK_ENTITY_TO_CLASS( player, CHL2_Player );
 #endif
 #endif
 
+#ifndef GE_DLL
 PRECACHE_REGISTER(player);
+#endif
 
 CBaseEntity *FindEntityForward( CBasePlayer *pMe, bool fHull );
 
@@ -442,6 +448,7 @@ void CHL2_Player::Precache( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::CheckSuitZoom( void )
 {
+#ifndef GE_DLL
 //#ifndef _XBOX 
 	//Adrian - No zooming without a suit!
 	if ( IsSuitEquipped() )
@@ -456,6 +463,7 @@ void CHL2_Player::CheckSuitZoom( void )
 		}
 	}
 //#endif//_XBOX
+#endif
 }
 
 void CHL2_Player::EquipSuit( bool bPlayEffects )
@@ -643,6 +651,7 @@ void CHL2_Player::PreThink(void)
 		}
 	}
 
+#ifndef GE_DLL
 	VPROF_SCOPE_BEGIN( "CHL2_Player::PreThink-Speed" );
 	HandleSpeedChanges();
 #ifdef HL2_EPISODIC
@@ -680,9 +689,15 @@ void CHL2_Player::PreThink(void)
 	}
 
 	VPROF_SCOPE_END();
+#endif // GE_DLL
 
+#ifdef GE_DLL
+	if ( IsPlayerLockedInPlace() )
+		return;
+#else
 	if ( g_fGameOver || IsPlayerLockedInPlace() )
 		return;         // finale
+#endif
 
 	VPROF_SCOPE_BEGIN( "CHL2_Player::PreThink-ItemPreFrame" );
 	ItemPreFrame( );
@@ -867,6 +882,7 @@ void CHL2_Player::PreThink(void)
 	// Update weapon's ready status
 	UpdateWeaponPosture();
 
+#ifndef GE_DLL
 	// Disallow shooting while zooming
 	if ( IsX360() )
 	{
@@ -892,16 +908,19 @@ void CHL2_Player::PreThink(void)
 			m_nButtons &= ~(IN_ATTACK|IN_ATTACK2);
 		}
 	}
+#endif
 }
 
 void CHL2_Player::PostThink( void )
 {
 	BaseClass::PostThink();
 
+#ifndef GE_DLL
 	if ( !g_fGameOver && !IsPlayerLockedInPlace() && IsAlive() )
 	{
 		 HandleAdmireGlovesAnimation();
 	}
+#endif
 }
 
 void CHL2_Player::StartAdmireGlovesAnimation( void )
@@ -1016,6 +1035,7 @@ Class_T  CHL2_Player::Classify ( void )
 //-----------------------------------------------------------------------------
 bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
 {
+#ifndef GE_DLL
 	if ( interactionType == g_interactionBarnacleVictimDangle )
 		return false;
 	
@@ -1043,6 +1063,8 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 		ClearUseEntity();
 		return true;
 	}
+#endif
+
 	return false;
 }
 
@@ -1312,11 +1334,13 @@ void CHL2_Player::ToggleZoom(void)
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartZooming( void )
 {
+#ifndef GE_DLL
 	int iFOV = 25;
 	if ( SetFOV( this, iFOV, 0.4f ) )
 	{
 		m_HL2Local.m_bZooming = true;
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1397,7 +1421,11 @@ bool CHL2_Player::CommanderFindGoal( commandgoal_t *pGoal )
 	
 	//---------------------------------
 	// MASK_SHOT on purpose! So that you don't hit the invisible hulls of the NPCs.
+#ifdef GE_DLL
+	CTraceFilterSkipTwoEntities filter( this, NULL, COLLISION_GROUP_INTERACTIVE_DEBRIS );
+#else
 	CTraceFilterSkipTwoEntities filter( this, PhysCannonGetHeldEntity( GetActiveWeapon() ), COLLISION_GROUP_INTERACTIVE_DEBRIS );
+#endif
 
 	UTIL_TraceLine( EyePosition(), EyePosition() + forward * MAX_COORD_RANGE, MASK_SHOT, &filter, &tr );
 
@@ -1702,6 +1730,7 @@ void CHL2_Player::CommanderMode()
 //-----------------------------------------------------------------------------
 void CHL2_Player::CheatImpulseCommands( int iImpulse )
 {
+#ifndef GE_DLL
 	switch( iImpulse )
 	{
 	case 50:
@@ -1745,10 +1774,12 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 
 		break;
 	}
-
 	default:
 		BaseClass::CheatImpulseCommands( iImpulse );
 	}
+#else
+	BaseClass::CheatImpulseCommands( iImpulse );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2612,6 +2643,7 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 	// If I was dry on ammo for my best weapon and justed picked up ammo for it,
 	// autoswitch to my best weapon now.
 	//
+#ifndef GE_DLL
 	if (bCheckAutoSwitch)
 	{
 		CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
@@ -2621,6 +2653,7 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 			SwitchToNextBestWeapon(GetActiveWeapon());
 		}
 	}
+#endif
 
 	return nAdd;
 }
@@ -3095,7 +3128,12 @@ bool CHL2_Player::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 	if (pVehicle && !pPlayer->UsingStandardWeaponsInVehicle())
 		return false;
 
+#ifdef GE_DLL
+	//DAMMIT VALVE stop borking your own functions
+	if ( !pWeapon->HasAmmo() )
+#else
 	if ( !pWeapon->HasAnyAmmo() && !GetAmmoCount( pWeapon->m_iPrimaryAmmoType ) )
+#endif
 		return false;
 
 	if ( !pWeapon->CanDeploy() )
@@ -3103,11 +3141,13 @@ bool CHL2_Player::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 
 	if ( GetActiveWeapon() )
 	{
+#ifndef GE_DLL
 		if ( PhysCannonGetHeldEntity( GetActiveWeapon() ) == pWeapon && 
 			Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType()) )
 		{
 			return true;
 		}
+#endif
 
 		if ( !GetActiveWeapon()->CanHolster() )
 			return false;
@@ -3118,6 +3158,7 @@ bool CHL2_Player::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 
 void CHL2_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 {
+#ifndef GE_DLL
 	// can't pick up what you're standing on
 	if ( GetGroundEntity() == pObject )
 		return;
@@ -3133,6 +3174,7 @@ void CHL2_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 		return;
 
 	PlayerPickupObject( this, pObject );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3141,17 +3183,25 @@ void CHL2_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 //-----------------------------------------------------------------------------
 bool CHL2_Player::IsHoldingEntity( CBaseEntity *pEnt )
 {
+#ifdef GE_DLL
+	return false;
+#else
 	return PlayerPickupControllerIsHoldingEntity( m_hUseEntity, pEnt );
+#endif
 }
 
 float CHL2_Player::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 {
+#ifdef GE_DLL
+	return 0;
+#else
 	float mass = PlayerPickupGetHeldObjectMass( m_hUseEntity, pHeldObject );
 	if ( mass == 0.0f )
 	{
 		mass = PhysCannonGetHeldObjectMass( GetActiveWeapon(), pHeldObject );
 	}
 	return mass;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3180,8 +3230,10 @@ void CHL2_Player::ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldingThis
 	// Drop any objects being handheld.
 	ClearUseEntity();
 
+#ifndef GE_DLL
 	// Then force the physcannon to drop anything it's holding, if it's our active weapon
 	PhysCannonForceDrop( GetActiveWeapon(), NULL );
+#endif
 }
 
 void CHL2_Player::InputForceDropPhysObjects( inputdata_t &data )
@@ -3321,11 +3373,13 @@ bool CHL2_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex 
 	// Recalculate proficiency!
 	SetCurrentWeaponProficiency( CalcWeaponProficiency( pWeapon ) );
 
+#ifndef GE_DLL
 	// Come out of suit zoom mode
 	if ( IsZooming() )
 	{
 		StopZooming();
 	}
+#endif
 
 	return BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
 }
@@ -3530,6 +3584,7 @@ void CHL2_Player::DrawDebugGeometryOverlays(void)
 {
 	BaseClass::DrawDebugGeometryOverlays();
 
+#ifndef GE_DLL
 	if (m_debugOverlays & OVERLAY_BBOX_BIT) 
 	{	
 		Vector mins, maxs;
@@ -3545,6 +3600,7 @@ void CHL2_Player::DrawDebugGeometryOverlays(void)
 
 		NDebugOverlay::Box( GetAbsOrigin(), mins, maxs, 255, 0, 0, 100, 0 );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

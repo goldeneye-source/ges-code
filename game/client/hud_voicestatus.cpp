@@ -16,6 +16,13 @@
 #include "voice_common.h"
 #include "vgui_avatarimage.h"
 
+#ifdef GE_DLL
+	#include "c_ge_playerresource.h"
+	#include "ge_shareddefs.h"
+	#include "gemp_gamerules.h"
+	#include "ge_utils.h"
+#endif
+
 ConVar *sv_alltalk = NULL;
 
 //=============================================================================
@@ -61,6 +68,10 @@ void CHudVoiceSelfStatus::ApplySchemeSettings(vgui::IScheme *pScheme)
 
 #ifdef HL2MP
 	SetBgColor( Color( 0, 0, 0, 0 ) );
+#endif
+
+#ifdef GE_DLL
+	SetPaintBackgroundEnabled( false );
 #endif
 }
 
@@ -171,11 +182,19 @@ CHudVoiceStatus::CHudVoiceStatus( const char *pName ) :
 
 	m_clrIcon = Color(255,255,255,255);
 
+#ifdef GE_DLL
+	m_iDeadImageID = surface()->DrawGetTextureId( "VGUI/scoreboard/player_dead" );
+#else
 	m_iDeadImageID = surface()->DrawGetTextureId( "hud/leaderboard_dead" );
+#endif
 	if ( m_iDeadImageID == -1 ) // we didn't find it, so create a new one
 	{
 		m_iDeadImageID = surface()->CreateNewTextureID();
+#ifdef GE_DLL
+		surface()->DrawSetTextureFile( m_iDeadImageID, "VGUI/scoreboard/player_dead", true, false );
+#else
 		surface()->DrawSetTextureFile( m_iDeadImageID, "hud/leaderboard_dead", true, false );
+#endif
 	}
 }
 

@@ -24,6 +24,11 @@ IMPLEMENT_SERVERCLASS_ST(CSteamJet, DT_SteamJet)
 	SendPropInt(SENDINFO(m_nType), 32, SPROP_UNSIGNED),
 	SendPropInt( SENDINFO(m_spawnflags), 8, SPROP_UNSIGNED ),
 	SendPropFloat(SENDINFO(m_flRollSpeed), 0, SPROP_NOSCALE),
+#ifdef GE_DLL
+	SendPropBool( SENDINFO(m_bIsForExplosion) ),
+	SendPropFloat( SENDINFO(m_flStartFadeTime), 0, SPROP_NOSCALE ),
+	SendPropFloat( SENDINFO(m_flFadeDuration), 0, SPROP_NOSCALE ),
+#endif
 END_SEND_TABLE()
 
 LINK_ENTITY_TO_CLASS( env_steam, CSteamJet );
@@ -59,6 +64,10 @@ END_DATADESC()
 CSteamJet::CSteamJet( void )
 {
 	m_flRollSpeed = 8.0f;
+#ifdef GE_DLL
+	m_bIsForExplosion = false;
+	m_flStartFadeTime = m_flFadeDuration = 0;
+#endif
 }
 //-----------------------------------------------------------------------------
 // Purpose: Called before spawning, after key values have been set.

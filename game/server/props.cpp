@@ -42,6 +42,10 @@
 #include "gamestats.h"
 #include "vehicle_base.h"
 
+#ifdef GE_DLL
+#include "ge_utils.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -345,6 +349,16 @@ int CBaseProp::ParsePropData( void )
 	modelKeyValues->deleteThis();
 	return iResult;
 }
+
+#ifdef GE_DLL
+void CBaseProp::UpdateBulletProof( void )
+{
+	if ( HasSpawnFlags( SF_PHYSPROP_DISABLE_PENETRATION ) )
+		SetBulletProof( true );
+	else
+		SetBulletProof( false );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1176,7 +1190,20 @@ void CBreakableProp::Event_Killed( const CTakeDamageInfo &info )
 		VPhysicsTakeDamage( info );
 	}
 	Break( info.GetInflictor(), info );
+#ifdef GE_DLL
+	// This is what the base class does, instead we introduce our delay in case we exploded ourselves
+	// so that we don't invalidate our pointer for our explosion (4 seconds!)
+	if( info.GetAttacker() )
+	{
+		info.GetAttacker()->Event_KilledOther(this, info);
+	}
+
+	m_takedamage = DAMAGE_NO;
+	m_lifeState = LIFE_DEAD;
+	GEUTIL_DelayRemove( this, GE_EXP_MAX_DURATION );
+#else
 	BaseClass::Event_Killed( info );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1798,7 +1825,7 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		}
 	}
 
-#ifndef HL2MP
+#if !defined(HL2MP) || !defined(GE_DLL)
 	UTIL_Remove( this );
 #endif
 }
@@ -5769,6 +5796,36 @@ void CPhysicsPropRespawnable::Event_Killed( const CTakeDamageInfo &info )
 
 void CPhysicsPropRespawnable::Materialize( void )
 {
+#ifdef GE_DLL
+	// TAKEN FROM FUNC_REBREAKABLE. A MUCH MORE ROBUST SPAWNING ALGORITHM (NOT FASTER!!)
+	// We need to recreate the physics so we can test collisions
+	CreateVPhysics();
+
+	// iterate on all entities in the vicinity.
+	CBaseEntity *pEntity;
+	Vector max = m_vOriginalMaxs;
+	for ( CEntitySphereQuery sphere( GetAbsOrigin(), max.NormalizeInPlace() ); (pEntity = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
+	{
+		if ( pEntity == this || pEntity->GetSolid() == SOLID_BSP || pEntity->GetSolidFlags() & FSOLID_NOT_SOLID || pEntity->GetMoveType() & MOVETYPE_NONE )
+			continue;
+
+		// Ignore props that can't move
+		if ( pEntity->VPhysicsGetObject() && !pEntity->VPhysicsGetObject()->IsMoveable() )
+			continue;
+
+		// Prevent respawn if we are blocked by anything and try again in 1 second
+		if ( Intersects(pEntity) )
+		{
+			SetSolid( SOLID_NONE );
+			AddSolidFlags( FSOLID_NOT_SOLID );
+			VPhysicsDestroyObject();
+			SetNextThink( gpGlobals->curtime + 1.0f );
+			return;
+		}
+	}
+	// Destory our physics object again because we recreate it on spawn
+	VPhysicsDestroyObject();
+#else
 	trace_t tr;
 	UTIL_TraceHull( m_vOriginalSpawnOrigin, m_vOriginalSpawnOrigin, m_vOriginalMins, m_vOriginalMaxs, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
 
@@ -5778,6 +5835,7 @@ void CPhysicsPropRespawnable::Materialize( void )
 		SetNextThink( gpGlobals->curtime + 1.0f );
 		return;
 	}
+#endif
 
 	RemoveEffects( EF_NODRAW );
 	Spawn();

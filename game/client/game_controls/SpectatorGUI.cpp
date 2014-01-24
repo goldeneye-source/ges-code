@@ -43,7 +43,6 @@
 #include "tf_gamerules.h"
 void AddSubKeyNamed( KeyValues *pKeys, const char *pszName );
 #endif
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -111,6 +110,9 @@ CSpectatorMenu::CSpectatorMenu( IViewPort *pViewPort ) : Frame( NULL, PANEL_SPEC
 	SetMoveable( false );
 	SetSizeable( false );
 	SetProportional(true);
+#ifdef GE_DLL
+	SetPaintBackgroundEnabled(false);
+#endif
 
 	SetScheme("ClientScheme");
 
@@ -124,10 +126,15 @@ CSpectatorMenu::CSpectatorMenu( IViewPort *pViewPort ) : Frame( NULL, PANEL_SPEC
 	m_pViewOptions = new ComboBox(this, "viewcombo", 10 , false );
 	m_pConfigSettings = new ComboBox(this, "settingscombo", 10 , false );	
 
+#ifdef GE_DLL
+	m_pLeftButton = new Button( this, "specprev", "<" );
+	m_pRightButton = new Button( this, "specnext", ">" );
+#else
 	m_pLeftButton = new CSpecButton( this, "specprev");
 	m_pLeftButton->SetText("3");
 	m_pRightButton = new CSpecButton( this, "specnext");
 	m_pRightButton->SetText("4");
+#endif
 
 	m_pPlayerList->SetText("");
 	m_pViewOptions->SetText("#Spec_Modes");
@@ -503,6 +510,8 @@ void CSpectatorGUI::PerformLayout()
 	// stretch the bottom bar across the screen
 	m_pBottomBarBlank->GetPos(x,y);
 	m_pBottomBarBlank->SetSize( w, h - y );
+	
+	BaseClass::PerformLayout();
 }
 
 //-----------------------------------------------------------------------------
@@ -805,7 +814,11 @@ CON_COMMAND_F( spec_mode, "Set spectator mode", FCVAR_CLIENTCMD_CAN_EXECUTE )
 				mode = HLTVCamera()->GetMode()+1;
 
 				if ( mode > LAST_PLAYER_OBSERVERMODE )
+				#ifdef GE_DLL
+					mode = OBS_MODE_FIXED;
+				#else
 					mode = OBS_MODE_IN_EYE;
+				#endif
 			}
 			
 			// handle the command clientside
@@ -845,6 +858,4 @@ CON_COMMAND_F( spec_player, "Spectate player by name", FCVAR_CLIENTCMD_CAN_EXECU
 		ForwardSpecCmdToServer( args );
 	}
 }
-
-
 

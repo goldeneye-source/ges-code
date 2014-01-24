@@ -10,7 +10,11 @@
 #ifdef CLIENT_DLL
 #include "tier3/tier3.h"
 #include "vgui/ILocalize.h"
+#ifdef GE_DLL
+#include "vgui/ge_achievementnotification.h"
+#else
 #include "achievement_notification_panel.h"
+#endif
 #include "fmtstr.h"
 #include "gamestats.h"
 #endif // CLIENT_DLL
@@ -384,6 +388,9 @@ void CBaseAchievement::AwardAchievement()
 		return;
 
 	m_pAchievementMgr->AwardAchievement( m_iAchievementID );
+#ifdef GE_DLL
+	ShowProgressNotification();
+#endif
 }
 
 //-----------------------------------------------------------------------------

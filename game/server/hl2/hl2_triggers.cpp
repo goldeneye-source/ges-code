@@ -230,6 +230,7 @@ void CTriggerWeaponDissolve::DissolveThink( void )
 		CBaseCombatWeapon *pWeapon = m_pWeapons[i];
 		Vector vecConduit = GetConduitPoint( pWeapon );
 		
+#ifndef GE_DLL
 		// The physcannon upgrades when this happens
 		if ( FClassnameIs( pWeapon, "weapon_physcannon" ) )
 		{
@@ -256,6 +257,7 @@ void CTriggerWeaponDissolve::DissolveThink( void )
 			SetContextThink( NULL, 0, s_pDissolveThinkContext );
 			return;
 		}
+#endif
 
 		// Randomly dissolve them all
 		float flLifetime = random->RandomFloat( 2.5f, 4.0f );
@@ -456,6 +458,7 @@ void CTriggerPhysicsTrap::Touch( CBaseEntity *pOther )
 	if ( !pAnim )
 		return;
 
+#ifndef GE_DLL
 #ifdef HL2_DLL
 	// HACK: Upgrade the physcannon
 	if ( FClassnameIs( pAnim, "weapon_physcannon" ) )
@@ -463,6 +466,7 @@ void CTriggerPhysicsTrap::Touch( CBaseEntity *pOther )
 		PhysCannonBeginUpgrade( pAnim );
 		return;
 	}
+#endif
 #endif
 
 	pAnim->Dissolve( NULL, gpGlobals->curtime, false, m_nDissolveType );

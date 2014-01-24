@@ -225,6 +225,7 @@ void C_BaseCombatWeapon::Redraw()
 //-----------------------------------------------------------------------------
 void C_BaseCombatWeapon::DrawCrosshair()
 {
+#ifndef GE_DLL
 	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
 	if ( !player )
 		return;
@@ -296,6 +297,7 @@ void C_BaseCombatWeapon::DrawCrosshair()
 		else
 			crosshair->ResetCrosshair();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

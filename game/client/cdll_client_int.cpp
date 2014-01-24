@@ -139,6 +139,19 @@
 #include "econ_item_system.h"
 #endif // USES_ECON_ITEMS
 
+#ifdef GE_DLL
+	#include "ge_panelhelper.h"
+	#include "ge_musicmanager.h"
+	#include "ge_loadingscreen.h"
+	#include "ge_vieweffects.h"
+#if 0
+	// HACKHACK: this is dumb, and unsafe. Things that should be uninitialized at the
+	// engine-level can kiss their deconstructors goodbye. See Shutdown for an
+	// explanation.
+	DLL_IMPORT BOOL	  STDCALL TerminateProcess(HANDLE hProcess, unsigned int uExitCode);
+	DLL_IMPORT HANDLE STDCALL GetCurrentProcess(void);
+#endif
+
 #if defined( TF_CLIENT_DLL )
 #include "econ/tool_items/custom_texture_cache.h"
 #endif
@@ -147,7 +160,12 @@
 #include "fbxsystem/fbxsystem.h"
 #endif
 
+#ifdef GE_DLL
+	extern void GE_DumpMemoryLeaks();
+#endif
+
 extern vgui::IInputInternal *g_InputInternal;
+const char *COM_GetModDirectory(); // return the mod dir (rather than the complete -game param, which can be a path)
 
 //=============================================================================
 // HPE_BEGIN
@@ -215,6 +233,11 @@ IEngineClientReplay *g_pEngineClientReplay = NULL;
 IReplaySystem *g_pReplay = NULL;
 #endif
 
+#ifdef GE_DLL
+	IAvi *avi = NULL;
+	IBik *bik = NULL;
+#endif
+
 IHaptics* haptics = NULL;// NVNT haptics system interface singleton
 
 //=============================================================================
@@ -273,6 +296,10 @@ INetworkStringTable *g_pStringTableMaterials = NULL;
 INetworkStringTable *g_pStringTableInfoPanel = NULL;
 INetworkStringTable *g_pStringTableClientSideChoreoScenes = NULL;
 INetworkStringTable *g_pStringTableServerMapCycle = NULL;
+
+#ifdef GE_DLL
+	INetworkStringTable *g_pStringTableGameplay = NULL;
+#endif
 
 #ifdef TF_CLIENT_DLL
 INetworkStringTable *g_pStringTableServerPopFiles = NULL;
@@ -918,6 +945,12 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 		return false;
 	if ( (inputsystem = (IInputSystem *)appSystemFactory(INPUTSYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
+#ifdef GE_DLL
+	if ( IsPC() && (avi = (IAvi *)appSystemFactory(AVI_INTERFACE_VERSION, NULL)) == NULL )
+		return false;
+	if ( (bik = (IBik *)appSystemFactory(BIK_INTERFACE_VERSION, NULL)) == NULL )
+		return false;
+#endif
 	if ( (scenefilecache = (ISceneFileCache *)appSystemFactory( SCENE_FILE_CACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 	if ( IsX360() && (xboxsystem = (IXboxSystem *)appSystemFactory( XBOXSYSTEM_INTERFACE_VERSION, NULL )) == NULL )
@@ -1053,6 +1086,11 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 
 	VGui_CreateGlobalPanels();
 
+#ifdef GE_DLL
+	// Start the music manager
+	StartGEMusicManager();
+#endif
+
 	InitSmokeFogOverlay();
 
 	// Register user messages..
@@ -1184,6 +1222,11 @@ void CHLClient::Shutdown( void )
 	g_pClientMode->Disable();
 	g_pClientMode->Shutdown();
 
+#ifdef GE_DLL
+	// Stop the music manager
+	StopGEMusicManager();
+#endif
+
 	input->Shutdown_All();
 	C_BaseTempEntity::ClearDynamicTempEnts();
 	TermSmokeFogOverlay();
@@ -1217,6 +1260,9 @@ void CHLClient::Shutdown( void )
 	DisconnectTier1Libraries( );
 
 	gameeventmanager = NULL;
+#if defined(GE_DLL) && defined(_DEBUG)
+	GE_DumpMemoryLeaks();
+#endif
 
 #if defined( WIN32 ) && !defined( _X360 )
 	// NVNT Disconnect haptics system
@@ -1237,6 +1283,10 @@ int CHLClient::HudVidInit( void )
 	gHUD.VidInit();
 
 	GetClientVoiceMgr()->VidInit();
+
+#ifdef GE_DLL
+	GEViewEffects()->VidInit();
+#endif
 
 	return 1;
 }
@@ -1622,6 +1672,11 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 	}
 #endif
 
+#ifdef GE_DLL
+	// Fail safe
+	GetLoadingScreen()->SetMapImage( pMapName );
+#endif
+
 	// Check low violence settings for this map
 	g_RagdollLVManager.SetLowViolence( pMapName );
 
@@ -1727,6 +1782,11 @@ void CHLClient::LevelShutdown( void )
 	// string tables are cleared on disconnect from a server, so reset our global pointers to NULL
 	ResetStringTablePointers();
 
+#ifdef GE_DLL
+	if ( engine->GetLevelName()[0] == '\0' )
+		StartMenuMusic();
+#endif
+
 #if defined( REPLAY_ENABLED )
 	// Shutdown the ragdoll recorder
 	CReplayRagdollRecorder::Instance().Shutdown();
@@ -1741,11 +1801,13 @@ void CHLClient::LevelShutdown( void )
 //-----------------------------------------------------------------------------
 void CHLClient::SetCrosshairAngle( const QAngle& angle )
 {
+#ifndef GE_DLL
 	CHudCrosshair *crosshair = GET_HUDELEMENT( CHudCrosshair );
 	if ( crosshair )
 	{
 		crosshair->SetCrosshairAngle( angle );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1894,6 +1956,12 @@ void CHLClient::InstallStringTableCallback( const char *tableName )
 	else if ( !Q_strcasecmp( tableName, "ServerMapCycleMvM" ) )
 	{
 		g_pStringTableServerMapCycleMvM = networkstringtable->FindTable( tableName );
+	}
+#endif
+#ifdef GE_DLL
+	else if ( !Q_strcasecmp( tableName, "GEGamePlay" ) )
+	{
+		g_pStringTableGameplay = networkstringtable->FindTable( tableName );
 	}
 #endif
 

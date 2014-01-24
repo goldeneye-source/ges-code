@@ -1217,8 +1217,12 @@ void CBaseEntity::PhysicsPushEntity( const Vector& push, trace_t *pTrace )
 
 	if ( GetMoveParent() )
 	{
+#ifdef GE_DLL
+		return;
+#else
 		Warning( "pushing entity (%s) that has parent (%s)!\n", GetDebugName(), GetMoveParent()->GetDebugName() );
 		Assert(0);
+#endif
 	}
 
 	// NOTE: absorigin and origin must be equal because there is no moveparent

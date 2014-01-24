@@ -121,6 +121,12 @@ enum Class_T
 	CLASS_HACKED_ROLLERMINE,
 	CLASS_COMBINE_HUNTER,
 
+#ifdef GE_DLL
+	CLASS_GESBOT,
+	CLASS_GESGUARD,
+	CLASS_GESNONCOMBAT,
+#endif
+
 	NUM_AI_CLASSES
 };
 
@@ -1254,6 +1260,13 @@ public:
 	bool					IsSolidFlagSet( int flagMask ) const;
 	void				 	SetSolidFlags( int flags );
 	bool					IsSolid() const;
+
+#ifdef GE_DLL
+	// Override this function in order to provide some logic as to the bulletproofness of entities (PENETRATION DISABLED)
+	virtual void			UpdateBulletProof() { SetBulletProof(false); };
+	void					SetBulletProof( bool state ) { m_bBulletProof = state; };
+	bool					IsBulletProof() { return m_bBulletProof; };
+#endif
 	
 	void					SetModelName( string_t name );
 
@@ -1553,14 +1566,23 @@ private:
 	float GetNextThink( int nContextIndex ) const;
 	int	GetNextThinkTick( int nContextIndex ) const;
 
+#ifdef GE_DLL
+protected:
+#endif
 	// Shot statistics
 	void UpdateShotStatistics( const trace_t &tr );
+
+#ifdef GE_DLL
+	// Base this so it can be used by NPC's as well
+	virtual void HandleBulletPenetration( CBaseCombatWeapon *pBaseWeapon, const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+#endif
 
 	// Handle shot entering water
 	bool HandleShotImpactingWater( const FireBulletsInfo_t &info, const Vector &vecEnd, ITraceFilter *pTraceFilter, Vector *pVecTracerDest );
 
 	// Handle shot entering water
-	void HandleShotImpactingGlass( const FireBulletsInfo_t &info, const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+	// GE_DLL: Made virtual
+	virtual void HandleShotImpactingGlass( const FireBulletsInfo_t &info, const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
 
 	// Should we draw bubbles underwater?
 	bool ShouldDrawUnderwaterBulletBubbles();
@@ -1603,6 +1625,10 @@ private:
 	CNetworkVar( unsigned char,  m_iParentAttachment ); // 0 if we're relative to the parent's absorigin and absangles.
 	CNetworkVar( unsigned char, m_MoveType );		// One of the MOVETYPE_ defines.
 	CNetworkVar( unsigned char, m_MoveCollide );
+
+#ifdef GE_DLL
+	CNetworkVar( bool, m_bBulletProof );
+#endif
 
 	// Our immediate parent in the movement hierarchy.
 	// FIXME: clarify m_pParent vs. m_pMoveParent

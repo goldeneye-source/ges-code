@@ -194,6 +194,11 @@ public:
 	virtual void					ModifyFireBulletsDamage( CTakeDamageInfo* dmgInfo ) {}
 	virtual bool					ShouldDrawUnderwaterBulletBubbles();
 	virtual bool					ShouldDrawWaterImpacts( void ) { return true; }
+#ifdef GE_DLL
+	// Base this so it can be used by NPC's as well
+	virtual void					HandleBulletPenetration( C_BaseCombatWeapon *pBaseWeapon, const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+	virtual void					HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+#endif
 	virtual bool					HandleShotImpactingWater( const FireBulletsInfo_t &info, 
 		const Vector &vecEnd, ITraceFilter *pTraceFilter, Vector *pVecTracerDest );
 	virtual ITraceFilter*			GetBeamTraceFilter( void );
@@ -686,7 +691,7 @@ public:
 
 	virtual bool					ShouldDraw();
 	inline	bool					IsVisible() const { return m_hRender != INVALID_CLIENT_RENDER_HANDLE; }
-			void					UpdateVisibility();
+	virtual	void					UpdateVisibility(); //<-- GE_DLL
 	
 	// Returns true if the entity changes its position every frame on the server but it doesn't
 	// set animtime. In that case, the client returns true here so it copies the server time to
@@ -856,7 +861,8 @@ public:
 // Methods implemented on both client and server
 public:
 	void							SetSize( const Vector &vecMin, const Vector &vecMax ); // UTIL_SetSize( pev, mins, maxs );
-	char const						*GetClassname( void );
+	// GE_DLL: Added virtual for Tokens...
+	virtual char const				*GetClassname( void );
 	char const						*GetDebugName( void );
 	static int						PrecacheModel( const char *name ); 
 	static bool						PrecacheSound( const char *name );
@@ -1000,6 +1006,8 @@ public:
 	/////////////////
 
 	virtual bool					IsPlayer( void ) const { return false; };
+	// GE_DLL
+	virtual bool					IsBot( void ) const { return ((GetFlags() & FL_FAKECLIENT) == FL_FAKECLIENT) ? true : false; }
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }
 	virtual bool					IsNPC( void ) { return false; }
@@ -1097,6 +1105,10 @@ public:
 	int					GetEffects( void ) const;
 	void				ClearEffects( void );
 	void				SetEffects( int nEffects );
+
+#ifdef GE_DLL
+	bool				IsBulletProof() { return m_bBulletProof; };
+#endif
 
 	// Computes the abs position of a point specified in local space
 	void				ComputeAbsPosition( const Vector &vecLocalPosition, Vector *pAbsPosition );
@@ -1539,6 +1551,10 @@ private:
 
 	int								m_iEFlags;	// entity flags EFL_*
 
+#ifdef GE_DLL
+	bool							m_bBulletProof;
+#endif
+
 	// Object movetype
 	unsigned char					m_MoveType;
 	unsigned char					m_MoveCollide;
@@ -1751,7 +1767,10 @@ inline bool C_BaseEntity::IsServerEntity( void )
 //-----------------------------------------------------------------------------
 inline matrix3x4_t &C_BaseEntity::EntityToWorldTransform()
 { 
+//this is pissing me off. Lodle
+#ifndef GE_DLL
 	Assert( s_bAbsQueriesValid );
+#endif
 	CalcAbsolutePosition();
 	return m_rgflCoordinateFrame; 
 }

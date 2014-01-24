@@ -127,6 +127,13 @@ extern ConVar tf_mm_servermode;
 
 #if defined( REPLAY_ENABLED )
 #include "replay/ireplaysystem.h"
+
+#ifdef GE_DLL
+extern void PythonInit();
+extern void PythonShutdown();
+extern void InitStatusLists();
+extern void GE_DumpMemoryLeaks();
+extern void GE_OverrideCommands();
 #endif
 
 extern IToolFrameworkServer *g_pToolFrameworkServer;
@@ -656,6 +663,11 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 	// init the cvar list first in case inits want to reference them
 	InitializeCvars();
+
+#ifdef GE_DLL
+	// Override commands that are annoying
+	GE_OverrideCommands();
+#endif
 	
 	// Initialize the particle system
 	if ( !g_pParticleSystemMgr->Init( g_pParticleSystemQuery ) )
@@ -732,6 +744,11 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	// try to get debug overlay, may be NULL if on HLDS
 	debugoverlay = (IVDebugOverlay *)appSystemFactory( VDEBUG_OVERLAY_INTERFACE_VERSION, NULL );
 
+#ifdef GE_DLL
+	PythonInit();
+	InitStatusLists();
+#endif
+
 #ifndef _XBOX
 #ifdef USE_NAV_MESH
 	// create the Navigation Mesh interface
@@ -752,6 +769,9 @@ void CServerGameDLL::PostInit()
 
 void CServerGameDLL::DLLShutdown( void )
 {
+#ifdef GE_DLL
+	PythonShutdown();
+#endif
 
 	// Due to dependencies, these are not autogamesystems
 	ModelSoundsCacheShutdown();
@@ -802,6 +822,10 @@ void CServerGameDLL::DLLShutdown( void )
 	DisconnectTier2Libraries();
 	ConVar_Unregister();
 	DisconnectTier1Libraries();
+
+#if defined(GE_DLL) && defined(_DEBUG)
+	GE_DumpMemoryLeaks();
+#endif
 }
 
 bool CServerGameDLL::ReplayInit( CreateInterfaceFn fnReplayFactory )
@@ -1434,6 +1458,10 @@ void CServerGameDLL::CreateNetworkStringTables( void )
 #ifdef TF_DLL
 	g_pStringTableServerPopFiles = networkstringtable->CreateStringTable( "ServerPopFiles", 128 );
 	g_pStringTableServerMapCycleMvM = networkstringtable->CreateStringTable( "ServerMapCycleMvM", 128 );
+#endif
+
+#ifdef GE_DLL
+	g_pStringTableGameplay = networkstringtable->CreateStringTable( "GEGamePlay", 1024 );
 #endif
 
 	bool bPopFilesValid = true;
@@ -2662,6 +2690,9 @@ void CServerGameClients::ClientSpawned( edict_t *pPlayer )
 	}
 }
 
+#ifndef GE_DLL
+// GE_DLL: This function is defined in ge_gameinterface.cpp
+//
 //-----------------------------------------------------------------------------
 // Purpose: called when a player disconnects from a server
 // Input  : *pEdict - the player
@@ -2724,6 +2755,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 		#endif
 	}
 }
+#endif // GE_DLL
 
 void CServerGameClients::ClientPutInServer( edict_t *pEntity, const char *playername )
 {

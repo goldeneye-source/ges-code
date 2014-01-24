@@ -720,7 +720,23 @@ static ConCommand npc_route("npc_route", CC_NPC_Route, "Displays the current rou
 //------------------------------------------------------------------------------
 void CC_NPC_Select( const CCommand &args )
 {
+#ifdef GE_DLL
+	// If we only have one ai, just select it!
+	if ( FStrEq(args[1],"") && g_AI_Manager.NumAIs() == 1 )
+	{
+		CBaseEntity *npc = g_AI_Manager.AccessAIs()[0];
+		if ( npc->m_debugOverlays & OVERLAY_NPC_SELECTED_BIT )
+			npc->m_debugOverlays &= ~OVERLAY_NPC_SELECTED_BIT;
+		else
+			npc->m_debugOverlays |= OVERLAY_NPC_SELECTED_BIT;
+	}
+	else
+	{
+		SetDebugBits( UTIL_GetCommandClient(),args[1],OVERLAY_NPC_SELECTED_BIT);
+	}
+#else
 	SetDebugBits( UTIL_GetCommandClient(),args[1],OVERLAY_NPC_SELECTED_BIT);
+#endif
 }
 static ConCommand npc_select("npc_select", CC_NPC_Select, "Select or deselects the given NPC(s) for later manipulation.  Selected NPC's are shown surrounded by a red translucent box\n\tArguments:   	{entity_name} / {class_name} / no argument picks what player is looking at ", FCVAR_CHEAT);
 
@@ -862,6 +878,7 @@ CON_COMMAND( ai_clear_bad_links, "Clears bits set on nav links indicating link i
 	}
 }
 
+#ifndef GE_DLL
 CON_COMMAND( ai_test_los, "Test AI LOS from the player's POV" )
 {
 	if ( !UTIL_IsCommandIssuedByServerAdmin() )
@@ -874,6 +891,7 @@ CON_COMMAND( ai_test_los, "Test AI LOS from the player's POV" )
 	NDebugOverlay::Line( UTIL_GetLocalPlayer()->EyePosition(), tr.endpos, 127, 127, 127, true, 5 );
 	NDebugOverlay::Cross3D( tr.endpos, 24, 255, 255, 255, true, 5 );
 }
+#endif
 
 #ifdef VPROF_ENABLED
 

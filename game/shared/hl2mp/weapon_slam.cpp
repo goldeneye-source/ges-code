@@ -69,8 +69,10 @@ END_PREDICTION_DATA()
 
 #endif
 
+#ifndef GE_DLL
 LINK_ENTITY_TO_CLASS( weapon_slam, CWeapon_SLAM );
 PRECACHE_WEAPON_REGISTER(weapon_slam);
+#endif
 
 #ifndef CLIENT_DLL
 

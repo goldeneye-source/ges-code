@@ -16,6 +16,8 @@
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 
+#ifndef GE_DLL
+
 #ifdef CLIENT_DLL
 #define CWeaponShotgun C_WeaponShotgun
 #endif
@@ -632,3 +634,5 @@ void CWeaponShotgun::WeaponIdle( void )
 	}
 }
 */
+
+#endif // GE_DLL

@@ -19,6 +19,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -187,4 +188,4 @@ void EnableHUDFilmDemo( bool bEnable, const char *left_string_id, const char *ri
 	}
 }
 
-
+#endif // GE_DLL

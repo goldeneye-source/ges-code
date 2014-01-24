@@ -306,6 +306,9 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropArray3( SENDINFO_ARRAY3(m_nModelIndexOverrides), SendPropInt( SENDINFO_ARRAY(m_nModelIndexOverrides), SP_MODEL_INDEX_BITS, SPROP_UNSIGNED ) ),
 #endif
 
+#ifdef GE_DLL
+	SendPropBool( SENDINFO( m_bBulletProof )),
+#endif
 END_SEND_TABLE()
 
 
@@ -400,6 +403,10 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 
 	SetCollisionBounds( vec3_origin, vec3_origin );
 	ClearFlags();
+
+#ifdef GE_DLL
+	m_bBulletProof = false;
+#endif
 
 	SetFriction( 1.0f );
 
@@ -1336,6 +1343,11 @@ void CBaseEntity::Activate( void )
 	{
 		AddContext( m_iszResponseContext.ToCStr() );
 	}
+
+#ifdef GE_DLL
+	// Explicitly call this function here because it is always called after spawning
+	UpdateBulletProof();
+#endif
 
 #ifdef HL1_DLL
 	ValidateEntityConnections();

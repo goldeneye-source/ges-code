@@ -150,6 +150,9 @@ BEGIN_RECV_TABLE_NOBASE( CPlayerLocalData, DT_Local )
 	RecvPropInt		(RECVINFO(m_bDucked)),
 	RecvPropInt		(RECVINFO(m_bDucking)),
 	RecvPropInt		(RECVINFO(m_bInDuckJump)),
+#ifdef GE_DLL
+	RecvPropInt		(RECVINFO(m_bStartedUnduckFromJump)),
+#endif
 	RecvPropFloat	(RECVINFO(m_flDucktime)),
 	RecvPropFloat	(RECVINFO(m_flDuckJumpTime)),
 	RecvPropFloat	(RECVINFO(m_flJumpTime)),
@@ -332,6 +335,9 @@ BEGIN_PREDICTION_DATA_NO_BASE( CPlayerLocalData )
 	DEFINE_PRED_FIELD( m_bDucked, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bDucking, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bInDuckJump, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+#ifdef GE_DLL
+	DEFINE_PRED_FIELD( m_bStartedUnduckFromJump, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+#endif
 	DEFINE_PRED_FIELD( m_flDucktime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flDuckJumpTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flJumpTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
@@ -339,7 +345,9 @@ BEGIN_PREDICTION_DATA_NO_BASE( CPlayerLocalData )
 //	DEFINE_PRED_FIELD( m_nOldButtons, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_FIELD( m_nOldButtons, FIELD_INTEGER ),
 	DEFINE_PRED_FIELD( m_flStepSize, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
-	DEFINE_FIELD( m_flFOVRate, FIELD_FLOAT ),
+#ifdef GE_DLL
+	DEFINE_PRED_FIELD( m_flFOVRate, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
+#endif
 
 END_PREDICTION_DATA()	
 
@@ -469,7 +477,9 @@ void C_BasePlayer::Spawn( void )
 
 	m_iFOV	= 0;	// init field of view.
 
+#ifndef GE_DLL
     SetModel( "models/player.mdl" );
+#endif
 
 	Precache();
 
@@ -979,10 +989,12 @@ void C_BasePlayer::OnDataChanged( DataUpdateType_t updateType )
 		{
 			if ( GetAmmoCount(i) > m_iOldAmmo[i] )
 			{
+#ifndef GE_DLL
 				// Don't add to ammo pickup if the ammo doesn't do it
 				const FileWeaponInfo_t *pWeaponData = gWR.GetWeaponFromAmmo(i);
 
 				if ( !pWeaponData || !( pWeaponData->iFlags & ITEM_FLAG_NOAMMOPICKUPS ) )
+#endif
 				{
 					// We got more ammo for this ammo index. Add it to the ammo history
 					CHudHistoryResource *pHudHR = GET_HUDELEMENT( CHudHistoryResource );
@@ -2400,10 +2412,11 @@ float C_BasePlayer::GetFOV( void )
 	}
 	
 	float fFOV = ( m_iFOV == 0 ) ? flDefaultFOV : m_iFOV;
-
+#ifndef GE_DLL
 	// Don't do lerping during prediction. It's only necessary when actually rendering,
 	// and it'll cause problems due to prediction timing messiness.
 	if ( !prediction->InPrediction() )
+#endif
 	{
 		// See if we need to lerp the values for local player
 		if ( IsLocalPlayer() && ( fFOV != m_iFOVStart ) && (m_Local.m_flFOVRate > 0.0f ) )
