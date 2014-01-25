@@ -41,6 +41,10 @@ public:
 	virtual void StopAnimation();
 	virtual void ResetAnimation(int frame = 0);
 
+#ifdef GE_DLL
+	virtual void SizeImageToPanel( bool sizetopanel ) { m_bScaleImage = sizetopanel; };
+#endif
+
 protected:
 	virtual void OnTick();
 	virtual void PerformLayout();
@@ -51,6 +55,9 @@ protected:
 	virtual const char *GetDescription();
 
 private:
+#ifdef GE_DLL
+	bool m_bSizeImgToPanel;
+#endif
 	int m_iCurrentImage;
 	int m_iNextFrameTime;
 	int m_iFrameTimeMillis;

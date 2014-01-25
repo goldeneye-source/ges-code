@@ -34,6 +34,14 @@ static SoundChannels g_pChannelNames[] =
 	{ CHAN_STREAM, "CHAN_STREAM" },
 	{ CHAN_STATIC, "CHAN_STATIC" },
 	{ CHAN_VOICE2, "CHAN_VOICE2" },
+#ifdef GE_DLL
+	{ CHAN_GE_GAMEPLAY, "CHAN_GE_GAMEPLAY"	},
+	{ CHAN_GE_HUD,		"CHAN_GE_HUD"		},
+	{ CHAN_GE_MUSIC,	"CHAN_GE_MUSIC"		},
+	{ CHAN_GE_RELOAD,	"CHAN_GE_RELOAD"	},
+	{ CHAN_GE_PICKUP,	"CHAN_GE_PICKUP"	},
+	{ CHAN_GE_ENV,		"CHAN_GE_ENV"		},
+#endif
 };
 
 struct VolumeLevel

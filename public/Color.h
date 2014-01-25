@@ -33,6 +33,16 @@ public:
 		SetColor(_r, _g, _b, _a);
 	}
 	
+#ifdef GE_DLL
+	Color(int raw)
+	{
+		if ( ((raw>>24) & 0xFF) == 0x00 )
+			SetColor( (raw>>16) & 0xFF, (raw>>8) & 0xFF, raw & 0xFF, 255 );
+		else
+			SetColor( (raw>>16) & 0xFF, (raw>>8) & 0xFF, raw & 0xFF, (raw>>24) & 0xFF );
+	}
+#endif
+
 	// set the color
 	// r - red component (0-255)
 	// g - green component (0-255)

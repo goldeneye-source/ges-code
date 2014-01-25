@@ -172,6 +172,10 @@ RecvTable::RecvTable(RecvProp *pProps, int nProps, const char *pNetTableName)
 
 RecvTable::~RecvTable()
 {
+#ifdef GE_DLL
+	if ( m_nProps > 0 )
+		delete [] m_pProps;
+#endif
 }
 
 void RecvTable::Construct( RecvProp *pProps, int nProps, const char *pNetTableName )

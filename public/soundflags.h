@@ -29,6 +29,15 @@ enum
 	CHAN_VOICE2		= 7,
 	CHAN_VOICE_BASE	= 8,		// allocate channel for network voice data
 	CHAN_USER_BASE	= (CHAN_VOICE_BASE+128)		// Anything >= this number is allocated to game code.
+	
+#ifdef GE_DLL
+	CHAN_GE_GAMEPLAY = CHAN_USER_BASE,
+	CHAN_GE_HUD,
+	CHAN_GE_MUSIC,
+	CHAN_GE_RELOAD,
+	CHAN_GE_PICKUP,
+	CHAN_GE_ENV,
+#endif
 };
 
 //-----------------------------------------------------------------------------

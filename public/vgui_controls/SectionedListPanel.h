@@ -86,6 +86,14 @@ public:
 
 	// set the text color of an item
 	virtual void SetItemFgColor(int itemID, Color color);
+	
+#ifdef GE_DLL
+	virtual void SetHeaderDividerColor( int sectionID, Color color );
+	virtual void SetHeaderFont( int sectionID, HFont font );
+	virtual void SetSectionFont( int sectionID, HFont font );
+	virtual void SetSectionHeight( int sectionID, int height );
+#endif
+	
 	//=============================================================================
 	// HPE_BEGIN:
 	// [menglish] Getters and setters for several item and section objects
@@ -252,6 +260,9 @@ private:
 		CUtlVector<column_t> m_Columns;
 		SectionSortFunc_t m_pSortFunc;
 		int m_iMinimumHeight;
+#ifdef GE_DLL
+		vgui::HFont m_hFont;
+#endif
 	};
 
 	CUtlVector<section_t> 				m_Sections;
