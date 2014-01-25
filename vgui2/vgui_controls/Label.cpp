@@ -259,6 +259,9 @@ void Label::OnMousePressed(MouseCode code)
 	{
 		_associate->RequestFocus();
 	}
+
+	//GE_DLL
+	BaseClass::OnMousePressed( code );
 }
 
 //-----------------------------------------------------------------------------
@@ -1300,6 +1303,10 @@ void Label::PerformLayout()
 				_textImage->SetSize(twide, ttall);
 		}
 
+#ifdef GE_DLL
+		BaseClass::PerformLayout();
+#endif
+
 		HandleAutoSizing();
 
 		HandleAutoSizing();
@@ -1310,7 +1317,12 @@ void Label::PerformLayout()
 	// assume the images in the dar cannot be resized, and if
 	// the images + the textimage are too wide we shring the textimage part
 	if (_textImageIndex < 0)
+	{
+#ifdef GE_DLL
+		BaseClass::PerformLayout();
+#endif
 		return;
+	}
 	
 	// get the size of the images
 	int	widthOfImages = 0;
@@ -1335,12 +1347,21 @@ void Label::PerformLayout()
 
 	// if we have no space at all just leave everything as is.
 	if (spaceAvail < 0)
+	{
+#ifdef GE_DLL
+		BaseClass::PerformLayout();
+#endif
 		return;
+	}
 
 	int twide, ttall;
 	_textImage->GetSize (twide, ttall);
 	// tell the textImage how much space we have to draw in
 	_textImage->SetSize(spaceAvail, ttall);	
+
+#ifdef GE_DLL
+	BaseClass::PerformLayout();
+#endif
 
 	HandleAutoSizing();
 }

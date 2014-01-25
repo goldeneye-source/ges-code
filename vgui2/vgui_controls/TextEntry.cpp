@@ -2838,11 +2838,27 @@ void TextEntry::InsertChar(wchar_t ch)
 
 	if (m_bAllowNumericInputOnly)
 	{
-		if (!iswdigit(ch) && ((char)ch != '.'))
+#ifdef GE_DLL
+		if ( (char)ch == '-' )
 		{
-			surface()->PlaySound("Resource\\warning.wav");
-			return;
+			if ( _cursorPos != 0 )
+			{
+				surface()->PlaySound("Resource\\warning.wav");
+				return;
+			}
 		}
+		else
+		{
+#endif
+			if (!iswdigit(ch) && ((char)ch != '.'))
+			{
+
+				surface()->PlaySound("Resource\\warning.wav");
+				return;
+			}
+#ifdef GE_DLL
+		}
+#endif
 	}
 	
 	// check against unicode characters
@@ -3744,6 +3760,9 @@ void TextEntry::ApplySettings( KeyValues *inResourceData )
 	SetMaximumCharCount(inResourceData->GetInt("maxchars", -1));
 	SetAllowNumericInputOnly(inResourceData->GetInt("NumericInputOnly", 0));
 	SetAllowNonAsciiCharacters(inResourceData->GetInt("unicode", 0));
+#ifdef GE_DLL
+	SetText( inResourceData->GetString("text", "") );
+#endif
 	SelectAllOnFirstFocus(inResourceData->GetInt("selectallonfirstfocus", 0));
 }
 

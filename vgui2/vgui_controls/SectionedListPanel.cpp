@@ -72,7 +72,9 @@ void SectionedListPanelHeader::ApplySchemeSettings(IScheme *pScheme)
 	SetFgColor(GetSchemeColor("SectionedListPanel.HeaderTextColor", pScheme));
 	m_SectionDividerColor = GetSchemeColor("SectionedListPanel.DividerColor", pScheme);
 	SetBgColor(GetSchemeColor("SectionedListPanelHeader.BgColor", GetBgColor(), pScheme));
+#ifndef GE_DLL
 	SetFont(pScheme->GetFont("DefaultVerySmall", IsProportional()));
+#endif
 	ClearImages();
 	
 	HFont hFont = m_pListPanel->GetHeaderFont();
@@ -193,6 +195,13 @@ void SectionedListPanelHeader::PerformLayout()
 			{
 				SetImageBounds(i, xpos + wide - contentWide, wide - COLUMN_DATA_GAP);
 			}
+#ifdef GE_DLL
+			else if ( columnFlags & SectionedListPanel::COLUMN_CENTER)
+			{
+					int offSet = (wide / 2) - (contentWide / 2);
+					SetImageBounds(i, xpos + offSet, wide - offSet - COLUMN_DATA_GAP);
+			}
+#endif
 			else
 			{
 				SetImageBounds(i, xpos, wide - COLUMN_DATA_GAP);
@@ -872,7 +881,11 @@ void SectionedListPanel::PerformLayout()
 
 		m_pScrollBar->SetRangeWindow(ctall);
 
+#ifdef GE_DLL
+		m_pScrollBar->SetRange(0, m_iContentHeight + m_iLineSpacing);
+#else
 		m_pScrollBar->SetRange(0, m_iContentHeight);
+#endif
 		m_pScrollBar->InvalidateLayout();
 		m_pScrollBar->Repaint();
 
@@ -901,8 +914,14 @@ void SectionedListPanel::PerformLayout()
 void SectionedListPanel::LayoutPanels(int &contentTall)
 {
 	int tall = GetSectionTall();
+#ifdef GE_DLL
+	int x = scheme()->GetProportionalScaledValue(5), wide = GetWide() - scheme()->GetProportionalScaledValue(5);
+	int y = scheme()->GetProportionalScaledValue(5);
+#else
 	int x = 5, wide = GetWide() - 10;
 	int y = 5;
+#endif
+
 	
 	if (m_pScrollBar->IsVisible())
 	{
@@ -1176,6 +1195,9 @@ void SectionedListPanel::AddSection(int sectionID, SectionedListPanelHeader *hea
 	m_Sections[index].m_pSortFunc = sortFunc;
 	m_Sections[index].m_bAlwaysVisible = false;
 	m_Sections[index].m_iMinimumHeight = 0;
+#ifdef GE_DLL
+	m_Sections[index].m_hFont = INVALID_FONT;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1310,6 +1332,33 @@ void SectionedListPanel::SetItemFgColor( int itemID, Color color )
 	m_Items[itemID]->SetOverrideColors( true );
 	m_Items[itemID]->InvalidateLayout();
 }
+
+#ifdef GE_DLL
+void SectionedListPanel::SetHeaderFont( int sectionID, HFont font )
+{
+	if ( font == INVALID_FONT )
+		return;
+
+	if (!m_Sections.IsValidIndex(sectionID))
+		return;
+
+	m_Sections[sectionID].m_pHeader->SetFont( font );
+	m_Sections[sectionID].m_pHeader->ClearImages();
+	InvalidateLayout(true);
+}
+
+void SectionedListPanel::SetSectionFont( int sectionID, vgui::HFont font )
+{
+	if ( font == INVALID_FONT )
+		return;
+
+	if (!m_Sections.IsValidIndex(sectionID))
+		return;
+
+	SetHeaderFont(sectionID, font);
+	m_Sections[sectionID].m_hFont = font;
+}
+#endif
 
 //=============================================================================
 // HPE_BEGIN:
@@ -2095,11 +2144,19 @@ int SectionedListPanel::GetSectionTall()
 		HFont font = m_Sections[0].m_pHeader->GetFont();
 		if (font != INVALID_FONT)
 		{
+#ifdef GE_DLL
+			return surface()->GetFontTall(font) + scheme()->GetProportionalScaledValue(BUTTON_HEIGHT_SPACER);
+#else
 			return surface()->GetFontTall(font) + BUTTON_HEIGHT_SPACER;
+#endif
 		}
 	}
 
+#ifdef GE_DLL
+	return scheme()->GetProportionalScaledValue(BUTTON_HEIGHT_DEFAULT);
+#else
 	return BUTTON_HEIGHT_DEFAULT;
+#endif
 }
 
 //-----------------------------------------------------------------------------
