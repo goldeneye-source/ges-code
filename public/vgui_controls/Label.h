@@ -154,6 +154,10 @@ public:
 	void SetWrap( bool bWrap );
 	void SetCenterWrap( bool bWrap );
 
+#ifdef GE_DLL
+	virtual void ApplySettings( KeyValues *inResourceData );
+#endif
+
 	void SetAllCaps( bool bAllCaps );
 
 protected:
@@ -175,7 +179,9 @@ protected:
 	// editing
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual void GetSettings( KeyValues *outResourceData );
+#ifndef GE_DLL
 	virtual void ApplySettings( KeyValues *inResourceData );
+#endif
 	virtual const char *GetDescription( void );
 
 	MESSAGE_FUNC_PARAMS( OnDialogVariablesChanged, "DialogVariables", dialogVariables );

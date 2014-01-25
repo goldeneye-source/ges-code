@@ -165,6 +165,10 @@ public:
 	HPanel ToHandle() const;
 
 	virtual void Init( int x, int y, int wide, int tall );
+	
+#ifdef GE_DLL
+	void SetTexture( int id, const char *texture );
+#endif
 
 	//-----------------------------------------------------------------------------
 	// PANEL METHODS
@@ -404,6 +408,10 @@ public:
 	virtual void SetTriplePressAllowed( bool state );
 	virtual bool IsTriplePressAllowed() const;
 	virtual void OnMouseTriplePressed( MouseCode code );
+
+#ifdef GE_DLL
+	void SetReflectMouse( bool state ) { m_bReflectMouse = state; }
+#endif
 
 	static char const	*KeyCodeToString( KeyCode code );
 	static wchar_t const *KeyCodeToDisplayString( KeyCode code );
@@ -734,6 +742,10 @@ private:
 		BUILDMODE_SAVE_WIDE_FULL			= 0x40,
 		BUILDMODE_SAVE_TALL_FULL			= 0x80,
 		BUILDMODE_SAVE_PROPORTIONAL_TO_PARENT = 0x100,
+#ifdef GE_DLL
+		BUILDMODE_SAVE_XPOS_CENTERPARENT	= 0x200,
+		BUILDMODE_SAVE_YPOS_CENTERPARENT	= 0x400,
+#endif
 	};
 
 	enum PanelFlags_t
@@ -862,6 +874,12 @@ private:
 	bool			m_bIsSilent : 1; // should this panel PostActionSignals?
 	bool			m_bIsConsoleStylePanel : 1;
 	bool			m_bParentNeedsCursorMoveEvents : 1;
+
+#ifdef GE_DLL
+	bool			m_bReflectMouse;
+	int				m_iCenterOffsetX;
+	int				m_iCenterOffsetY;
+#endif
 
 	// Sibling pinning
 	char			*_pinToSibling;				// string name of the sibling panel we're pinned to

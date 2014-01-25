@@ -331,6 +331,9 @@ enum
 #define BOUNCE_SHELL	0x20
 #define	BOUNCE_CONCRETE BREAK_CONCRETE
 #define BOUNCE_SHOTSHELL 0x80
+#ifdef GE_DLL
+  #define BOUNCE_GRENADE 0x100
+#endif
 
 // Temp entity bounce sound types
 #define TE_BOUNCE_NULL		0
@@ -410,6 +413,15 @@ enum Collision_Group_t
 
 	COLLISION_GROUP_NPC_ACTOR,		// Used so NPCs in scripts ignore the player.
 	COLLISION_GROUP_NPC_SCRIPTED,	// USed for NPCs in scripts that should not collide with each other
+
+#ifdef GE_DLL
+	COLLISION_GROUP_MINE,
+	COLLISION_GROUP_GRENADE,
+	COLLISION_GROUP_TKNIFE,
+	COLLISION_GROUP_CAPAREA,
+	COLLISION_GROUP_MI6,
+	COLLISION_GROUP_JANUS,
+#endif
 
 	LAST_SHARED_COLLISION_GROUP
 };

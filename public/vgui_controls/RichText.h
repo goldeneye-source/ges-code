@@ -118,6 +118,10 @@ public:
 
 	void SetUnderlineFont( HFont font );
 
+#ifdef GE_DLL
+	virtual void ApplySettings( KeyValues *inResourceData );
+#endif
+
 	bool IsAllTextAlphaZero() const;
 	bool HasText() const;
 
@@ -128,8 +132,9 @@ protected:
 	virtual void PerformLayout();  // layout the text in the window
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual void Paint();
-
+#ifndef GE_DLL	
 	virtual void ApplySettings( KeyValues *inResourceData );
+#endif
 	virtual void GetSettings( KeyValues *outResourceData );
 	virtual const char *GetDescription( void );
 	MESSAGE_FUNC_WCHARPTR( OnSetText, "SetText", text );
@@ -164,7 +169,10 @@ protected:
 protected:
 	ScrollBar			*_vertScrollBar;	// the scroll bar used in the window
 
+#ifndef GE_DLL
 private:
+#endif
+
 	int GetLineHeight();
 	HFont GetDefaultFont();
 
@@ -213,6 +221,11 @@ private:
 		int pixelsIndent;
 		bool textClickable;
 		CUtlSymbol m_sClickableTextAction;
+
+	#ifdef GE_DLL
+		HFont textFont;
+		bool centerText;
+	#endif
 
 		TFade fade;
 
@@ -273,6 +286,11 @@ private:
 		Color textColor;
 		int pixelsIndent;
 		bool textClickable;
+
+	#ifdef GE_DLL
+		HFont textFont;
+		bool centerText;
+	#endif
 
 		// index into our current position in the formatting stream
 		int formatStreamIndex;

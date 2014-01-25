@@ -53,6 +53,14 @@ public:
 	virtual Color GetDrawColor( void );
 	virtual void SetDrawColor( Color drawColor );
 
+#ifdef GE_DLL
+	virtual void OnMousePressed(MouseCode code);
+	virtual void OnMouseDoublePressed(MouseCode code);
+	virtual void OnMouseReleased(MouseCode code);
+	virtual void OnCursorEntered();
+	virtual void OnCursorExited();
+#endif
+
 	virtual void ApplySettings(KeyValues *inResourceData);
 
 	// unhooks and evicts image if possible, caller must re-establish
