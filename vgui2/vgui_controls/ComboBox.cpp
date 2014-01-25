@@ -355,7 +355,11 @@ void ComboBox::DoMenuLayout()
 	m_pDropDown->PositionRelativeToPanel( this, m_iDirection, m_iOpenOffsetY );
 
 	// reset the width of the drop down menu to be the width of the combo box
+#ifdef GE_DLL
+	m_pDropDown->SetMinimumWidth( GetWide() );
+#else
 	m_pDropDown->SetFixedWidth(GetWide());
+#endif
 	m_pDropDown->ForceCalculateWidth();
 
 }

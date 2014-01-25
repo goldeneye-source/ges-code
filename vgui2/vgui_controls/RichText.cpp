@@ -193,6 +193,10 @@ RichText::RichText(Panel *parent, const char *panelName) : BaseClass(parent, pan
 	// add a basic format string
 	TFormatStream stream;
 	stream.color = _defaultTextColor;
+#ifdef GE_DLL
+	stream.textFont = _font;
+	stream.centerText = false;
+#endif
 	stream.fade.flFadeStartTime = 0.0f;
 	stream.fade.flFadeLength = -1.0f;
 	stream.pixelsIndent = 0;
@@ -434,6 +438,9 @@ void RichText::SetText(const wchar_t *text)
 	m_FormatStream.RemoveAll();
 	TFormatStream stream;
 	stream.color = GetFgColor();
+#ifdef GE_DLL
+	stream.textFont = _font;
+#endif
 	stream.fade.flFadeLength = -1.0f;
 	stream.fade.flFadeStartTime = 0.0f;
 	stream.pixelsIndent = 0;

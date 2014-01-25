@@ -471,3 +471,45 @@ void ImagePanel::SetFrame( int nFrame )
 
 	return m_pImage->SetFrame( nFrame );
 }
+
+
+#ifdef GE_DLL
+
+void ImagePanel::OnMousePressed(MouseCode code)
+{
+	if ( GetParent() )
+		GetParent()->OnMousePressed(code);
+
+	BaseClass::OnMousePressed(code);
+}
+void ImagePanel::OnMouseDoublePressed(MouseCode code)
+{
+	if ( GetParent() )
+		GetParent()->OnMouseDoublePressed(code);
+
+	BaseClass::OnMouseDoublePressed(code);
+}
+void ImagePanel::OnMouseReleased(MouseCode code)
+{
+	if ( GetParent() )
+		GetParent()->OnMouseReleased(code);
+
+	BaseClass::OnMouseDoublePressed(code);
+}
+void ImagePanel::OnCursorEntered()
+{
+	if ( GetParent() )
+		GetParent()->OnCursorEntered();
+
+	BaseClass::OnCursorEntered();
+}
+void ImagePanel::OnCursorExited()
+{
+	if ( GetParent() )
+		GetParent()->OnCursorExited();
+
+	BaseClass::OnCursorExited();
+}
+
+#endif
+

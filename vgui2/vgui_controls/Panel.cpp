@@ -663,6 +663,11 @@ void Panel::Init( int x, int y, int wide, int tall )
 	_tabPosition = 0;
 	m_iScheme = 0;
 	m_bIsSilent = false;
+#ifdef GE_DLL
+	m_bReflectMouse = false;
+	m_iCenterOffsetX = m_iCenterOffsetY = 0;
+#endif
+
 	m_bParentNeedsCursorMoveEvents = false;
 
 	_buildModeFlags = 0; // not editable or deletable in buildmode dialog by default
@@ -1847,6 +1852,10 @@ void Panel::InternalMousePressed(int code)
 #if defined( VGUI_USEDRAGDROP )
 		DragDropStartDragging();
 #endif
+#ifdef GE_DLL
+		if ( m_bReflectMouse )
+			CallParentFunction(new KeyValues("MousePressed","code",code));
+#endif
 		return;
 	}
 	
@@ -1894,6 +1903,10 @@ void Panel::InternalMouseDoublePressed(int code)
 	
 	if ( !IsMouseInputEnabled())
 	{
+#ifdef GE_DLL
+		if ( m_bReflectMouse )
+			CallParentFunction(new KeyValues("MousePressed","code",code));
+#endif
 		return;
 	}
 	
@@ -2918,6 +2931,11 @@ void Panel::OnThink()
 // input messages handlers (designed for override)
 void Panel::OnCursorMoved(int x, int y)
 {
+#ifdef GE_DLL
+	if ( m_bReflectMouse )
+		CallParentFunction(new KeyValues("CursorMoved","xpos", x, "ypos", y));
+#endif
+
 	if( ParentNeedsCursorMoveEvents() )
 	{
 		// figure out x and y in parent space
@@ -2937,18 +2955,34 @@ void Panel::OnCursorExited()
 
 void Panel::OnMousePressed(MouseCode code)
 {
+#ifdef GE_DLL
+	if ( m_bReflectMouse )
+		CallParentFunction(new KeyValues("MousePressed","code",code));
+#endif
 }
 
 void Panel::OnMouseDoublePressed(MouseCode code)
 {
+#ifdef GE_DLL
+	if ( m_bReflectMouse )
+		CallParentFunction(new KeyValues("MouseDoublePressed","code",code));
+#endif
 }
 
 void Panel::OnMouseTriplePressed(MouseCode code)
 {
+#ifdef GE_DLL
+	if ( m_bReflectMouse )
+		CallParentFunction(new KeyValues("MouseTriplePressed","code",code));
+#endif
 }
 
 void Panel::OnMouseReleased(MouseCode code)
 {
+#ifdef GE_DLL
+	if ( m_bReflectMouse )
+		CallParentFunction(new KeyValues("MouseReleased","code",code));
+#endif
 }
 
 void Panel::OnMouseWheeled(int delta)
@@ -3428,7 +3462,9 @@ bool Panel::RequestFocusNext(VPANEL panel)
 void Panel::RequestFocus(int direction)
 {
 	// NOTE: This doesn't make any sense if we don't have keyboard input enabled
+#ifndef GE_DLL
 	Assert( ( IsX360() || IsConsoleStylePanel() ) || IsKeyBoardInputEnabled() );
+#endif
 	//	ivgui()->DPrintf2("RequestFocus(%s, %s)\n", GetName(), GetClassName());
 	OnRequestFocus(GetVPanel(), NULL);
 }
@@ -3608,6 +3644,35 @@ void Panel::SetPaintBackgroundType( int type )
 	m_nPaintBackgroundType = clamp( type, 0, 2 );
 }
 
+#ifdef GE_DLL
+void Panel::SetTexture( int id, const char *texture )
+{
+	if ( id <= 0 || id > 4 )
+		return;
+
+	int tex_id = surface()->DrawGetTextureId( texture );
+	if ( tex_id == -1 )
+		tex_id = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( tex_id, texture, false, true );
+
+	switch( id )
+	{
+	case 1:
+		m_nBgTextureId1 = tex_id;
+		break;
+	case 2:
+		m_nBgTextureId2 = tex_id;
+		break;
+	case 3:
+		m_nBgTextureId3 = tex_id;
+		break;
+	case 4:
+		m_nBgTextureId4 = tex_id;
+		break;
+	}
+}
+#endif
+
 void Panel::SetPaintEnabled(bool state)
 {
 	_flags.SetFlag( PAINT_ENABLED, state );
@@ -3723,6 +3788,23 @@ void Panel::InternalPerformLayout()
 void Panel::PerformLayout()
 {
 	// this should be overridden to relayout controls
+#ifdef GE_DLL
+	int x, y;
+	GetPos( x, y );
+
+	if ( _buildModeFlags & BUILDMODE_SAVE_XPOS_CENTERPARENT && GetParent() )
+	{
+		// TODO: Need to save the original x/y offset
+		x = (GetParent()->GetWide() / 2) - (GetWide() / 2) + m_iCenterOffsetX; // <-- Add offset here
+	}
+
+	if ( _buildModeFlags & BUILDMODE_SAVE_YPOS_CENTERPARENT && GetParent() )
+	{
+		y = (GetParent()->GetTall() / 2) - (GetTall() / 2) + m_iCenterOffsetY;
+	}
+
+	SetPos( x, y );
+#endif
 }
 
 void Panel::InvalidateLayout( bool layoutNow, bool reloadScheme )
@@ -4404,6 +4486,25 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 	// flag to cause windows to get screenWide and screenTall from their parents,
 	// this allows children windows to use fill and right/bottom alignment even
 	// if their parent does not use the full screen.
+
+#ifdef GE_DLL
+	// Set our parent early, if we specified
+	const char *parent = inResourceData->GetString("parent", NULL);
+	if ( parent && GetParent() )
+	{
+		Panel *newParent = GetParent()->FindChildByName( parent, "true" );
+		if ( !newParent )
+		{
+			Warning( "Parent (%s) not found for VGUI element %s defined in %s. ", parent, GetName(), GetParent() ? GetParent()->GetName() : "null" );
+			Warning( "Make sure you define the parent FIRST in the res file!\n" );
+		}
+		else
+		{
+			SetParent( newParent );
+		}
+	}
+#endif
+
 	if ( inResourceData->GetInt( "proportionalToParent", 0 ) == 1 )
 	{
 		_buildModeFlags |= BUILDMODE_SAVE_PROPORTIONAL_TO_PARENT;
@@ -4413,17 +4514,195 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
+<<<<<<< HEAD
 	// size
 	int wide = ComputeWide( inResourceData, alignScreenWide, alignScreenTall, false );
 	int tall = ComputeTall( inResourceData, alignScreenWide, alignScreenTall, false );
+=======
+#ifdef GE_DLL
+	// size
+	int wide, tall;
+	GetSize( wide, tall );
+
+	const char *wstr = inResourceData->GetString( "wide", NULL );
+	if ( wstr )
+	{
+		if (wstr[0] == 'f' || wstr[0] == 'F')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_WIDE_FULL;
+			wstr++;
+		}
+		wide = atoi(wstr);
+		if ( IsProportional() )
+		{
+			// scale the width up to our screen co-ords
+			wide = scheme()->GetProportionalScaledValueEx(GetScheme(), wide);
+		}
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_WIDE_FULL)
+		{
+			wide = alignScreenWide - wide;
+		}
+	}
+
+	// allow tall to be use the "fill" option, set to the height of the parent/screen
+	wstr = inResourceData->GetString( "tall", NULL );
+	if ( wstr )
+	{
+		if (wstr[0] == 'f' || wstr[0] == 'F')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_TALL_FULL;
+			wstr++;
+		}
+		tall = atoi(wstr);
+		if ( IsProportional() )
+		{
+			// scale the height up to our screen co-ords
+			tall = scheme()->GetProportionalScaledValueEx(GetScheme(), tall);
+		}
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_TALL_FULL)
+		{
+			tall = alignScreenTall - tall;
+		}
+	}
+
+	if( bUsesTitleSafeArea )
+	{
+		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
+		{
+			if ( !excludeEdgeFromTitleSafe.x )
+				wide -= titleSafeWide;
+
+			if ( !excludeEdgeFromTitleSafe.width )
+				wide -= titleSafeWide;
+		}
+
+		if ( _buildModeFlags & BUILDMODE_SAVE_TALL_FULL )
+		{
+			if ( !excludeEdgeFromTitleSafe.y )
+				tall -= titleSafeTall;
+
+			if ( !excludeEdgeFromTitleSafe.height )
+				tall -= titleSafeTall;
+		}
+	}
+
+	SetSize( wide, tall );
+#endif
+>>>>>>> Incorporated GE:S specific VGUI changes
 
 	int x, y;
 	GetPos(x, y);
 	const char *xstr = inResourceData->GetString( "xpos", NULL );
 	const char *ystr = inResourceData->GetString( "ypos", NULL );
+<<<<<<< HEAD
 	_buildModeFlags |= ComputePos( xstr, x, wide, alignScreenWide, true );
 	_buildModeFlags |= ComputePos( ystr, y, tall, alignScreenTall, false );
 	
+=======
+
+	if (xstr)
+	{
+		// look for alignment flags
+		if (xstr[0] == 'r' || xstr[0] == 'R')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_XPOS_RIGHTALIGNED;
+			xstr++;
+		}
+		else if (xstr[0] == 'c' || xstr[0] == 'C')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_XPOS_CENTERALIGNED;
+			xstr++;
+
+#ifdef GE_DLL
+			// Should we center in our parent?
+			if ( xstr[0] == 'p' || xstr[0] == 'P' )
+			{
+				// The value following this is considered an offset from center
+				if ( GetParent() )
+					_buildModeFlags |= BUILDMODE_SAVE_XPOS_CENTERPARENT;
+
+				xstr++;
+			}
+#endif
+		}
+
+		// get the value
+		x = atoi(xstr);
+
+		// scale the x up to our screen co-ords
+		if ( IsProportional() )
+		{
+			x = scheme()->GetProportionalScaledValueEx(GetScheme(), x);
+		}
+
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_XPOS_RIGHTALIGNED)
+		{
+			x = alignScreenWide - x;
+		}
+#ifdef GE_DLL
+		else if ( _buildModeFlags & BUILDMODE_SAVE_XPOS_CENTERPARENT )
+		{
+			m_iCenterOffsetX = x;
+			x = (GetParent()->GetWide() / 2) - (GetWide() / 2) + x;
+		}
+#endif
+		else if (_buildModeFlags & BUILDMODE_SAVE_XPOS_CENTERALIGNED)
+		{
+			x = (alignScreenWide / 2) + x;
+		}
+	}
+
+	if (ystr)
+	{
+		// look for alignment flags
+		if (ystr[0] == 'r' || ystr[0] == 'R')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_YPOS_BOTTOMALIGNED;
+			ystr++;
+		}
+		else if (ystr[0] == 'c' || ystr[0] == 'C')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_YPOS_CENTERALIGNED;
+			ystr++;
+
+#ifdef GE_DLL
+			// Should we center in our parent?
+			if ( ystr[0] == 'p' || ystr[0] == 'P' )
+			{
+				// The value following this is considered an offset from center
+				if ( GetParent() )
+					_buildModeFlags |= BUILDMODE_SAVE_YPOS_CENTERPARENT;
+				ystr++;
+			}
+#endif
+		}
+		y = atoi(ystr);
+		if (IsProportional())
+		{
+			// scale the y up to our screen co-ords
+			y = scheme()->GetProportionalScaledValueEx(GetScheme(), y);
+		}
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_YPOS_BOTTOMALIGNED)
+		{
+			y = alignScreenTall - y;
+		}
+#ifdef GE_DLL
+		else if ( _buildModeFlags & BUILDMODE_SAVE_YPOS_CENTERPARENT )
+		{
+			m_iCenterOffsetY = y;
+			y = (GetParent()->GetTall() / 2) - (GetTall() / 2) + y;
+		}
+#endif
+		else if (_buildModeFlags & BUILDMODE_SAVE_YPOS_CENTERALIGNED)
+		{
+			y = (alignScreenTall / 2) + y;
+		}
+	}
+>>>>>>> Incorporated GE:S specific VGUI changes
 
 	bool bUsesTitleSafeArea = false;
 	int titleSafeWide = 0;
@@ -4532,6 +4811,57 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		SetZPos( inResourceData->GetInt( "zpos" ) );
 	}
 
+<<<<<<< HEAD
+=======
+#ifndef GE_DLL
+	// size
+	int wide, tall;
+	GetSize( wide, tall );
+
+	const char *wstr = inResourceData->GetString( "wide", NULL );
+	if ( wstr )
+	{
+		if (wstr[0] == 'f' || wstr[0] == 'F')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_WIDE_FULL;
+			wstr++;
+		}
+		wide = atoi(wstr);
+		if ( IsProportional() )
+		{
+			// scale the width up to our screen co-ords
+			wide = scheme()->GetProportionalScaledValueEx(GetScheme(), wide);
+		}
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_WIDE_FULL)
+		{
+			wide = alignScreenWide - wide;
+		}
+	}
+
+	// allow tall to be use the "fill" option, set to the height of the parent/screen
+	wstr = inResourceData->GetString( "tall", NULL );
+	if ( wstr )
+	{
+		if (wstr[0] == 'f' || wstr[0] == 'F')
+		{
+			_buildModeFlags |= BUILDMODE_SAVE_TALL_FULL;
+			wstr++;
+		}
+		tall = atoi(wstr);
+		if ( IsProportional() )
+		{
+			// scale the height up to our screen co-ords
+			tall = scheme()->GetProportionalScaledValueEx(GetScheme(), tall);
+		}
+		// now correct the alignment
+		if (_buildModeFlags & BUILDMODE_SAVE_TALL_FULL)
+		{
+			tall = alignScreenTall - tall;
+		}
+	}
+
+>>>>>>> Incorporated GE:S specific VGUI changes
 	if( bUsesTitleSafeArea )
 	{
 		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
@@ -4554,6 +4884,7 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 	}
 
 	SetSize( wide, tall );
+#endif
 
 	// NOTE: This has to happen after pos + size is set
 	ApplyAutoResizeSettings( inResourceData );
@@ -4711,6 +5042,14 @@ void Panel::GetSettings( KeyValues *outResourceData )
 		Q_snprintf(xstr, sizeof( xstr ), "r%d", x);
 		outResourceData->SetString( "xpos", xstr );
 	}
+#ifdef GE_DLL
+	else if (_buildModeFlags & BUILDMODE_SAVE_XPOS_CENTERPARENT)
+	{
+		char xstr[32];
+		Q_snprintf(xstr, sizeof( xstr ), "cp%d", m_iCenterOffsetX);
+		outResourceData->SetString( "xpos", xstr );
+	}
+#endif
 	else if (_buildModeFlags & BUILDMODE_SAVE_XPOS_CENTERALIGNED)
 	{
 		x = (screenWide / 2) + x;
@@ -4729,6 +5068,14 @@ void Panel::GetSettings( KeyValues *outResourceData )
 		Q_snprintf(ystr, sizeof( ystr ), "r%d", y);
 		outResourceData->SetString( "ypos", ystr );
 	}
+#ifdef GE_DLL
+	else if (_buildModeFlags & BUILDMODE_SAVE_YPOS_CENTERPARENT)
+	{
+		char ystr[32];
+		Q_snprintf(ystr, sizeof( ystr ), "cp%d", m_iCenterOffsetY);
+		outResourceData->SetString( "ypos", ystr );
+	}
+#endif
 	else if (_buildModeFlags & BUILDMODE_SAVE_YPOS_CENTERALIGNED)
 	{
 		y = (screenTall / 2) + y;
