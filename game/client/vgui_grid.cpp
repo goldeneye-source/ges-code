@@ -55,7 +55,7 @@ CGrid::~CGrid()
 	Term();
 }
 
-// GE_DLL
+#ifdef GE_DLL
 void CGrid::ApplySettings( KeyValues *inResourceData )
 {
 	BaseClass::ApplySettings( inResourceData );
@@ -79,6 +79,7 @@ void CGrid::GetSettings( KeyValues *outResourceData )
 {
 	BaseClass::GetSettings( outResourceData );
 }
+#endif
 
 void CGrid::GetDimensions(int &xCols, int &yRows)
 {
@@ -342,7 +343,11 @@ int CGrid::CalcDrawHeight()
 {
 	if(m_yRows > 0)
 	{
-		return m_RowOffsets[m_yRows-1] + m_Heights[m_yRows - 1] + m_yPadding; // GE_DLL
+#ifdef GE_DLL
+		return m_RowOffsets[m_yRows-1] + m_Heights[m_yRows - 1] + m_yPadding;
+#else
+		return m_RowOffsets[m_yRows-1] + m_Heights[m_yRows - 1] + m_ySpacing;
+#endif
 	}
 	else
 	{
@@ -363,12 +368,20 @@ void CGrid::Paint()
 	int xx, yy;
 	GetPos( xx, yy );
 	// walk the grid looking for underlined rows
-	int x = m_xPadding, y = 0; // GE_DLL
+#ifdef GE_DLL
+	int x = m_xPadding, y = 0;
+#else
+	int x = 0, y = 0;
+#endif
 	for (int row = 0; row < m_yRows; row++)
 	{
 		CGridEntry *cell = GridEntry(0, row);
 
-		y = m_yPadding + m_RowOffsets[ row ] + m_Heights[ row ] + m_ySpacing; //GE_DLL
+#ifdef GE_DLL
+		y = m_yPadding + m_RowOffsets[ row ] + m_Heights[ row ] + m_ySpacing;
+#else
+		y = m_RowOffsets[ row ] + m_Heights[ row ] + m_ySpacing;
+#endif
 		if (cell->m_bUnderline)
 		{
 			vgui::surface()->DrawSetColor(cell->m_UnderlineColor[0], cell->m_UnderlineColor[1], cell->m_UnderlineColor[2], cell->m_UnderlineColor[3]);
@@ -418,9 +431,17 @@ CGrid::CGridEntry* CGrid::GridEntry(int x, int y)
 
 void CGrid::CalcColOffsets(int iStart)
 {
-	int cur = 0; // GE_DLL
+#ifdef GE_DLL
+	int cur = 0;
+	
 	if(iStart != 0)
-		cur += m_ColOffsets[iStart-1] + m_Widths[iStart-1] + m_xSpacing; // GE_DLL
+		cur += m_ColOffsets[iStart-1] + m_Widths[iStart-1] + m_xSpacing;
+#else
+	int cur = m_xSpacing;
+	
+	if(iStart != 0)
+		cur += m_ColOffsets[iStart-1] + m_Widths[iStart-1];
+#endif
 
 	for(int i=iStart; i < m_xCols; i++)
 	{
@@ -432,9 +453,15 @@ void CGrid::CalcColOffsets(int iStart)
 
 void CGrid::CalcRowOffsets(int iStart)
 {
-	int cur = 0; //GE_DLL
+#ifdef GE_DLL
+	int cur = 0;
 	if(iStart != 0)
-		cur += m_RowOffsets[iStart-1] + m_Heights[iStart-1] + m_ySpacing; // GE_DLL
+		cur += m_RowOffsets[iStart-1] + m_Heights[iStart-1] + m_ySpacing;
+#else
+	int cur = m_ySpacing;
+	if(iStart != 0)
+		cur += m_RowOffsets[iStart-1];
+#endif
 
 	for(int i=iStart; i < m_yRows; i++)
 	{

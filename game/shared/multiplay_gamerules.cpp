@@ -321,10 +321,7 @@ bool CMultiplayRules::Init()
 }
 
 
-#ifdef CLIENT_DLL
-
-
-#else 
+#ifdef GAME_DLL
 
 #ifndef GE_DLL
 	extern bool			g_fGameOver;
@@ -358,6 +355,8 @@ ConVarRef suitcharger( "sk_suitcharger" );
 // HPE_END
 //=============================================================================
 #endif
+#endif // GE_DLL
+
 	}
 
 
@@ -653,7 +652,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	//=========================================================
 	//=========================================================
-	bool CMultiplayRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker )
+	bool CMultiplayRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info )
 	{
 		return true;
 	}

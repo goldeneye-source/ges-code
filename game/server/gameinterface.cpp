@@ -127,6 +127,7 @@ extern ConVar tf_mm_servermode;
 
 #if defined( REPLAY_ENABLED )
 #include "replay/ireplaysystem.h"
+#endif
 
 #ifdef GE_DLL
 extern void PythonInit();

@@ -144,6 +144,8 @@
 	#include "ge_musicmanager.h"
 	#include "ge_loadingscreen.h"
 	#include "ge_vieweffects.h"
+#endif
+
 #if 0
 	// HACKHACK: this is dumb, and unsafe. Things that should be uninitialized at the
 	// engine-level can kiss their deconstructors goodbye. See Shutdown for an

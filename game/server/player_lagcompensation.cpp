@@ -13,9 +13,11 @@
 #include "utllinkedlist.h"
 #include "BaseAnimatingOverlay.h"
 #include "tier0/vprof.h"
-//GE_DLL
-#include "ai_basenpc.h"
-#include "ge_gamerules.h"
+
+#ifdef GE_DLL
+  #include "ai_basenpc.h"
+  #include "ge_gamerules.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

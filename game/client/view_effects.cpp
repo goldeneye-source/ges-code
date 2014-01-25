@@ -131,6 +131,34 @@ private:
 static CViewEffects g_ViewEffects;
 IViewEffects *vieweffects = ( IViewEffects * )&g_ViewEffects;
 
+#else
+
+#include "view_effects.h"
+#include "ge_vieweffects.h"
+
+BEGIN_SIMPLE_DATADESC( screenfade_t )
+	DEFINE_FIELD( Speed,	FIELD_FLOAT ),
+	DEFINE_FIELD( End,		FIELD_TIME ),
+	DEFINE_FIELD( Reset,	FIELD_TIME ),
+	DEFINE_FIELD( r,		FIELD_CHARACTER ),
+	DEFINE_FIELD( g,		FIELD_CHARACTER ),
+	DEFINE_FIELD( b,		FIELD_CHARACTER ),
+	DEFINE_FIELD( alpha,	FIELD_CHARACTER ),
+	DEFINE_FIELD( Flags,	FIELD_INTEGER ),
+END_DATADESC()
+
+BEGIN_SIMPLE_DATADESC( screenshake_t )
+	DEFINE_FIELD( endtime,		FIELD_TIME ),
+	DEFINE_FIELD( duration,		FIELD_FLOAT ),
+	DEFINE_FIELD( amplitude,	FIELD_FLOAT ),
+	DEFINE_FIELD( frequency,	FIELD_FLOAT ),
+	DEFINE_FIELD( nextShake,	FIELD_TIME ),
+	DEFINE_FIELD( offset,		FIELD_VECTOR ),
+	DEFINE_FIELD( angle,		FIELD_FLOAT ),
+END_DATADESC()
+
+#endif
+
 // Callback function to call at end of screen m_Fade.
 static int s_nCallbackParameter;
 static void ( *s_pfnFadeDoneCallback )( int parm1 );

@@ -1477,6 +1477,7 @@ void CAchievementMgr::ResetAchievements()
 		Msg( "All achievements reset.\n" );
 	}
 #endif
+#endif
 }
 
 void CAchievementMgr::ResetAchievement( int iAchievementID )

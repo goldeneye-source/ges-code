@@ -13,6 +13,8 @@
 #include "clientmode_ge.h"
 #else
 #include "clientmode_hl2mpnormal.h"
+#endif
+
 #include <vgui_controls/Controls.h>
 #include <vgui_controls/Panel.h>
 #include <vgui/ISurface.h>

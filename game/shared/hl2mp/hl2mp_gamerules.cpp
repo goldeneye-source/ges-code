@@ -11,6 +11,8 @@
 #include <KeyValues.h>
 #include "ammodef.h"
 
+#ifndef GE_DLL
+
 #ifdef CLIENT_DLL
 	#include "c_hl2mp_player.h"
 #else
@@ -36,8 +38,6 @@
 #ifdef DEBUG	
 	#include "hl2mp_bot_temp.h"
 #endif
-
-#ifndef GE_DLL
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
