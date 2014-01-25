@@ -28,7 +28,7 @@ ipch
 *.mak
 *.mak.vpc_crc
 *.xcodeproj/
-obj*/
+obj_*/
 !devtools/*.mak
 !utils/smdlexp/smdlexp.mak
 *_osx32*
@@ -43,6 +43,8 @@ server.lib
 
 client.so
 client.so.dbg
+client_srv.so
+client_srv.so.dbg
 server.so
 server.so.dbg
 server_srv.so
@@ -65,3 +67,7 @@ config.cfg
 # shader files
 *.tmp
 
+#codelite files
+*.project
+*.batch_build
+.codelite/
