@@ -1298,6 +1298,7 @@ void CBaseHudChat::StartMessageMode( int iMessageModeType )
 	engine->ClientCmd_Unrestricted( "gameui_preventescapetoshow\n" );
 		
 #endif
+#endif // XBOX
 }
 
 //-----------------------------------------------------------------------------

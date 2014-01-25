@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -26,12 +26,13 @@ public:
 	//GE_DLL
 	DECLARE_CLASS_SIMPLE( CGrid, Panel );
 
-						CGrid( Panel *parent, const char *panelName );
+						CGrid();
 	virtual				~CGrid();
 
-	// GE_DLL
+#ifdef GE_DLL
 	virtual void		ApplySettings( KeyValues *inResourceData );
 	virtual void		GetSettings( KeyValues *outResourceData );
+#endif
 
 	void				GetDimensions(int &xCols, int &yRows);
 	bool				SetDimensions(int xCols, int yRows);		// Set how many columns and rows in the grid.
@@ -120,10 +121,11 @@ protected:
 	int			*m_ColOffsets;
 	int			*m_RowOffsets;
 
-	// GE_DLL
+#ifdef GE_DLL
 	CPanelAnimationVarAliasType( int, m_xPadding, "pad_x", "0", "proportional_int" );
 	CPanelAnimationVarAliasType( int, m_yPadding, "pad_y", "0", "proportional_int" );
-	
+#endif
+
 	CGridEntry	*m_GridEntries;
 	
 };
