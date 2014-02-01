@@ -16,6 +16,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\thirdparty;$SRCDIR\thirdparty\cef;$GENERATED_PROTO_DIR"
+	    $PreprocessorDefinitions	    "$BASE;GE_DLL"
 	}
 }
 
