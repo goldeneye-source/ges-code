@@ -1,0 +1,1 @@
+Current version of Python: 2.6.7
