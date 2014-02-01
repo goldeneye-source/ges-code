@@ -767,10 +767,12 @@ void CBaseCombatWeapon::OnPickedUp( CBaseCombatCharacter *pNewOwner )
 		m_OnNPCPickup.FireOutput(pNewOwner, this);
 	}
 
+#ifndef GE_DLL
 #ifdef HL2MP
 	HL2MPRules()->RemoveLevelDesignerPlacedObject( this );
 #endif
-
+#endif
+    
 	// Someone picked me up, so make it so that I can't be removed.
 	SetRemoveable( false );
 #endif

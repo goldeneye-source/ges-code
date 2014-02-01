@@ -55,6 +55,9 @@ struct EmitSound_t;
 class C_RecipientFilter;
 class CTakeDamageInfo;
 class C_BaseCombatCharacter;
+#ifdef GE_DLL
+class C_BaseCombatWeapon;
+#endif
 class CEntityMapData;
 class ConVar;
 class CDmgAccumulator;

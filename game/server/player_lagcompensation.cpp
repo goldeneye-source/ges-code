@@ -15,7 +15,7 @@
 #include "tier0/vprof.h"
 
 #ifdef GE_DLL
-  #include "ai_basenpc.h"
+  #include "npc_gebase.h"
   #include "ge_gamerules.h"
 #endif
 
@@ -555,13 +555,13 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	// also iterate all monsters
 	for ( int i = 0; i < nAIs; i++ )
 	{
-		CAI_BaseNPC *pNPC = ppAIs[i];
-		// Custom checks for if things should lag compensate
-		if ( !pNPC || !player->WantsLagCompensationOnEntity( pNPC, cmd, pEntityTransmitBits ) )
+        // Custom checks for if bots should lag compensate
+        CGEBotPlayer *pBot = ToGEBotPlayer( ppAIs[i] );
+		if ( !pBot || !player->WantsLagCompensationOnEntity( pBot, cmd, pEntityTransmitBits ) )
 			continue;
  
 		// Move NPC back in time
-		BacktrackEntity( pNPC, TICKS_TO_TIME( targettick ) );
+		BacktrackEntity( ppAIs[i], TICKS_TO_TIME( targettick ) );
 	}
 #endif
 }

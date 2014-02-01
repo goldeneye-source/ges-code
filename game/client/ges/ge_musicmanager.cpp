@@ -1,4 +1,4 @@
-///////////// Copyright © 2011, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2011, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_musicmanager.cpp
 // Description:
@@ -10,7 +10,7 @@
 #include "cbase.h"
 
 // To grab our window handle
-#if !defined(_X360) && defined(_WIN32)
+#if defined(_WIN32) && !defined(_X360) 
 #pragma warning(disable:4005)
 #include <windows.h>
 #endif
@@ -33,17 +33,19 @@ using namespace FMOD;
 // Extern definitions
 // -----------------------
 CGEMusicManager *g_pGEMusicManager = NULL;
-inline CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
+CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
 
-HWND gWindowHandle;
+HWND gWindowHandle = 0;
 
 void StartGEMusicManager()
 {
 	if ( g_pGEMusicManager )
 		StopGEMusicManager();
 
+#if defined(_WIN32) && !defined(_X360)
 	// Find our window handle
 	gWindowHandle = FindWindow("Valve001", NULL);
+#endif
 
 	new CGEMusicManager();
 }
@@ -449,7 +451,7 @@ void CGEMusicManager::CheckWindowFocus( void )
 	static bool sbInFocus = true;
 
 	// If we are on windows (why wouldn't we be?) check if we are the active window
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_X360)
 	if ( m_pMasterChannel )
 	{
 		HWND active = GetForegroundWindow();

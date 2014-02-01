@@ -606,12 +606,12 @@ void CHudTexture::DrawSelf( int x, int y, int w, int h, const Color& clr ) const
 }
 
 #ifdef GE_DLL
-void CHudTexture::DrawSelfRotated( int x, int y, float theta, Color &clr /*= Color(255,255,255,255)*/ ) const
+void CHudTexture::DrawSelfRotated( int x, int y, float theta, Color clr /*= Color(255,255,255,255)*/ ) const
 {
 	DrawSelfRotated( x, y, Width(), Height(), theta, clr );
 }
 
-void CHudTexture::DrawSelfRotated( int x, int y, int w, int h, float theta, Color& clr /*= Color(255,255,255,255)*/ ) const
+void CHudTexture::DrawSelfRotated( int x, int y, int w, int h, float theta, Color clr /*= Color(255,255,255,255)*/ ) const
 {
 	// This is only for textures
 	if ( bRenderUsingFont || theta == 0 )
@@ -657,12 +657,12 @@ void CHudTexture::DrawSelfRotated( int x, int y, int w, int h, float theta, Colo
 	vgui::surface()->DrawTexturedPolygon( 4, points );
 }
 
-void CHudTexture::DrawSelfScaled(int x, int y, float scale, Color& clr /* Color(255,255,255,255) */ ) const
+void CHudTexture::DrawSelfScaled(int x, int y, float scale, Color clr /* Color(255,255,255,255) */ ) const
 {
 	DrawSelfScaled( x, y, Width(), Height(), scale, clr );
 }
 
-void CHudTexture::DrawSelfScaled( int x, int y, int w, int h, float scale, Color &clr /* Color(255,255,255,255) */ ) const
+void CHudTexture::DrawSelfScaled( int x, int y, int w, int h, float scale, Color clr /* Color(255,255,255,255) */ ) const
 {
 	if ( bRenderUsingFont )
 	{

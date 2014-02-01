@@ -9,9 +9,11 @@
 	#include <vgui/VGUI.h>
 	#include <vgui/ILocalize.h>
 	#include <vgui/ISurface.h>
-	#include "vgui_controls/controls.h"
+	#include "vgui_controls/Controls.h"
 	#include "c_ge_gameplayresource.h"
 	#include "view.h"
+#undef min
+#undef max
 	#include <string>
 	#include <sstream>
 #endif
@@ -202,7 +204,7 @@ int Q_ExtractData( const char *in, CUtlVector<char*> &out )
 		int len = (int)(y-x) + 1;
 		data = new char[len+1];
 		Q_strncpy( data, x, len );
-		data[len] = '/0';
+		data[len] = 0;
 
 		out.AddToTail( data );
 		cnt++;
@@ -423,7 +425,7 @@ void GEUTIL_ParseLocalization( wchar_t *out, int size, const char *input )
 		std::wstring finalstr( found );
 		std::wstring wcstoken;
 
-		int tkn_count = min( entries.Count(), max_tkn_count );
+		int tkn_count =  (entries.Count() < max_tkn_count) ? entries.Count() : max_tkn_count;
 		for ( int i=0; i < tkn_count; i++ )
 		{
 			// Resolve our token entry, NOTE: the copy to std::string prevents a crash

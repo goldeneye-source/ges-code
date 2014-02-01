@@ -594,6 +594,7 @@ void CTeamplayRoundBasedRules::SetForceMapReset( bool reset )
 //-----------------------------------------------------------------------------
 void CTeamplayRoundBasedRules::Think( void )
 {
+#ifndef GE_DLL
 	if ( g_fGameOver )   // someone else quit the game already
 	{
 		// check to see if we should change levels now
@@ -620,6 +621,7 @@ void CTeamplayRoundBasedRules::Think( void )
 
 		return;
 	}
+#endif
 
 	State_Think();
 
@@ -1181,7 +1183,11 @@ bool CTeamplayRoundBasedRules::CheckWinLimit( void )
 			CTeam *pTeam = GetGlobalTeam(i);
 			Assert( pTeam );
 
+#ifdef GE_DLL
+            if ( pTeam->GetMatchScore() >= iWinLimit )
+#else
 			if ( pTeam->GetScore() >= iWinLimit )
+#endif
 			{
 				IGameEvent *event = gameeventmanager->CreateEvent( "teamplay_game_over" );
 				if ( event )
@@ -1683,7 +1689,11 @@ void CTeamplayRoundBasedRules::State_Think_RND_RUNNING( void )
 			bool bTeamsAreDrawn = true;
 			for ( int i = FIRST_GAME_TEAM; (i < GetNumberOfTeams()) && bTeamsAreDrawn; i++ )
 			{
+#ifdef GE_DLL
+                int iTeamScore = GetGlobalTeam(i)->GetRoundScore();
+#else
 				int iTeamScore = GetGlobalTeam(i)->GetScore();
+#endif
 
 				if ( iTeamScore > iDrawScoreCheck )
 				{
@@ -2169,10 +2179,17 @@ int TeamScoreSort( CTeam* const *pTeam1, CTeam* const *pTeam2 )
 	if ( !*pTeam2 )
 		return -1;
 
+#ifdef GE_DLL
+    if ( (*pTeam1)->GetRoundScore() > (*pTeam2)->GetRoundScore() )
+	{
+		return 1;
+	}
+#else
 	if ( (*pTeam1)->GetScore() > (*pTeam2)->GetScore() )
 	{
 		return 1;
 	}
+#endif
 
 	return -1;
 }
@@ -2215,7 +2232,11 @@ void CTeamplayRoundBasedRules::SetWinningTeam( int team, int iWinReason, bool bF
 	m_bUseAddScoreAnim = false;
 	if ( bRewardTeam && ( team != TEAM_UNASSIGNED ) && ShouldScorePerRound() )
 	{
+#ifdef GE_DLL
+        GetGlobalTeam( team )->AddRoundScore( TEAMPLAY_ROUND_WIN_SCORE );
+#else
 		GetGlobalTeam( team )->AddScore( TEAMPLAY_ROUND_WIN_SCORE );
+#endif
 		m_bUseAddScoreAnim = true;
 	}
 
@@ -2303,7 +2324,11 @@ void CTeamplayRoundBasedRules::SetWinningTeam( int team, int iWinReason, bool bF
 			int nWinLimit = mp_winlimit.GetInt();
 			for ( int iIndex = m_GameTeams.FirstInorder(); iIndex != m_GameTeams.InvalidIndex(); iIndex = m_GameTeams.NextInorder( iIndex ) )
 			{
+#ifdef GE_DLL
+                int nTeamScore = GetGlobalTeam( m_GameTeams.Key( iIndex ) )->GetRoundScore();
+#else
 				int nTeamScore = GetGlobalTeam( m_GameTeams.Key( iIndex ) )->GetScore();
+#endif
 				if ( nWinLimit - nTeamScore == 1 )
 				{
 					return;
@@ -3052,7 +3077,11 @@ void CTeamplayRoundBasedRules::ResetScores( void )
 	{
 		for ( int i = 0; i < GetNumberOfTeams(); i++ )
 		{
+#ifdef GE_DLL
+            GetGlobalTeam( i )->ResetMatchScore();
+#else
 			GetGlobalTeam( i )->ResetScores();
+#endif
 		}
 	}
 

@@ -105,7 +105,11 @@ DECLARE_VGUI_SCREEN_FACTORY( CTeleportCountdownScreen, "teleport_countdown_scree
 // Constructor: 
 //-----------------------------------------------------------------------------
 CTeleportCountdownScreen::CTeleportCountdownScreen( vgui::Panel *parent, const char *panelName )
-	: BaseClass( parent, panelName, g_hVGuiCombineScheme ) 
+#ifdef GE_DLL
+    : BaseClass( parent, panelName )
+#else
+    : BaseClass( parent, panelName, g_hVGuiCombineScheme ) 
+#endif
 {
 }
 

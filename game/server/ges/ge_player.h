@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_player.h
 // Description:
@@ -106,7 +106,7 @@ public:
 	// Used to setup invul time
 	virtual int  OnTakeDamage( const CTakeDamageInfo &inputInfo );
 	virtual int	 OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	
 	// Custom Pain Sounds
 	virtual void OnDamagedByExplosion( const CTakeDamageInfo &info ) { }

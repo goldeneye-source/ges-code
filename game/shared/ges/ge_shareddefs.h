@@ -450,51 +450,51 @@ static const int LIST_DEVELOPERS = 1;
 static const int LIST_TESTERS = 2;
 static const int LIST_BANNED = 3;
 
-#define HASHLIST_END 4294967295  // 2^32-1
+#define HASHLIST_END 4294967295u  // 2^32-1
 
 // These are the Steam ID's hashed of our dev's and beta testers
 static const unsigned int _vDevsHash[] = { 
-	3481230322,	//wake
-	3153704347,	//enzo
-	2914713849,	//bass
-	2526349322, //baron
-	688766111,	//vc
-	2620307454,	//dlt
-	2544109935,	//KM
-	4162822065,	//Lodle
-	1664936941,	//konrad
-	405937346,	//saiz
-	3065896817,	//audix
-	1987337922,	//.sh4k3n
-	1386550685,	//kraid
-	3181525565,	//sporkfire
-	3621535749,	//Sharpsh00tah
-	3139335070,	//InvertedShadow
-	3135237817,	//Luchador
-	3012560459,	//Loafie
-	1499428109,	//Spider
-	4169247635,	//fourtecks
-	1961166869,	//fonfa
-	1196464728, //JcFerggy
-	1068190188, //Slimulation X
-	2889542288, //Goldenzen
-	2029982914, //The SSL
-	3076344308, //Kinky
-	2933176145, //Engineer
+	3481230322u,	//wake
+	3153704347u,	//enzo
+	2914713849u,	//bass
+	2526349322u, //baron
+	688766111u,	//vc
+	2620307454u,	//dlt
+	2544109935u,	//KM
+	4162822065u,	//Lodle
+	1664936941u,	//konrad
+	405937346u,	//saiz
+	3065896817u,	//audix
+	1987337922u,	//.sh4k3n
+	1386550685u,	//kraid
+	3181525565u,	//sporkfire
+	3621535749u,	//Sharpsh00tah
+	3139335070u,	//InvertedShadow
+	3135237817u,	//Luchador
+	3012560459u,	//Loafie
+	1499428109u,	//Spider
+	4169247635u,	//fourtecks
+	1961166869u,	//fonfa
+	1196464728u, //JcFerggy
+	1068190188u, //Slimulation X
+	2889542288u, //Goldenzen
+	2029982914u, //The SSL
+	3076344308u, //Kinky
+	2933176145u, //Engineer
 	HASHLIST_END,
 };
 
 static const unsigned int _vTestersHash[] = { 
-	2327176597,	//mbsurfer
-	525028083,	//major
-	3666467964,	//Gabbo
-	1520212232,	//Searg kelly
-	3390685664,	//Doc.NO
-	2425473544,	//WNxCJL9788
-	3566398091, //PPK
-	4229361344, //CCSaint
-	3091418680, //drukqaddik
-	812630740,  //Rodney 1.666
+	2327176597u,	//mbsurfer
+	525028083u,	//major
+	3666467964u,	//Gabbo
+	1520212232u,	//Searg kelly
+	3390685664u,	//Doc.NO
+	2425473544u,	//WNxCJL9788
+	3566398091u, //PPK
+	4229361344u, //CCSaint
+	3091418680u, //drukqaddik
+	812630740u,  //Rodney 1.666
 	HASHLIST_END,
 };
 

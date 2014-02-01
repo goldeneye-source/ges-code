@@ -1,4 +1,4 @@
-/////////////  Copyright © 2006, Scott Loyd. All rights reserved.  /////////////
+/////////////  Copyright ï¿½ 2006, Scott Loyd. All rights reserved.  /////////////
 // 
 // ge_gameinterface.cpp
 //
@@ -14,7 +14,7 @@
 #include "cbase.h"
 #include "ge_gamerules.h"
 #include "ge_gameinterface.h"
-#include "GameStats.h"
+#include "gamestats.h"
 #include "mapentities.h"
 #include "ge_utils.h"
 

@@ -4514,11 +4514,6 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
-<<<<<<< HEAD
-	// size
-	int wide = ComputeWide( inResourceData, alignScreenWide, alignScreenTall, false );
-	int tall = ComputeTall( inResourceData, alignScreenWide, alignScreenTall, false );
-=======
 #ifdef GE_DLL
 	// size
 	int wide, tall;
@@ -4567,40 +4562,19 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
-	if( bUsesTitleSafeArea )
-	{
-		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
-		{
-			if ( !excludeEdgeFromTitleSafe.x )
-				wide -= titleSafeWide;
-
-			if ( !excludeEdgeFromTitleSafe.width )
-				wide -= titleSafeWide;
-		}
-
-		if ( _buildModeFlags & BUILDMODE_SAVE_TALL_FULL )
-		{
-			if ( !excludeEdgeFromTitleSafe.y )
-				tall -= titleSafeTall;
-
-			if ( !excludeEdgeFromTitleSafe.height )
-				tall -= titleSafeTall;
-		}
-	}
-
 	SetSize( wide, tall );
+#else
+	// size
+	int wide = ComputeWide( inResourceData, alignScreenWide, alignScreenTall, false );
+	int tall = ComputeTall( inResourceData, alignScreenWide, alignScreenTall, false );
 #endif
->>>>>>> Incorporated GE:S specific VGUI changes
 
 	int x, y;
 	GetPos(x, y);
 	const char *xstr = inResourceData->GetString( "xpos", NULL );
 	const char *ystr = inResourceData->GetString( "ypos", NULL );
-<<<<<<< HEAD
 	_buildModeFlags |= ComputePos( xstr, x, wide, alignScreenWide, true );
 	_buildModeFlags |= ComputePos( ystr, y, tall, alignScreenTall, false );
-	
-=======
 
 	if (xstr)
 	{
@@ -4860,8 +4834,13 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 			tall = alignScreenTall - tall;
 		}
 	}
+<<<<<<< HEAD
 
 >>>>>>> Incorporated GE:S specific VGUI changes
+=======
+#endif
+    
+>>>>>>> Corrected merge issues with GE:S specifics
 	if( bUsesTitleSafeArea )
 	{
 		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
@@ -4883,6 +4862,7 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
+#ifndef GE_DLL
 	SetSize( wide, tall );
 #endif
 

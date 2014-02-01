@@ -24,6 +24,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef GE_DLL
+
 ConVar hud_showemptyweaponslots( "hud_showemptyweaponslots", "1", FCVAR_ARCHIVE, "Shows slots for missing weapons when recieving weapons out of order" );
 
 #define SELECTION_TIMEOUT_THRESHOLD		0.5f	// Seconds
@@ -1523,3 +1525,4 @@ void CHudWeaponSelection::SelectWeaponSlot( int iSlot )
 
 	pPlayer->EmitSound( "Player.WeaponSelectionMoveSlot" );
 }
+#endif // GE_DLL

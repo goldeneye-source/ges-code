@@ -1,4 +1,4 @@
-///////////// Copyright © 2009, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2009, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_grenade_launcher.cpp
 // Description:
@@ -176,7 +176,7 @@ void CGEWeaponGrenadeLauncher::PrimaryAttack( void )
 	m_bPreLaunch = true;
 	SendWeaponAnim( GetPrimaryAttackActivity() );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	m_flGrenadeSpawnTime = gpGlobals->curtime + GetFireDelay();
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetFireRate();
@@ -260,7 +260,7 @@ void CGEWeaponGrenadeLauncher::LaunchGrenade( void )
 	{
 		pShell->SetThrower( pOwner );
 		pShell->SetOwnerEntity( pOwner );
-		pShell->SetVelocity( vecThrow, NULL );
+		pShell->SetVelocity( vecThrow, Vector(0) );
 
 		pShell->SetDamage( GetGEWpnData().m_iDamage );
 		pShell->SetDamageRadius( GetGEWpnData().m_flDamageRadius );

@@ -228,6 +228,10 @@ INetworkStringTable *g_pStringTableInfoPanel = NULL;
 INetworkStringTable *g_pStringTableClientSideChoreoScenes = NULL;
 INetworkStringTable *g_pStringTableServerMapCycle = NULL;
 
+#ifdef GE_DLL
+INetworkStringTable *g_pStringTableGameplay = NULL;
+#endif
+
 #ifdef TF_DLL
 INetworkStringTable *g_pStringTableServerPopFiles = NULL;
 INetworkStringTable *g_pStringTableServerMapCycleMvM = NULL;

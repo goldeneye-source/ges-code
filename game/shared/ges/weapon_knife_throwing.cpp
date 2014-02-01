@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_knife_throwing.cpp
 // Description:
@@ -201,7 +201,7 @@ void CWeaponKnifeThrowing::PrimaryAttack()
 
 	SendWeaponAnim( ACT_VM_MISSCENTER );
 	pOwner->SetAnimation( PLAYER_ATTACK1 );
-	ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 }
 
 void CWeaponKnifeThrowing::SecondaryAttack()

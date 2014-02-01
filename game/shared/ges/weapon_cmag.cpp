@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Anthony Iacono. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Anthony Iacono. All rights reserved. /////////////
 // 
 // File: weapon_cmag.cpp
 // Description:
@@ -148,7 +148,7 @@ void CWeaponCMag::PrimaryAttack( void )
 	
 	SendWeaponAnim( GetPrimaryAttackActivity() );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 }
 
 void CWeaponCMag::FireWeapon( void )

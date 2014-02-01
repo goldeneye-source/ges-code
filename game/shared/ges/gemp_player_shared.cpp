@@ -18,7 +18,7 @@
 #else
 #include "gemp_player.h"
 #include "ilagcompensationmanager.h"
-#include "GameStats.h"
+#include "gamestats.h"
 #endif
 
 #include "in_buttons.h"

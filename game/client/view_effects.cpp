@@ -163,7 +163,6 @@ END_DATADESC()
 static int s_nCallbackParameter;
 static void ( *s_pfnFadeDoneCallback )( int parm1 );
 
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *pszName - 
@@ -180,7 +179,7 @@ void __MsgFunc_Shake( bf_read &msg )
 	shake.frequency = msg.ReadFloat();
 	shake.duration	= msg.ReadFloat();
 
-	g_ViewEffects.Shake( shake );
+	vieweffects->Shake( shake );
 }
 
 //-----------------------------------------------------------------------------
@@ -202,7 +201,7 @@ void __MsgFunc_Fade( bf_read &msg )
 	fade.b = msg.ReadByte(); // fade blue
 	fade.a = msg.ReadByte(); // fade blue
 
-	g_ViewEffects.Fade( fade );
+	vieweffects->Fade( fade );
 }
 
 //-----------------------------------------------------------------------------
@@ -232,7 +231,7 @@ static ConCommand shake_stop("shake_stop", CC_Shake_Stop, "Stops all active scre
 //-----------------------------------------------------------------------------
 void CC_Shake_Stop()
 {
-	g_ViewEffects.ClearAllShakes();
+	((CViewEffects*)vieweffects)->ClearAllShakes();
 }
 
 

@@ -1,4 +1,4 @@
-///////////// Copyright © 2011, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2011, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_musicmanager.h
 // Description:
@@ -15,7 +15,10 @@
 #include "GameEventListener.h"
 #include "tier0/threadtools.h"
 #include "igamesystem.h"
-#include "fmod.hpp"
+#include "fmod/fmod.hpp"
+#ifdef POSIX
+  #include "fmod/fmodlinux.h"
+#endif
 
 #define GE_MUSIC_MENU		"_menu"
 #define GE_MUSIC_DEFAULT	"_default"

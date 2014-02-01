@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: c_ge_player.cpp
 // Description:
@@ -309,7 +309,7 @@ void C_GEPlayer::ClientThink( void )
 void C_GEPlayer::PostDataUpdate( DataUpdateType_t updateType )
 {
 	// Looks like we spawned, cancel any sound modifiers that are active
-	if ( m_bSpawnInterpCounter != m_bSpawnInterpCounterCache )
+	if ( m_iSpawnInterpCounter != m_iSpawnInterpCounterCache )
 	{
 		if ( IsLocalPlayer() )
 		{

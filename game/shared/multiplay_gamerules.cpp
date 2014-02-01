@@ -1387,6 +1387,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		}
 
 		ChangeLevelToMap( szNextMap );
+#endif
 	}
 
 	void CMultiplayRules::LoadMapCycleFile( void )
@@ -1518,11 +1519,12 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	void CMultiplayRules::ChangeLevelToMap( const char *pszMap )
 	{
+#ifndef GE_DLL
 		g_fGameOver = true;
+#endif
 		m_flTimeLastMapChangeOrPlayerWasConnected = 0.0f;
 		Msg( "CHANGE LEVEL: %s\n", pszMap );
 		engine->ChangeLevel( pszMap, NULL );
-#endif
 	}
 
 #endif // GAME_DLL

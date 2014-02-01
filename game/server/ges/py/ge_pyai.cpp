@@ -1,4 +1,4 @@
-///////////// Copyright © 2012 GoldenEye: Source, All rights reserved. /////////////
+///////////// Copyright ï¿½ 2012 GoldenEye: Source, All rights reserved. /////////////
 //
 //   Project     : Server
 //   File        : ge_pyai.cpp
@@ -137,7 +137,7 @@ public:
 			// Create the schedule in the namespace and schedule manager
 			id_ = g_GEAINextScheduleID;
 			CNPC_GEBase::AccessClassScheduleIdSpaceDirect().AddSchedule( name.c_str(), id_, "CNPC_GEBase" );
-			sched = g_AI_SchedulesManager.CreateSchedule( name.c_str(), CNPC_GEBase::GetScheduleID(name.c_str()) );
+			sched = g_AI_SchedulesManager.CreateSchedule( const_cast<char*>(name.c_str()), CNPC_GEBase::GetScheduleID(name.c_str()) );
 			g_GEAINextScheduleID++;
 		}
 		else

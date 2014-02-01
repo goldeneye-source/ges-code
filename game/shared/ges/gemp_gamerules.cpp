@@ -21,9 +21,10 @@
 	#include "c_ge_player.h"
 	#include "c_ge_gameplayresource.h"
 #else
-	#include "ge_ai.h"
+	#include "ai/ge_ai.h"
+	#include "ai/npc_gebase.h"
 	#include "ai_network.h"
-	#include "npc_gebase.h"
+	
 	#include "ge_gameplay.h"
 	#include "eventqueue.h"
 	#include "items.h"
@@ -1606,7 +1607,7 @@ bool CGEMPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
-		swap(collisionGroup0,collisionGroup1);
+		::V_swap(collisionGroup0,collisionGroup1);
 	}
 	
 	if (collisionGroup0 == COLLISION_GROUP_MI6 && collisionGroup1 == COLLISION_GROUP_MI6)		

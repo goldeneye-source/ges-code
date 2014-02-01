@@ -131,15 +131,15 @@ void CHudNumericDisplay::PaintNumbers(HFont font, int xpos, int ypos, int value)
 
 #ifdef GE_DLL
 		if ( value < 0 )
-			swprintf( unicode, L"--:--" );
+			swprintf( unicode, 6, L"--:--" );
 		else if ( iSeconds < 10 && iMinutes < 10 )
-			swprintf( unicode, L"0%d:0%d", iMinutes, iSeconds );
+			swprintf( unicode, 6, L"0%d:0%d", iMinutes, iSeconds );
 		else if ( iSeconds < 10 && iMinutes >= 10 )
-			swprintf( unicode, L"%d:0%d", iMinutes, iSeconds );
+			swprintf( unicode, 6, L"%d:0%d", iMinutes, iSeconds );
 		else if ( iMinutes < 10 )
-			swprintf( unicode, L"0%d:%d", iMinutes, iSeconds );
+			swprintf( unicode, 6, L"0%d:%d", iMinutes, iSeconds );
 		else
-			swprintf( unicode, L"%d:%d", iMinutes, iSeconds );
+			swprintf( unicode, 6, L"%d:%d", iMinutes, iSeconds );
 
 		int txt_w, txt_h;
 		surface()->GetTextSize( font, unicode, txt_w, txt_h );

@@ -448,7 +448,7 @@ int CGEPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 }
 
 
-void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr )
+void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 	bool doTrace = false;
@@ -530,7 +530,7 @@ void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vec
 		else if ( m_pLastAttacker )
 			m_takedamage = DAMAGE_NO;
 
-		BaseClass::TraceAttack( info, vecDir, ptr );
+		BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 	}
 }
 

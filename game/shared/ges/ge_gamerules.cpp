@@ -150,7 +150,7 @@ void OnVersionLoad( const char *result, const char *error )
 				Warning( "=====================================================================\n" );
 				Warning( "              GoldenEye: Source Update Available\n" );
 				Warning( "There is a new version of GES available for download!\n" );
-				Warning( "Your Version: %s\n", ges_version_text );
+				Warning( "Your Version: %s\n", ges_version_text.ToCStr() );
 				Warning( "New Version: %s\n", kv->GetString("version") );
 				Warning( "Download: %s\n", kv->GetString("server_mirror") );
 				Warning( "=====================================================================\n" );
@@ -161,7 +161,7 @@ void OnVersionLoad( const char *result, const char *error )
 		kv->deleteThis();
 	}
 
-	// NOTE: We leave the reqeust object in memory
+	// NOTE: We leave the request object in memory
 }
 #endif
 
@@ -1053,7 +1053,7 @@ bool CGERules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
-		swap(collisionGroup0,collisionGroup1);
+		::V_swap(collisionGroup0,collisionGroup1);
 	}
 	
 	//Don't stand on COLLISION_GROUP_WEAPON

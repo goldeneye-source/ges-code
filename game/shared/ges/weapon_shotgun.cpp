@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye Source. All rights reserved. /////////////
 // 
 // File: weapon_shotgun.cpp
 // Description:
@@ -114,7 +114,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	// Don't fire again until our ROF expires
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetFireRate();
