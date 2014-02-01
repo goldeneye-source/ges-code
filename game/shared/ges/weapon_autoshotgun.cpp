@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye Source. All rights reserved. /////////////
 // 
 // File: weapon_autoshotgun.cpp
 // Description:
@@ -125,7 +125,7 @@ void CWeaponAutoShotgun::PrimaryAttack( void )
 
 	// player "shoot" animation
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+	//ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	Vector	vecSrc		= pPlayer->Weapon_ShootPosition( );
 	Vector	vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );	

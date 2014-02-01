@@ -1,4 +1,4 @@
-///////////// Copyright © 2009 GoldenEye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2009 GoldenEye: Source. All rights reserved. /////////////
 //
 //   Project     : Server (GES)
 //   File        : ge_generictoken.cpp
@@ -76,12 +76,12 @@ END_PREDICTION_DATA()
 // Declare a bunch of different entity names so the token manager can distinguish
 // between the token types when assigning models and other things
 LINK_ENTITY_TO_CLASS( token_mi6, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_janus, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_deathmatch, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_custom1, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_custom2, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_custom3, CGenericToken );
-LINK_ENTITY_TO_CLASS( token_custom4, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_janus, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_deathmatch, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_custom1, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_custom2, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_custom3, CGenericToken );
+//LINK_ENTITY_TO_CLASS( token_custom4, CGenericToken );
 
 acttable_t CGenericToken::m_acttable[] = 
 {

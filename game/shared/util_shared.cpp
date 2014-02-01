@@ -1076,6 +1076,28 @@ float CountdownTimer::Now( void ) const
 
 #endif
 
+#ifdef GE_DLL
+// This was removed from SDK 2013 for whatever reason...
+unsigned short UTIL_GetAchievementEventMask( void )
+{
+	CRC32_t mapCRC;
+	CRC32_Init( &mapCRC );
+
+	char lowercase[ 256 ];
+#ifdef CLIENT_DLL
+	Q_FileBase( engine->GetLevelName(), lowercase, sizeof( lowercase ) );
+#else
+	Q_strncpy( lowercase, STRING( gpGlobals->mapname ), sizeof( lowercase ) );
+#endif
+	Q_strlower( lowercase );
+
+	CRC32_ProcessBuffer( &mapCRC, lowercase, Q_strlen( lowercase ) );
+	CRC32_Final( &mapCRC );
+
+	return ( mapCRC & 0xFFFF );
+}
+#endif
+
 
 char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename )
 {

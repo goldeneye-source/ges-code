@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_weapon.cpp
 // Description:
@@ -241,7 +241,7 @@ void CGEWeapon::PrimaryAttack(void)
 	}
 
 	// Send the animation event to the client/server
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+	//ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	RecordShotFired();
 
@@ -278,7 +278,7 @@ bool CGEWeapon::Reload( void )
 		pPlayer->ResetAimMode( true );
 
 		m_iShotsFired = 0;
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_RELOAD );
+		//pPlayer->DoAnimationEvent( PLAYERANIMEVENT_RELOAD );
 	}
 
 	return bRet;
@@ -522,7 +522,8 @@ void CGEWeapon::SetEnableGlow( bool state )
 
 const Vector& CGEWeapon::GetBulletSpread( void )
 {
-	static Vector cone;
+    // Static due to return value...
+	static Vector result;
 	Vector minSpread, maxSpread;
 
 	CBaseCombatCharacter *pOwner = GetOwner();
@@ -548,21 +549,21 @@ const Vector& CGEWeapon::GetBulletSpread( void )
 	if ( gpGlobals->curtime >= m_flCoolDownTime )
 		maxSpread = minSpread;
 	else
-		maxSpread = minSpread + ( GetRecoil()*(m_flCoolDownTime - gpGlobals->curtime) / (3.0f * GetFireRate()) );
+		maxSpread = minSpread + Vector(1,1,0) * ( GetRecoil()*(m_flCoolDownTime - gpGlobals->curtime) / (3.0f * GetFireRate()) );
 
-	// Map our penalty time from 0-MaxPenalty  to  0-1
-	float ramp = RemapValClamped( m_flAccuracyPenalty, 0.0f, GetMaximumPenaltyTime(), 0.0f, 1.0f ); 
-
-	// We lerp from very accurate to inaccurate over time
-	VectorLerp( minSpread, maxSpread, ramp, cone );
-
-	// Update our cool down time
+	// Update the cool down time
 	if ( (gpGlobals->curtime - m_flCoolDownTime) <= (2.0f*GetFireRate()) )
 		m_flCoolDownTime = gpGlobals->curtime + 2.0f*GetFireRate();
 	else
 		m_flCoolDownTime = gpGlobals->curtime + 4.0f*GetFireRate();
+	
+	// Map our penalty time from 0-MaxPenalty  to  0-1
+	float ramp = RemapValClamped( m_flAccuracyPenalty, 0.0f, GetMaximumPenaltyTime(), 0.0f, 1.0f ); 
 
-	return cone;
+	// We lerp from very accurate to inaccurate over time
+	VectorLerp( minSpread, maxSpread, ramp, result );
+	
+	return result;
 }
 
 void CGEWeapon::UpdatePenaltyTime( void )
@@ -692,8 +693,8 @@ bool CGEWeapon::Deploy( void )
 			}
 		}
 #endif
-		if ( pOwner && pOwner->IsPlayer() )
-			ToGEPlayer( pOwner )->DoAnimationEvent( PLAYERANIMEVENT_GES_DRAW );
+		//if ( pOwner && pOwner->IsPlayer() )
+		//	ToGEPlayer( pOwner )->DoAnimationEvent( PLAYERANIMEVENT_GES_DRAW );
 		
 		return true;
 	}
@@ -732,11 +733,11 @@ bool CGEWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 		StopParticleEffects( this );
 	#endif
 		
-		if ( pOwner->IsPlayer() )
-		{
-			CGEPlayer *pPlayer = ToGEPlayer( pOwner );
-			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_GES_HOLSTER );
-		}
+//		if ( pOwner->IsPlayer() )
+//		{
+//			CGEPlayer *pPlayer = ToGEPlayer( pOwner );
+//			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_GES_HOLSTER );
+//		}
 
 		return true;
 	}

@@ -12,9 +12,6 @@
 #include "util_shared.h"
 #include "ge_achievement.h"
 
-// Define our client's manager so that they can recieve updates when they achieve things
-//#ifdef CLIENT_DLL
-
 #include "clientmode_shared.h"
 #include "c_ge_player.h"
 #include "c_gemp_player.h"

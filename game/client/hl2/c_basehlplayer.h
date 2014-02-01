@@ -58,12 +58,15 @@ public:
 	EHANDLE				m_hClosestNPC;
 	float				m_flSpeedModTime;
 	bool				m_fIsSprinting;
-
+	
 private:
 	C_BaseHLPlayer( const C_BaseHLPlayer & ); // not defined, not accessible
 	
 	bool				TestMove( const Vector &pos, float fVertDist, float radius, const Vector &objPos, const Vector &objDir );
 
+#ifdef GE_DLL
+protected:
+#endif
 	float				m_flZoomStart;
 	float				m_flZoomEnd;
 	float				m_flZoomRate;

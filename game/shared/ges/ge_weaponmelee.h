@@ -1,4 +1,4 @@
-///////////// Copyright © 2006, Scott Loyd. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2006, Scott Loyd. All rights reserved. /////////////
 // 
 // File: weapon_gebasemelee.h
 // Description:
@@ -11,7 +11,7 @@
 #define GE_WEAPONMELEE
 
 #include "ge_weapon.h"
-#include "GameStats.h"
+#include "gamestats.h"
 
 #if defined( CLIENT_DLL )
 #define CGEWeaponMelee C_GEWeaponMelee

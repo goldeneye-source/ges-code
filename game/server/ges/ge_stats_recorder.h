@@ -1,4 +1,4 @@
-/////////////  Copyright © 2008, Goldeneye: Source. All rights reserved.  /////////////
+/////////////  Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved.  /////////////
 // 
 // ge_stats_recorder.h
 //
@@ -18,7 +18,7 @@
 #include "ge_gameplay.h"
 #include "ge_player.h"
 #include "ge_shareddefs.h"
-#include "GameStats.h"
+#include "gamestats.h"
 
 extern CGEPlayer *ToGEPlayer( CBaseEntity *pEntity );
 

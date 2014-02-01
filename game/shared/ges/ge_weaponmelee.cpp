@@ -1,4 +1,4 @@
-///////////// Copyright © 2006, Scott Loyd. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2006, Scott Loyd. All rights reserved. /////////////
 // 
 // File: weapon_gebasemelee.cpp
 // Description:
@@ -430,8 +430,8 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 	// Send the anim
 	SendWeaponAnim( nHitActivity );
 
-	if ( pPlayer )
-		ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	if ( pPlayer )
+//		ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	//Setup our next attack times
 	m_flNextPrimaryAttack = gpGlobals->curtime + max(GetFireRate(),SequenceDuration());

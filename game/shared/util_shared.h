@@ -582,6 +582,11 @@ private:
 	float Now( void ) const;		// work-around since client header doesn't like inlined gpGlobals->curtime
 };
 
+#ifdef GE_DLL
+// Re-adding for SDK 2013...
+unsigned short UTIL_GetAchievementEventMask();
+#endif
+
 char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename = NULL );
 
 int UTIL_StringFieldToInt( const char *szValue, const char **pValueStrings, int iNumStrings );

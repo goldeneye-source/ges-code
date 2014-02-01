@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_player.h
 // Description:
@@ -227,7 +227,7 @@ void CGEPlayer::FireBullets( const FireBulletsInfo_t &info )
 	// also, this shot counts for 0 damage!
 	if ( m_bInSpawnInvul && !IsObserver() )
 	{
-		modinfo.m_iPlayerDamage = modinfo.m_iDamage = 0;
+		modinfo.m_iPlayerDamage = modinfo.m_flDamage = 0;
 		StopInvul();
 	}
 #endif
@@ -267,12 +267,12 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 			modinfo.m_iTracerFreq = pWeapon->GetTracerFreq();
 			if ( !(modinfo.m_nFlags & FIRE_BULLETS_PENETRATED_SHOT) )
 				// Only take the weapon's damage if this is the first shot
-				modinfo.m_iDamage = pWeapon->GetGEWpnData().m_iDamage;
+				modinfo.m_flDamage = pWeapon->GetGEWpnData().m_iDamage;
 		}
 	}
 
 	// Always replicate all the damage to the player
-	modinfo.m_iPlayerDamage = modinfo.m_iDamage;
+	modinfo.m_iPlayerDamage = modinfo.m_flDamage;
 
 	// Now we handle the entire sequence so that we can implement bullet penetration properly
 	static int	tracerCount;
@@ -367,7 +367,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 
 		// Now hit all triggers along the ray that respond to shots...
 		// Clip the ray to the first collided solid returned from traceline
-		CTakeDamageInfo triggerInfo( pAttacker, pAttacker, modinfo.m_iDamage, nDamageType );
+		CTakeDamageInfo triggerInfo( pAttacker, pAttacker, modinfo.m_flDamage, nDamageType );
 		CalculateBulletDamageForce( &triggerInfo, modinfo.m_iAmmoType, vecDir, tr.endpos );
 		triggerInfo.ScaleDamageForce( modinfo.m_flDamageForceScale );
 		triggerInfo.SetAmmoType( modinfo.m_iAmmoType );
@@ -401,7 +401,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 				bHitWater = HandleShotImpactingWater( modinfo, vecEnd, &traceFilter, &vecTracerDest );
 			}
 
-			float flActualDamage = modinfo.m_iDamage;
+			float flActualDamage = modinfo.m_flDamage;
 			
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
@@ -628,7 +628,7 @@ void CBaseEntity::HandleBulletPenetration( CBaseCombatWeapon *pWeapon, const Fir
 	refireInfo.m_flDistance		= info.m_flDistance*( 1.0f - tr.fraction );
 	refireInfo.m_iAmmoType		= info.m_iAmmoType;
 	refireInfo.m_iTracerFreq	= info.m_iTracerFreq;
-	refireInfo.m_iDamage		= info.m_iDamage;
+	refireInfo.m_flDamage		= info.m_flDamage;
 	refireInfo.m_pAttacker		= info.m_pAttacker ? info.m_pAttacker : this;
 	refireInfo.m_nFlags			= info.m_nFlags | FIRE_BULLETS_PENETRATED_SHOT;
 	refireInfo.m_flPenetrateDepth = info.m_flPenetrateDepth - depth;
@@ -699,7 +699,7 @@ void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace
 	behindGlassInfo.m_flDistance = info.m_flDistance*( 1.0f - tr.fraction );
 	behindGlassInfo.m_iAmmoType = info.m_iAmmoType;
 	behindGlassInfo.m_iTracerFreq = info.m_iTracerFreq;
-	behindGlassInfo.m_iDamage = info.m_iDamage;
+	behindGlassInfo.m_flDamage = info.m_flDamage;
 	behindGlassInfo.m_pAttacker = info.m_pAttacker ? info.m_pAttacker : this;
 	behindGlassInfo.m_nFlags = info.m_nFlags;
 	behindGlassInfo.m_flPenetrateDepth = info.m_flPenetrateDepth;

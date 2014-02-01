@@ -1260,6 +1260,7 @@ void CBaseHudChat::StartMessageMode( int iMessageModeType )
 			g_pVGuiLocalize->ConvertANSIToUnicode( szSayTeam, wszSayTeam, sizeof(wszSayTeam) );
 			m_pChatInput->SetPrompt( wszSayTeam );
 		}
+    }
 #else
 		else
 		{
@@ -1574,48 +1575,48 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
 		return;
 
 #ifdef GE_DLL
-	
 	ReplaceInvalidColors();
-
-	wchar_t* tokStr = wcstok(m_text, L"^");
-
+    
 	Color lastCol = pChat->GetTextColorForClient( COLOR_NORMAL, clientIndex );
-
-	while (tokStr)
+    
+    wchar_t* state;
+	wchar_t* token;
+    
+	for( token = wcstok(m_text, L"^", &state); 
+        token != NULL;
+        token = wcstok(NULL, L"^", &state))
 	{
-		wchar_t colChar = tokStr[0];
+		wchar_t colChar = token[0];
 		int startOffset = 1;
 
-		if ( tokStr == m_text )
+		if ( token == m_text )
 		{
 			TextRange range;
 
-			range.start = tokStr-m_text;
+			range.start = token-m_text;
 			range.color = lastCol;
-			range.end = range.start+wcslen(tokStr);
+			range.end = range.start+wcslen(token);
 
 			m_textRanges.AddToTail( range );
 		}
 		else if ( colChar != '\0' )
 		{
 			// Only update our color if it's valid
-			wchar_t *start = tokStr - 1;
+			wchar_t *start = token - 1;
 			if ( GEUTIL_IsValidColorHint(colChar) )
 			{
 				lastCol = pChat->GetTextColorForClient( colChar, clientIndex );
-				start = tokStr + startOffset;
+				start = token + startOffset;
 			}
 
 			TextRange range;
 
 			range.start = start - m_text;
 			range.color = lastCol;
-			range.end = range.start + wcslen(tokStr) - 1;
+			range.end = range.start + wcslen(token) - 1;
 
 			m_textRanges.AddToTail( range );
 		}
-
-		tokStr = wcstok(NULL, L"^");
 	}
 
 	if (m_textRanges.Count() == 0)
@@ -1626,9 +1627,7 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
 		range.end = wcslen( m_text );
 		m_textRanges.AddToTail( range );
 	}
-
 #else
-
 	wchar_t *txt = m_text;
 	int lineLen = wcslen( m_text );
 	Color colCustom;
@@ -1750,7 +1749,6 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
 			m_textRanges[i].start += 1;
 		}
 	}
-
 #endif // GE_DLL
 
 	Colorize();

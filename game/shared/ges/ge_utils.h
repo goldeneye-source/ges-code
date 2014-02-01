@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_utils.h
 // Description:
@@ -9,16 +9,9 @@
 /////////////////////////////////////////////////////////////////////////////'
 #ifndef GE_UTILS_H
 #define GE_UTILS_H
-#ifdef _WIN32
-#pragma once
-#endif
 
 #include "mathlib/IceKey.H"
 #include "filesystem.h"
-
-// Convience function to iterate over a CUtlDict
-#define FOR_EACH_DICT( dictName, iterName ) \
-	for ( int iterName = dictName.First(); iterName != dictName.InvalidIndex(); iterName = dictName.Next(iterName) )
 
 // Encrypt/Decrypt using ICE
 void GEUTIL_EncryptICE( unsigned char * buffer, int size, const unsigned char *key );

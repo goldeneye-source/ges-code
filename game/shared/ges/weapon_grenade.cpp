@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_grenade.cpp
 // Description:
@@ -306,7 +306,7 @@ void CGEWeaponGrenade::ItemPostFrame( void )
 
 			// player "shoot" animation
 			pOwner->SetAnimation( PLAYER_ATTACK1 );
-			ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//			ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 			m_bSpawnWait = false;
 		}
@@ -409,7 +409,7 @@ void CGEWeaponGrenade::ExplodeInHand( void )
 	{
 		pGrenade->SetThrower( GetOwner() );
 		pGrenade->SetOwnerEntity( GetOwner() );
-		pGrenade->SetVelocity( 0, NULL );
+		pGrenade->SetVelocity( Vector(0), Vector(0) );
 
 		pGrenade->SetDamage( GetGEWpnData().m_iDamage );
 		pGrenade->SetDamageRadius( GetGEWpnData().m_flDamageRadius );

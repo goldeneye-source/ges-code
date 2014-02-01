@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_player_shared.h
 // Description:
@@ -13,12 +13,6 @@
 
 #define GE_PUSHAWAY_THINK_INTERVAL		(1.0f / 20.0f)
 #include "studio.h"
-
-#ifdef CLIENT_DLL
-	#include "c_ge_player.h"
-#else
-	#include "ge_player.h"
-#endif
 
 #if defined( CLIENT_DLL )
 	#define CGEPlayer C_GEPlayer

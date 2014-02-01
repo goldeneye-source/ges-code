@@ -16,7 +16,7 @@
 #include "hl2mp_gamerules.h"
 #include "ihudlcd.h"
 
-
+#ifndef GE_DLL
 
 DECLARE_HUDELEMENT( CHudChat );
 
@@ -114,3 +114,4 @@ Color CHudChat::GetClientColor( int clientIndex )
 
 	return g_ColorYellow;
 }
+#endif //GE_DLL

@@ -1,4 +1,4 @@
-///////////// Copyright © 2009, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2009, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_rocket_launcher.cpp
 // Description:
@@ -175,7 +175,7 @@ void CGEWeaponRocketLauncher::PrimaryAttack( void )
 	// Note that this is a primary attack and prepare the grenade attack to pause.
 	m_bPreLaunch = true;
 	SendWeaponAnim( GetPrimaryAttackActivity() );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+//	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	m_flRocketSpawnTime = gpGlobals->curtime + GetFireDelay();
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetFireRate();

@@ -1,4 +1,4 @@
-///////////// Copyright © 2011, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2011, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_webrequest.h
 // Description:
@@ -13,7 +13,7 @@
 #include "ge_webrequest.h"
 
 #pragma warning( disable : 4005 )
-#include "curl.h"
+#include "curl/curl.h"
 #pragma warning( default : 4005 )
 
 // memdbgon must be the last include file in a .cpp file!!!

@@ -88,10 +88,8 @@ public:
 	virtual void SetItemFgColor(int itemID, Color color);
 	
 #ifdef GE_DLL
-	virtual void SetHeaderDividerColor( int sectionID, Color color );
 	virtual void SetHeaderFont( int sectionID, HFont font );
 	virtual void SetSectionFont( int sectionID, HFont font );
-	virtual void SetSectionHeight( int sectionID, int height );
 #endif
 	
 	//=============================================================================

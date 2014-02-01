@@ -1,4 +1,4 @@
-///////////// Copyright © 2010, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2010, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_vieweffects.h
 // Description:

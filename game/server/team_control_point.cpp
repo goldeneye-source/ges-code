@@ -300,7 +300,11 @@ void CTeamControlPoint::HandleScoring( int iTeam )
 {
 	if ( TeamplayRoundBasedRules() && !TeamplayRoundBasedRules()->ShouldScorePerRound() )
 	{
+#ifdef GE_DLL
+        GetGlobalTeam( iTeam )->AddRoundScore( 1 );
+#else
 		GetGlobalTeam( iTeam )->AddScore( 1 );
+#endif
 		TeamplayRoundBasedRules()->HandleTeamScoreModify( iTeam, 1 );
 
 		CTeamControlPointMaster *pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;

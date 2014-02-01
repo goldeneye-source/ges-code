@@ -1,4 +1,4 @@
-///////////// Copyright © 2008, Goldeneye Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2008, Goldeneye Source. All rights reserved. /////////////
 // 
 // File: ge_weaponautomatic.cpp
 // Description:
@@ -122,7 +122,7 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 
 	SendWeaponAnim( GetPrimaryAttackActivity() );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+	//ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 }
 
 void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, float maxVerticleKickAngle, float fireDurationTime, float slideLimitTime )

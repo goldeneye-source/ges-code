@@ -61,11 +61,11 @@ public:
 	void DrawSelf( int x, int y, const Color& clr ) const;
 	void DrawSelf( int x, int y, int w, int h, const Color& clr ) const;
 #ifdef GE_DLL
-	void DrawSelfRotated( int x, int y, float theta, Color& clr = Color(255,255,255,255) ) const;
-	void DrawSelfRotated( int x, int y, int w, int h, float theta, Color& clr = Color(255,255,255,255) ) const;
+	void DrawSelfRotated( int x, int y, float theta, Color clr = Color(255,255,255,255) ) const;
+	void DrawSelfRotated( int x, int y, int w, int h, float theta, Color clr = Color(255,255,255,255) ) const;
 
-	void DrawSelfScaled( int x, int y, float scale, Color& clr = Color(255,255,255,255) ) const;
-	void DrawSelfScaled( int x, int y, int w, int h, float scale, Color& clr = Color(255,255,255,255) ) const;
+	void DrawSelfScaled( int x, int y, float scale, Color clr = Color(255,255,255,255) ) const;
+	void DrawSelfScaled( int x, int y, int w, int h, float scale, Color clr = Color(255,255,255,255) ) const;
 
 	void DrawScew_Left( int tex2, int width, int height, float percent, int offset, int radius ) const;
 	void DrawScew_Right( int tex2, int width, int height, float percent, int offset, int radius ) const;

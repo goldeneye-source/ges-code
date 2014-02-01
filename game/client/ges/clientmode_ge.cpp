@@ -1,4 +1,4 @@
-///////////// Copyright © 2009, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2009, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: clientmode_ge.cpp
 // Description:
@@ -14,7 +14,7 @@
 #include <vgui/IInput.h>
 #include <vgui/IPanel.h>
 #include <vgui/ISurface.h>
-#include <vgui/IVgui.h>
+#include <vgui/IVGui.h>
 #include <vgui_controls/AnimationController.h>
 #include "vgui/ILocalize.h"
 

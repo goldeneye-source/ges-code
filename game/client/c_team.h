@@ -32,7 +32,9 @@ public:
 
 	// Data Handling
 	virtual char	*Get_Name( void );
+#ifndef GE_DLL
 	virtual int		Get_Score( void );
+#endif
 	virtual int		Get_Deaths( void );
 	virtual int		Get_Ping( void );
 
@@ -46,7 +48,12 @@ public:
 
 	int		GetTeamNumber() const;
 
+#ifdef GE_DLL
+	virtual int	GetMatchScore( void )	{ return m_iMatchScore; }
+	virtual int	GetRoundScore(void)	{ return m_iRoundScore; }
+#else
 	int		GetRoundsWon(void) { return m_iRoundsWon; }
+#endif
 
 	void	RemoveAllPlayers();
 
@@ -62,8 +69,13 @@ public:
 	// Data received from the server
 	CUtlVector< int > m_aPlayers;
 	char	m_szTeamname[ MAX_TEAM_NAME_LENGTH ];
+#ifdef GE_DLL
+	int		m_iMatchScore;
+	int		m_iRoundScore;
+#else
 	int		m_iScore;
 	int		m_iRoundsWon;
+#endif
 
 	// Data for the scoreboard
 	int		m_iDeaths;

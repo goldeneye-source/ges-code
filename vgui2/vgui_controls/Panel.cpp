@@ -4318,27 +4318,6 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
-	if( bUsesTitleSafeArea )
-	{
-		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
-		{
-			if ( !excludeEdgeFromTitleSafe.x )
-				wide -= titleSafeWide;
-
-			if ( !excludeEdgeFromTitleSafe.width )
-				wide -= titleSafeWide;
-		}
-
-		if ( _buildModeFlags & BUILDMODE_SAVE_TALL_FULL )
-		{
-			if ( !excludeEdgeFromTitleSafe.y )
-				tall -= titleSafeTall;
-
-			if ( !excludeEdgeFromTitleSafe.height )
-				tall -= titleSafeTall;
-		}
-	}
-
 	SetSize( wide, tall );
 #endif
 
@@ -4602,7 +4581,8 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 			tall = alignScreenTall - tall;
 		}
 	}
-
+#endif
+    
 	if( bUsesTitleSafeArea )
 	{
 		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
@@ -4624,6 +4604,7 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		}
 	}
 
+#ifndef GE_DLL
 	SetSize( wide, tall );
 #endif
 
