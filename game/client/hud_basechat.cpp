@@ -1582,9 +1582,15 @@ void CBaseHudChatLine::InsertAndColorizeText( wchar_t *buf, int clientIndex )
     wchar_t* state;
 	wchar_t* token;
     
-	for( token = wcstok(m_text, L"^", &state); 
+#ifdef _WIN32
+    for( token = wcstok_s(m_text, L"^", &state); 
+        token != NULL;
+        token = wcstok_s(NULL, L"^", &state))
+#else
+    for( token = wcstok(m_text, L"^", &state); 
         token != NULL;
         token = wcstok(NULL, L"^", &state))
+#endif
 	{
 		wchar_t colChar = token[0];
 		int startOffset = 1;

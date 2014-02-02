@@ -195,13 +195,13 @@ void CHudGameplay::ResolveGameplayHelp( void )
 		return;
 
 	m_pGameplayHelp->SetText( "" );
-	m_pGameplayHelp->InsertCenterText( true );
-	m_pGameplayHelp->InsertFontChange( m_hHeaderFont );
+//	m_pGameplayHelp->InsertCenterText( true );
+//	m_pGameplayHelp->InsertFontChange( m_hHeaderFont );
 
 	m_pGameplayHelp->InsertString( GEGameplayRes()->GetGameplayName() );
 
-	m_pGameplayHelp->InsertCenterText( false );
-	m_pGameplayHelp->InsertFontChange( m_hHelpFont );
+//	m_pGameplayHelp->InsertCenterText( false );
+//	m_pGameplayHelp->InsertFontChange( m_hHelpFont );
 	m_pGameplayHelp->InsertString( "\n\n" );
 
 	const char *pHelpString = g_pStringTableGameplay->GetString( GEGameplayRes()->GetGameplayHelp() );

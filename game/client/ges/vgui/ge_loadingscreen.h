@@ -41,7 +41,7 @@ protected:
 private:
 	float m_flNextTipTime;
 
-	vgui::GECreditsText *m_pTipContainer;
+	vgui::RichText		*m_pTipContainer;
 	vgui::ImagePanel	*m_pImagePanel;
 
 	bool m_bMapImageSet;

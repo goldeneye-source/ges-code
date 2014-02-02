@@ -67,7 +67,7 @@ private:
 	IViewPort	*m_pViewPort;
 	IScheme		*m_pScheme;
 
-	GECreditsText	*m_pCreditsText;
+	RichText	*m_pCreditsText;
 	
 	CUtlVector<GECreditsEntry*> m_vCredits;
 };

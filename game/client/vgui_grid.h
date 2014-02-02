@@ -23,10 +23,13 @@ namespace vgui
 class CGrid : public Panel
 {
 public:
-	//GE_DLL
+#ifdef GE_DLL
 	DECLARE_CLASS_SIMPLE( CGrid, Panel );
 
-						CGrid();
+	CGrid( Panel *parent, const char *panelName );
+#else
+	CGrid();
+#endif
 	virtual				~CGrid();
 
 #ifdef GE_DLL

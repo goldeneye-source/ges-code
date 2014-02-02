@@ -9,11 +9,8 @@
 //   Created By: Mark Chandler <mailto:mark@moddb.com>
 ////////////////////////////////////////////////////////////////////////////
 
-#ifndef MC_GE_INTROVIDEO_H
-#define MC_GE_INTROVIDEO_H
-#ifdef _WIN32
-#pragma once
-#endif
+#ifndef GE_INTROVIDEO_H
+#define GE_INTROVIDEO_H
 
 #include <vgui_controls/Frame.h>
 #include <vgui_controls/Button.h>
@@ -65,9 +62,6 @@ private:
 	vgui::Button *m_pButReplay;
 	vgui::CheckButton *m_pAlwaysSkip;
 	vgui::CheckButton *m_pBGSkip;
-
-//	BIKMaterial_t	m_BIKHandle;
-	IMaterial		*m_pMaterial;
 
 	CUtlVector<char*> m_vMovies;
 	int		m_iCurrMovieIdx;
