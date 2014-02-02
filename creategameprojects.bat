@@ -17,5 +17,5 @@ if not "%VS120COMNTOOLS%" == "" (
 )
 
 pushd %~dp0
-	devtools\bin\vpc.exe /hl2mp +game /%VisualStudio_Version% /mksln game-vs%VisualStudio_Version%.sln
+	devtools\bin\vpc.exe /ges +game /%VisualStudio_Version% /mksln game-vs%VisualStudio_Version%.sln
 popd

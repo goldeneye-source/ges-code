@@ -17,5 +17,5 @@ if not "%VS120COMNTOOLS%" == "" (
 )
 
 pushd %~dp0
-	devtools\bin\vpc.exe /hl2mp +everything /%VisualStudio_Version% /mksln everything-vs%VisualStudio_Version%.sln
+	devtools\bin\vpc.exe /ges +everything /%VisualStudio_Version% /mksln everything-vs%VisualStudio_Version%.sln
 popd

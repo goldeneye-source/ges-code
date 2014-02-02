@@ -5,19 +5,19 @@
 //-----------------------------------------------------------------------------
 
 $Macro SRCDIR		"..\.."
-$Macro GAMENAME 	"ges" [!$SOURCESDK]
-$Macro GAMENAME 	"mod_ges" [$SOURCESDK]
+$Macro GAMENAME 	"mod_ges"
 
 $Macro LIBGES	    "$SRCDIR\lib\ges$PLATSUBDIR"
 
 $Include "$SRCDIR\game\client\client_base.vpc"
+$Include "$SRCDIR\vpc_scripts\ges_base.vpc"
 
 $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;ges;ges\hud;ges\vgui;$SRCDIR\game\shared\ges;$SRCDIR\thirdparty;hl2mp\ui,.\hl2mp,$SRCDIR\game\shared\hl2mp,.\hl2,.\hl2\elements,$SRCDIR\game\shared\hl2"
-		$PreprocessorDefinitions		"$BASE;GE_DLL;HL2MP;HL2_CLIENT_DLL"
+		$AdditionalIncludeDirectories	"$BASE;ges;ges\hud;ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements"
+		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL"
 	}
 }
 

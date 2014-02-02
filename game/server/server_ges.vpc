@@ -5,20 +5,30 @@
 //-----------------------------------------------------------------------------
 
 $Macro SRCDIR		"..\.."
-$Macro GAMENAME 	"ges" [!$SOURCESDK]
-$Macro GAMENAME 	"mod_ges" [$SOURCESDK]
+$Macro GAMENAME 	"mod_ges"
 
 $Macro LIBGES	    "$SRCDIR\lib\ges$PLATSUBDIR"
 
 $Include "$SRCDIR\game\server\server_base.vpc"
-$Include "$SRCDIR\game\server\nav_mesh.vpc" [$SOURCESDK]
+$Include "$SRCDIR\game\server\nav_mesh.vpc"
+$Include "$SRCDIR\vpc_scripts\ges_base.vpc"
 
 $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;ges;ges\ai;ges\ent;ges\py;$SRCDIR\game\shared\ges;$SRCDIR\thirdparty;$SRCDIR\thirdparty\python26\include;$SRCDIR\game\shared\hl2,.\hl2,.\hl2mp,$SRCDIR\game\shared\hl2mp"
-		$PreprocessorDefinitions	"$BASE;GE_DLL;HL2MP;HL2_DLL"
+		$AdditionalIncludeDirectories	"$BASE;ges;ges\ai;ges\ent;ges\py;.\hl2;.\hl2mp"
+		$PreprocessorDefinitions	"$BASE;HL2_DLL;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20;Py_NO_ENABLE_SHARED"
+	}
+	
+	$Linker
+	{
+		// Needed for Python library
+		$AdditionalDependencies     "$BASE;%(AdditionalDependencies)" [$WIN32]
+		$IgnoreSpecificLibrary		"$BASE;libcd;libcmtd;msvcrtd;msvcrt" [$WIN32]
+		
+		$GCC_ExtraLinkerFlags		"$BASE -ldl -lutil" [$LINUXALL]
+		$GCC_ExtraLinkerFlags		"$BASE -read_only_relocs suppress" [$OSX32]
 	}
 }
 
@@ -77,10 +87,46 @@ $Project "Server (GES)"
                 $File "ges/py/ge_pymanager.h"
                 $File "ges/py/ge_pymodules.cpp"
                 $File "ges/py/ge_pyplayer.cpp"
-                $File "ges/py/ge_pyprecom.cpp"
-                $File "ges/py/ge_pyprecom.h"
                 $File "ges/py/ge_pyutil.cpp"
                 $File "ges/py/ge_pyweapon.cpp"
+				
+                $File "ges/py/ge_pyprecom.h"
+                $File "ges/py/ge_pyprecom.cpp"
+                {
+                    $Configuration
+                    {
+                        $Compiler
+                        {
+                            $Create/UsePrecompiledHeader    "Create Precompiled Header (/Yc)"
+                            $Create/UsePCHThroughFile       "ge_pyprecom.h"
+                            $PrecompiledHeaderFile          "$(IntDir)server_py.pch"
+                        }
+                    }
+                }
+                
+                $File "ges/py/ge_pyai.cpp"           \
+                    "ges/py/ge_pyaiconstants.cpp"    \
+                    "ges/py/ge_pyentity.cpp"         \
+                    "ges/py/ge_pyfuncs.cpp"          \
+                    "ges/py/ge_pygameplay.cpp"       \
+                    "ges/py/ge_pygamerules.cpp"      \
+                    "ges/py/ge_pyglobal.cpp"         \
+                    "ges/py/ge_pymanager.cpp"        \
+                    "ges/py/ge_pymodules.cpp"        \
+                    "ges/py/ge_pyplayer.cpp"         \
+                    "ges/py/ge_pyutil.cpp"           \
+                    "ges/py/ge_pyweapon.cpp"
+                {
+                    $Configuration
+                    {
+                        $Compiler
+                        {
+                            $Create/UsePrecompiledHeader    "Use Precompiled Header (/Yu)"
+                            $Create/UsePCHThroughFile       "ge_pyprecom.h"
+                            $PrecompiledHeaderFile          "$(IntDir)server_py.pch"
+                        }
+                    }
+                }
             }
             
             $Folder "Ai"
@@ -126,8 +172,6 @@ $Project "Server (GES)"
             
             $Folder "Shared"
             {
-            //    $File "$SRCDIR/game/shared/ges/ge_achievement.cpp"
-            //    $File "$SRCDIR/game/shared/ges/ge_achievement.h"
                 $File "$SRCDIR/game/shared/ges/ge_achievement_defs.h"
                 $File "$SRCDIR/game/shared/ges/ge_bloodscreenvm.cpp"
                 $File "$SRCDIR/game/shared/ges/ge_bloodscreenvm.h"
@@ -449,7 +493,6 @@ $Project "Server (GES)"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_pistol.cpp"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_rpg.cpp"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_rpg.h"
-			//	$File	"$SRCDIR\game\shared\hl2mp\weapon_shotgun.cpp"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.cpp"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.h"
 				$File	"$SRCDIR\game\shared\hl2mp\weapon_smg1.cpp"
@@ -462,10 +505,9 @@ $Project "Server (GES)"
 	{
 	    // Python 2.6
 		$Lib		 "$LIBGES/python26"
-	//	$Lib      "-lutil" [$LINUXALL]
 		
 		// Boost::Python
-		$Lib        "$LIBGES/libboost_python-1_53"
+		$Lib        "$LIBGES/boost_python"
 		
 		// Curl (for WebRequest)
 		$Lib "$LIBCOMMON/libcrypto" [$POSIX]
