@@ -24,6 +24,10 @@
 
 using namespace vgui;
 
+#ifdef GE_DLL
+DECLARE_BUILD_FACTORY( PanelListPanel );
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------

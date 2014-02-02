@@ -89,6 +89,7 @@ void CShower::Touch( CBaseEntity *pOther )
 	SetAbsVelocity( vecNewVelocity );
 }
 
+#ifndef GE_USE_ROLLINGEXP
 
 class CEnvExplosion : public CPointEntity
 {
@@ -377,7 +378,11 @@ void CEnvExplosion::Smoke( void )
 		UTIL_Remove( this );
 	}
 }
+#else
 
+#include "ent_envexplosion.h"
+
+#endif // GE_USE_ROLLINGEXP
 
 // HACKHACK -- create one of these and fake a keyvalue to get the right explosion setup
 void ExplosionCreate( const Vector &center, const QAngle &angles, 
@@ -471,6 +476,7 @@ void ExplosionCreate( const Vector &center, const QAngle &angles,
 	ExplosionCreate( center, angles, pOwner, magnitude, radius, nFlags, flExplosionForce, NULL, iCustomDamageType, ignoredEntity, ignoredClass );
 }
 
+#ifndef GE_USE_ROLLINGEXP
 //-----------------------------------------------------------------------------
 // Purpose: Draw any debug text overlays
 // Output : Current text offset from the top
@@ -489,3 +495,4 @@ int CEnvExplosion::DrawDebugTextOverlays( void )
 	}
 	return text_offset;
 }
+#endif

@@ -52,7 +52,6 @@
 #include "tier0/memdbgon.h"
 
 // Add all these convars because Valve forces us, they don't do anything!
-ConVar hap_HasDevice("hap_HasDevice", "0");
 ConVar topcolor("topcolor","0");
 ConVar bottomcolor("bottomcolor","0");
 ConVar cl_himodels("cl_himodels","1");

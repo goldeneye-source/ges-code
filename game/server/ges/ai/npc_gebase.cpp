@@ -10,6 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////
 #include "cbase.h"
 
+#include "datacache/imdlcache.h"
 #include "doors.h"
 #include "BasePropDoor.h"
 #include "func_break.h"

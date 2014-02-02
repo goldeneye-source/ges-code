@@ -15,6 +15,9 @@
 
 using namespace vgui;
 
+#ifdef GE_DLL
+DECLARE_BUILD_FACTORY( CGrid );
+#endif
 
 #define AssertCheck(expr, msg) \
 	if(!(expr))\
@@ -44,7 +47,11 @@ CGrid::CGridEntry::~CGridEntry()
 // CGrid.
 // ------------------------------------------------------------------------------ //
 
-CGrid::CGrid()
+#ifdef GE_DLL
+CGrid::CGrid( Panel *parent, const char *panelName ) : BaseClass( parent, panelName )
+#else
+CGrid:CGrid()
+#endif
 {
 	Clear();
 }

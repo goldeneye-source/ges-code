@@ -235,14 +235,6 @@ IEngineClientReplay *g_pEngineClientReplay = NULL;
 IReplaySystem *g_pReplay = NULL;
 #endif
 
-#ifdef GE_DLL
-#include "avi/iavi.h"
-//#include "avi/ibik.h"
-
-	IAvi *avi = NULL;
-//	IBik *bik = NULL;
-#endif
-
 IHaptics* haptics = NULL;// NVNT haptics system interface singleton
 
 //=============================================================================
@@ -950,12 +942,6 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 		return false;
 	if ( (inputsystem = (IInputSystem *)appSystemFactory(INPUTSYSTEM_INTERFACE_VERSION, NULL)) == NULL )
 		return false;
-#ifdef GE_DLL
-	if ( (avi = (IAvi *)appSystemFactory(AVI_INTERFACE_VERSION, NULL)) == NULL )
-		return false;
-//	if ( (bik = (IBik *)appSystemFactory(BIK_INTERFACE_VERSION, NULL)) == NULL )
-//		return false;
-#endif
 	if ( (scenefilecache = (ISceneFileCache *)appSystemFactory( SCENE_FILE_CACHE_INTERFACE_VERSION, NULL )) == NULL )
 		return false;
 	if ( IsX360() && (xboxsystem = (IXboxSystem *)appSystemFactory( XBOXSYSTEM_INTERFACE_VERSION, NULL )) == NULL )

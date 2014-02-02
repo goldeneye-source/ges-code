@@ -13,7 +13,6 @@
 #include "cdll_int.h"
 #include "ienginevgui.h"
 #include "iclientmode.h"
-#include "engine/IEngineSound.h"
 #include "vgui/IVGui.h"
 #include "vgui/IInput.h"
 #include "vgui/ISurface.h"
@@ -58,8 +57,6 @@ CGEIntroVideoPanel::CGEIntroVideoPanel( vgui::VPANEL parent ) : BaseClass( NULL,
 	SetMouseInputEnabled(true);
 	SetKeyBoardInputEnabled(true);
 
-//	m_BIKHandle = BIKHANDLE_INVALID;
-	m_pMaterial = NULL;
 	m_fLastMouseMove = -10.0f;
 	m_iMouseX = m_iMouseY = 0;
 	SetCursor( vgui::dc_blank );
@@ -156,54 +153,13 @@ bool CGEIntroVideoPanel::beginPlayback( const char *pFilename /*= NULL*/ )
 		pFn = m_vMovies[m_iCurrMovieIdx];
 	}
 
-	// Load and create our BINK video
-    //TEMP TEMP
-    return false;
-/*
-	m_BIKHandle = bik->CreateMaterial( "VideoBIKMaterial", pFn, "GAME" );
-	if ( m_BIKHandle == BIKHANDLE_INVALID )
-		return false;
-
-	enginesound->NotifyBeginMoviePlayback();
-
-	int nWidth, nHeight;
-	bik->GetFrameSize( m_BIKHandle, &nWidth, &nHeight );
-	bik->GetTexCoordRange( m_BIKHandle, &m_flU, &m_flV );
-	m_pMaterial = bik->GetMaterial( m_BIKHandle );
-
-	float flFrameRatio = ( (float) GetWide() / (float) GetTall() );
-	float flVideoRatio = ( (float) nWidth / (float) nHeight );
-
-	if ( flVideoRatio > flFrameRatio )
-	{
-		m_nPlaybackWidth = GetWide();
-		m_nPlaybackHeight = ( GetWide() / flVideoRatio );
-	}
-	else if ( flVideoRatio < flFrameRatio )
-	{
-		m_nPlaybackWidth = ( GetTall() * flVideoRatio );
-		m_nPlaybackHeight = GetTall();
-	}
-	else
-	{
-		m_nPlaybackWidth = GetWide();
-		m_nPlaybackHeight = GetTall();
-	}
-
+	// TODO: Use VideoPanel
 	return true;
- */
 }
 
 void CGEIntroVideoPanel::stopPlayback( void )
 {
-	// Destroy any previously allocated video
-//	if ( m_BIKHandle != BIKHANDLE_INVALID )
-//	{
-//		bik->DestroyMaterial( m_BIKHandle );
-//		m_BIKHandle = BIKHANDLE_INVALID;
-//	}
-
-	m_pMaterial = NULL;
+	// TODO: Use VideoPanel
 }
 
 void CGEIntroVideoPanel::LoadMovieList( void )
@@ -285,13 +241,10 @@ void CGEIntroVideoPanel::OnKeyCodePressed(vgui::KeyCode code )
 
 void CGEIntroVideoPanel::OnClose( void )
 {
-	enginesound->NotifyEndMoviePlayback();
 	StartMenuMusic();
 
 	if ( vgui::input()->GetAppModalSurface() == GetVPanel() )
-	{
 		vgui::input()->ReleaseAppModalSurface();
-	}
 
 	vgui::surface()->RestrictPaintToSinglePanel( NULL );
 
@@ -359,17 +312,6 @@ void CGEIntroVideoPanel::OnTick( void )
 void CGEIntroVideoPanel::Paint( void )
 {
 	BaseClass::Paint();
-
-	// No video to play, so do nothing
-//	if ( m_BIKHandle == BIKHANDLE_INVALID )
-//		return;
-//
-//	// Update our frame
-//	if ( bik->Update( m_BIKHandle ) == false )
-//	{
-//		if ( !beginPlayback() )
-//			OnClose();
-//	}
 	
 	float time = gpGlobals->curtime - m_fLastMouseMove;
 
@@ -407,77 +349,6 @@ void CGEIntroVideoPanel::Paint( void )
 			m_bIsCursorShown = false;
 		}
 	}
-	
-	// Black out the background (we could omit drawing under the video surface, but this is straight-forward)
-	vgui::surface()->DrawSetColor(  0, 0, 0, 255 );
-	vgui::surface()->DrawFilledRect( 0, 0, GetWide(), GetTall() );
-
-	if ( !m_pMaterial )
-		return;
-
-	// Draw the polys to draw this out
-	CMatRenderContextPtr pRenderContext( materials );
-	
-	pRenderContext->MatrixMode( MATERIAL_VIEW );
-	pRenderContext->PushMatrix();
-	pRenderContext->LoadIdentity();
-
-	pRenderContext->MatrixMode( MATERIAL_PROJECTION );
-	pRenderContext->PushMatrix();
-	pRenderContext->LoadIdentity();
-
-	pRenderContext->Bind( m_pMaterial, NULL );
-
-	CMeshBuilder meshBuilder;
-	IMesh* pMesh = pRenderContext->GetDynamicMesh( true );
-	meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
-
-	float flLeftX = (GetWide() - m_nPlaybackWidth) /2;
-	float flRightX = flLeftX + m_nPlaybackWidth;
-
-	float flTopY = (GetTall()-m_nPlaybackHeight)/2;
-	float flBottomY = flTopY + m_nPlaybackHeight;
-
-	// Map our UVs to cut out just the portion of the video we're interested in
-	float flLeftU = 0.0f;
-	float flTopV = 0.0f;
-
-	// We need to subtract off a pixel to make sure we don't bleed
-	float flRightU = m_flU - ( 1.0f / (float) m_nPlaybackWidth );
-	float flBottomV = m_flV - ( 1.0f / (float) m_nPlaybackHeight );
-
-	// Get the current viewport size
-	int vx, vy, vw, vh;
-	pRenderContext->GetViewport( vx, vy, vw, vh );
-
-	// map from screen pixel coords to -1..1
-	flRightX = FLerp( -1, 1, 0, vw, flRightX );
-	flLeftX = FLerp( -1, 1, 0, vw, flLeftX );
-	flTopY = FLerp( 1, -1, 0, vh ,flTopY );
-	flBottomY = FLerp( 1, -1, 0, vh, flBottomY );
-
-	float alpha = ((float)GetFgColor()[3]/255.0f);
-
-	for ( int corner=0; corner<4; corner++ )
-	{
-		bool bLeft = (corner==0) || (corner==3);
-		meshBuilder.Position3f( (bLeft) ? flLeftX : flRightX, (corner & 2) ? flBottomY : flTopY, 0.0f );
-		meshBuilder.Normal3f( 0.0f, 0.0f, 1.0f );
-		meshBuilder.TexCoord2f( 0, (bLeft) ? flLeftU : flRightU, (corner & 2) ? flBottomV : flTopV );
-		meshBuilder.TangentS3f( 0.0f, 1.0f, 0.0f );
-		meshBuilder.TangentT3f( 1.0f, 0.0f, 0.0f );
-		meshBuilder.Color4f( 1.0f, 1.0f, 1.0f, alpha );
-		meshBuilder.AdvanceVertex();
-	}
-	
-	meshBuilder.End();
-	pMesh->Draw();
-
-	pRenderContext->MatrixMode( MATERIAL_VIEW );
-	pRenderContext->PopMatrix();
-
-	pRenderContext->MatrixMode( MATERIAL_PROJECTION );
-	pRenderContext->PopMatrix();
 }
 
 CON_COMMAND(showintro, "Brings up the intro video for GE:S")

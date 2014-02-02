@@ -174,7 +174,7 @@ void CGELevelLoadingPanel::DisplayTip( void )
 
 		m_pTipContainer->SetFgColor( Color(0,0,0,255) );
 		m_pTipContainer->SetText( "" );
-		m_pTipContainer->InsertCenterText( false );
+//		m_pTipContainer->InsertCenterText( false );
 		m_pTipContainer->InsertString( tmp );
 		
 		GEUTIL_ParseLocalization( tmp, 128, tip->line1 );
@@ -195,7 +195,7 @@ void CGELevelLoadingPanel::DisplayTip( void )
 			m_pTipContainer->InsertString( tmp );
 		}
 
-		m_pTipContainer->ForceRecalculateLineBreaks();
+//		m_pTipContainer->ForceRecalculateLineBreaks();
 	}
 
 	// Setup our next tip time

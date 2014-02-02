@@ -90,7 +90,7 @@ private:
 	CUtlVector<sWeaponLabel*>	m_vWeaponLabels;
 
 	// Gameplay Help Panel
-	vgui::GECreditsText	*m_pGameplayHelp;
+	vgui::RichText	*m_pGameplayHelp;
 	
 	// Configurable Parameters
 	CPanelAnimationVarAliasType( int, m_iTabWidth, "tab_width", "16", "proportional_int" );
