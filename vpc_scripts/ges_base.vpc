@@ -1,0 +1,27 @@
+//-----------------------------------------------------------------------------
+//	ges_base.VPC
+//
+//  This is the base VPC file for GoldenEye: Source projects.
+//
+//-----------------------------------------------------------------------------
+
+$Configuration
+{
+	$Compiler
+	{
+		// Add shared directories and thirdparty libraries
+		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\ges;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\hl2mp"
+		
+		// GE:S uses GE_DLL and HL2MP for all projects
+		$PreprocessorDefinitions		"$BASE;GE_DLL;GE_AI;GE_USE_ROLLINGEXP;HL2MP;CURL_STATICLIB"
+	}
+	
+	$Linker
+    {
+		// Needed for cURL library
+        $AdditionalDependencies            "$BASE wsock32.lib Ws2_32.lib" [$WIN32]
+	}
+}
+
+// Add our thirdparty library definitions
+$Include "$SRCDIR\vpc_scripts\ges_thirdparty.vpc"
