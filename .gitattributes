@@ -11,6 +11,7 @@ vpc_osx binary
 *.c text
 *.h text
 *.H text
+*.hpp text
 *.cc text
 *.cpp text
 *.vpc text
@@ -44,6 +45,9 @@ CONTRIBUTING text
 LICENSE text
 
 *.exe binary
+*.lib binary
+*.a binary
+*.so binary
 protoc binary
 ccache binary
 
