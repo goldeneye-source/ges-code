@@ -25,7 +25,7 @@ $Configuration
 	{
 		// Needed for Python library
 		$AdditionalDependencies     "$BASE;%(AdditionalDependencies)" [$WIN32]
-		$IgnoreSpecificLibrary		"$BASE;libcd;libcmtd;msvcrtd;msvcrt" [$WIN32]
+		$IgnoreSpecificLibrary		"$BASE;libcmtd;msvcrtd;msvcrt" [$WIN32]
 		
 		$GCC_ExtraLinkerFlags		"$BASE -ldl -lutil" [$LINUXALL]
 		$GCC_ExtraLinkerFlags		"$BASE -read_only_relocs suppress" [$OSX32]
