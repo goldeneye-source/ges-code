@@ -110,7 +110,7 @@ PyAPI_FUNC(int) PyModule_AddStringConstant(PyObject *, const char *, const char 
  #undef Py_InitModule4
  #define Py_InitModule4 Py_InitModule4TraceRefs_64
  #else
- #define Py_InitModule4 Py_InitModule4TraceRefs
+ //#define Py_InitModule4 Py_InitModule4TraceRefs
  #endif
 #endif
 

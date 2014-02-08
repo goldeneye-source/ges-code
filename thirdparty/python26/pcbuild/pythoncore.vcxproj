@@ -206,7 +206,7 @@
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\Python;..\Modules\zlib;..\Modules\_ctypes\libffi_msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_USRDLL;Py_BUILD_CORE;Py_NO_ENABLE_SHARED;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_USRDLL;Py_BUILD_CORE;Py_NO_ENABLE_SHARED;WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ProgramDataBaseFileName>$(OutDir)python26_d.pdb</ProgramDataBaseFileName>
     </ClCompile>

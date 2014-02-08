@@ -13,7 +13,7 @@ $Configuration
 		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\ges;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\hl2mp"
 		
 		// GE:S uses GE_DLL and HL2MP for all projects
-		$PreprocessorDefinitions		"$BASE;GE_DLL;GE_AI;GE_USE_ROLLINGEXP;HL2MP;CURL_STATICLIB"
+		$PreprocessorDefinitions		"$BASE;GE_DLL;GE_AI;GE_USE_ROLLINGEXP;HL2MP;CURL_STATICLIB;SUPPRESS_INVALID_PARAMETER_NO_INFO"
 	}
 	
 	$Linker
