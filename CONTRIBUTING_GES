@@ -1,0 +1,18 @@
+Thanks for your interest in the GoldenEye: Source project (GES).  When you make a
+contribution to the project (e.g. create an Issue or submit a Pull Request)
+(a "Contribution"), we want to be able to use your Contribution to improve
+our mod. 
+
+In order to contribute you must accept and comply with the requirements outlined 
+in the GNU GPL v3 license located in LICENSE_GES.
+
+GES is happy to accept pull requests and issues into our repository in these cases:
+ * Changes that fix bugs in the SDK and the Mod itself. The repository
+   should build out of the box. A pull request will be denied if it does not.
+ * Functional fixes that make the code more efficient, easier to read, and/or
+   corrects logic errors.
+
+If you are going to make a pull request, please keep them as granular as
+possible. Pull requests with 3-4 unrelated changes in them aren't going to
+be accepted.
+
