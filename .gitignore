@@ -9,6 +9,7 @@
 *.exp
 *.ilk
 *.lastbuildstate
+*.pdb
 ipch
 *.sdf
 *.opensdf
@@ -28,10 +29,8 @@ obj_*/
 !utils/smdlexp/smdlexp.mak
 
 # Specific Source build products
-client.pdb
 client.dll
 client.lib
-server.pdb
 server.dll
 server.lib
 
