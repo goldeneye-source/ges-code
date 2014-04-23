@@ -1,0 +1,8 @@
+# Ignore dynamically build libraries
+mathlib.lib
+raytrace.lib
+tier1.lib
+vgui_controls.lib
+
+# GES Specific libraries
+boost_python.lib

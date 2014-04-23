@@ -1,0 +1,10 @@
+# Python library ignore file
+*.exe
+*.suo
+*.sdf
+*.o
+
+bin/
+pcbuild/*-Debug
+pcbuild/*-Release
+pcbuild/obj/

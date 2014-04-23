@@ -12,7 +12,7 @@
 *.exp
 *.ilk
 *.lastbuildstate
-vc100.pdb
+*.pdb
 ipch
 *.sdf
 *.opensdf
@@ -20,8 +20,8 @@ ipch
 *.vcxproj
 *.vcxproj.filters
 *.sln
-[Dd]ebug*/
-[Rr]elease*/
+[Dd]ebug_mod*/
+[Rr]elease_mod*/
 
 # OSX/Linux build products
 *.DS_Store
@@ -34,10 +34,8 @@ obj_*/
 *_osx32*
 
 # Specific Source build products
-client.pdb
 client.dll
 client.lib
-server.pdb
 server.dll
 server.lib
 
