@@ -17,7 +17,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;ges;ges\hud;ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements"
-		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL"
+		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL;SOURCE_2013"
 	}
 }
 
@@ -185,7 +185,26 @@ $Project "Client (GES)"
                 $File "$SRCDIR/game/shared/ges/weapon_zmg.cpp"
             }			
 		}
-
+		
+		$Folder "Shader Editor" [$WIN32]
+		{
+			$Folder	"Header Files"
+			{
+				$File	"$SRCDIR\game\client\ShaderEditor\ISEdit_ModelRender.h"
+				$File	"$SRCDIR\game\client\ShaderEditor\IVShaderEditor.h"
+				$File	"$SRCDIR\game\client\ShaderEditor\ShaderEditorSystem.h"
+				$File	"$SRCDIR\game\client\ShaderEditor\SEdit_ModelRender.h"
+				//$File	"$SRCDIR\game\client\ShaderEditor\Grass\CGrassCluster.h"
+			}
+ 
+			$Folder	"Implementation Files"
+			{
+				$File	"$SRCDIR\game\client\ShaderEditor\ShaderEditorSystem.cpp"
+				$File	"$SRCDIR\game\client\ShaderEditor\SEdit_ModelRender.cpp"
+				//$File	"$SRCDIR\game\client\ShaderEditor\Grass\CGrassCluster.cpp"
+			}
+		}
+		
 		-$File	"$SRCDIR\game\shared\weapon_parse_default.cpp"
 
 		$File	"c_team_objectiveresource.cpp"
