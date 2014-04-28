@@ -77,6 +77,9 @@
 // Projective textures
 #include "C_Env_Projected_Texture.h"
 
+// Biohazard's shader editor
+#include "ShaderEditor/ShaderEditorSystem.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1359,6 +1362,13 @@ void CViewRender::ViewDrawScene( bool bDrew3dSkybox, SkyboxVisibility_t nSkyboxV
 
 	DrawWorldAndEntities( drawSkybox, view, nClearFlags, pCustomVisibility );
 
+	// Biohazard's shader editor
+	VisibleFogVolumeInfo_t fogVolumeInfo;
+	render->GetVisibleFogVolume( view.origin, &fogVolumeInfo );
+	WaterRenderInfo_t waterRenderInfo;
+	DetermineWaterRenderInfo( fogVolumeInfo, waterRenderInfo );
+	g_ShaderEditorSystem->CustomViewRender( &g_CurrentViewID, fogVolumeInfo, waterRenderInfo );
+
 	// Disable fog for the rest of the stuff
 	DisableFog();
 
@@ -1953,6 +1963,9 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 		pFreezeFrameView->Setup( view );
 		AddViewToScene( pFreezeFrameView );
 
+		// Biohazard's shader editor
+		g_ShaderEditorSystem->UpdateSkymask();
+
 		g_bRenderingView = true;
 		s_bCanAccessCurrentView = true;
 	}
@@ -2049,6 +2062,9 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 		// Now actually draw the viewmodel
 		DrawViewModels( view, whatToDraw & RENDERVIEW_DRAWVIEWMODEL );
 
+		// Biohazard's shader editor
+		g_ShaderEditorSystem->UpdateSkymask( bDrew3dSkybox );
+
 		DrawUnderwaterOverlay();
 
 		PixelVisibility_EndScene();
@@ -2085,6 +2101,9 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 			}
 			pRenderContext.SafeRelease();
 		}
+
+		// Biohazard's shader editor
+		g_ShaderEditorSystem->CustomPostRender();
 
 		// And here are the screen-space effects
 
