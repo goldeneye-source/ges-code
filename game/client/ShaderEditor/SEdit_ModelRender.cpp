@@ -8,8 +8,8 @@
 
 #include "cbase.h"
 
-#include "vgui/iinput.h"
-#include "vgui_controls/controls.h"
+#include "vgui/IInput.h"
+#include "vgui_controls/Controls.h"
 
 #include "ShaderEditor/SEdit_ModelRender.h"
 #include "model_types.h"
