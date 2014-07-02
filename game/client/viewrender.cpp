@@ -940,17 +940,6 @@ CViewRender::CViewRender()
 	m_pCurrentlyDrawingEntity = NULL;
 }
 
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Output : Returns true on success, false on failure.
-//-----------------------------------------------------------------------------
-inline bool CViewRender::ShouldDrawEntities( void )
-{
-	return ( !m_pDrawEntities || (m_pDrawEntities->GetInt() != 0) );
-}
-
-
 //-----------------------------------------------------------------------------
 // Purpose: Check all conditions which would prevent drawing the view model
 // Input  : drawViewmodel - 
