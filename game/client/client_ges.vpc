@@ -353,11 +353,16 @@ $Project "Client (GES)"
 			}
 		}
 		
-		$Folder	"Link Libraries"
+        // FMOD
+        $Folder     "Link Libraries"  [$WIN32]
 	    {
-	        // FMOD
-		    $ImpLib		 "$LIBGES/libfmodex"
-		    $ImpLib      "$LIBGES/libfmodexL"
+            $ImpLib         "$LIBGES/libfmodex"
+            $ImpLib         "$LIBGES/libfmodexL"
+        }
+        $Folder     "Link Libraries"  [$POSIX]
+        {
+            $ImpLib         "$LIBGES/fmodex"
+            $ImpLib         "$LIBGES/fmodexL"
 	    }
 	}
 }
