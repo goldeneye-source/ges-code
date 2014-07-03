@@ -186,7 +186,7 @@ $Project "Client (GES)"
             }			
 		}
 		
-		$Folder "Shader Editor" [$WIN32]
+		$Folder "Shader Editor"
 		{
 			$Folder	"Header Files"
 			{
