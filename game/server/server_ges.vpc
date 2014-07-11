@@ -27,8 +27,9 @@ $Configuration
 		$AdditionalDependencies     "$BASE;%(AdditionalDependencies)" [$WIN32]
 		$IgnoreSpecificLibrary		"$BASE;libcmtd;msvcrtd;msvcrt" [$WIN32]
 		
-		$GCC_ExtraLinkerFlags		"$BASE -ldl -lutil" [$LINUXALL]
-		$GCC_ExtraLinkerFlags		"$BASE -read_only_relocs suppress" [$OSX32]
+		$SystemLibraries		"dl" [$LINUXALL]
+		$SystemLibraries        "util" [$LINUXALL]
+		//$GCC_ExtraLinkerFlags		"$BASE -read_only_relocs suppress" [$OSX32]
 	}
 }
 
@@ -75,20 +76,8 @@ $Project "Server (GES)"
             
             $Folder "Python"
             {
-                $File "ges/py/ge_pyai.cpp"
-                $File "ges/py/ge_pyaiconstants.cpp"
-                $File "ges/py/ge_pyentity.cpp"
-                $File "ges/py/ge_pyfuncs.cpp"
                 $File "ges/py/ge_pyfuncs.h"
-                $File "ges/py/ge_pygameplay.cpp"
-                $File "ges/py/ge_pygamerules.cpp"
-                $File "ges/py/ge_pyglobal.cpp"
-                $File "ges/py/ge_pymanager.cpp"
                 $File "ges/py/ge_pymanager.h"
-                $File "ges/py/ge_pymodules.cpp"
-                $File "ges/py/ge_pyplayer.cpp"
-                $File "ges/py/ge_pyutil.cpp"
-                $File "ges/py/ge_pyweapon.cpp"
 				
                 $File "ges/py/ge_pyprecom.h"
                 $File "ges/py/ge_pyprecom.cpp"
