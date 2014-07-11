@@ -29,6 +29,7 @@ $Configuration
 		
 		$SystemLibraries		"dl" [$LINUXALL]
 		$SystemLibraries        "util" [$LINUXALL]
+		$SystemLibraries        "rt" [$LINUXALL]
 		//$GCC_ExtraLinkerFlags		"$BASE -read_only_relocs suppress" [$OSX32]
 	}
 }
