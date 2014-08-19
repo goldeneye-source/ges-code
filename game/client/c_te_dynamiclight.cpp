@@ -107,19 +107,22 @@ void TE_DynamicLight( IRecipientFilter& filter, float delay,
 	dl->die		= gpGlobals->curtime + time;
 	dl->decay	= decay;
 
+#ifdef GE_DLL
+	// This illuminates entities like view models and players
 	// Create an "Entity" Light that will illumninate entities
 	dlight_t *el = effects->CL_AllocElight( nLightIndex );
 	if ( !el )
 		return;
 
-	dl->origin	= *org;
-	dl->radius	= radius;
-	dl->color.r	= r;
-	dl->color.g	= g;
-	dl->color.b	= b;
-	dl->color.exponent	= exponent;
-	dl->die		= gpGlobals->curtime + time;
-	dl->decay	= decay;
+	el->origin	= *org;
+	el->radius	= radius;
+	el->color.r	= r;
+	el->color.g	= g;
+	el->color.b	= b;
+	el->color.exponent	= exponent;
+	el->die		= gpGlobals->curtime + time;
+	el->decay	= decay;
+#endif
 
 	if ( ToolsEnabled() && clienttools->IsInRecordingMode() )
 	{

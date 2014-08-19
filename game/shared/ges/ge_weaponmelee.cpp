@@ -399,8 +399,8 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 
 	WeaponSound( SINGLE );
 
-	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>( pOwner );
 #ifdef GAME_DLL
+	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>( pOwner );
 	if ( pPlayer )
 		gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
 #endif
