@@ -14,12 +14,14 @@ ipch
 *.sdf
 *.opensdf
 *.idb
+<<<<<<< HEAD
 *.vcxproj*
 *.sln*
 
 # Windows build products
 [Dd]ebug*/
 [Rr]elease*/
+obj/
 
 # OSX/Linux build products
 *.mak*
@@ -64,6 +66,9 @@ lib/public/**/mathlib.*
 lib/public/**/raytrace.*
 lib/public/**/tier1.*
 lib/public/**/vgui_controls.*
+
+# shader files
+*.tmp
 
 #codelite files
 *.project

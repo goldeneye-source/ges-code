@@ -13,6 +13,26 @@ $Include "$SRCDIR\game\server\server_base.vpc"
 $Include "$SRCDIR\game\server\nav_mesh.vpc"
 $Include "$SRCDIR\vpc_scripts\ges_base.vpc"
 
+$Configuration "Debug"
+{
+	$Linker
+	{
+		// Needed for Python library
+		$AdditionalDependencies     "$BASE;python26_d.lib;%(AdditionalDependencies)" [$WIN32]
+		$IgnoreSpecificLibrary		"$BASE;libcmtd;msvcrt" [$WIN32]
+	}
+}
+
+$Configuration "Release"
+{
+	$Linker
+	{
+		// Needed for Python library
+		$AdditionalDependencies     "$BASE;python26.lib;%(AdditionalDependencies)" [$WIN32]
+		$IgnoreSpecificLibrary		"$BASE;msvcrt" [$WIN32]
+	}
+}
+
 $Configuration
 {
 	$Compiler
@@ -23,10 +43,7 @@ $Configuration
 	
 	$Linker
 	{
-		// Needed for Python library
-		$AdditionalDependencies     "$BASE;%(AdditionalDependencies)" [$WIN32]
-		$IgnoreSpecificLibrary		"$BASE;libcmtd;msvcrtd;msvcrt" [$WIN32]
-		
+		$AdditionalLibraryDirectories	"$BASE;..\..\lib\ges\"
 		$SystemLibraries		"dl" [$LINUXALL]
 		$SystemLibraries        "util" [$LINUXALL]
 		$SystemLibraries        "rt" [$LINUXALL]
@@ -494,7 +511,7 @@ $Project "Server (GES)"
 	$Folder	"Link Libraries"
 	{
 	    // Python 2.6
-		$Lib		 "$LIBGES/python26"
+		//$Lib		 "$LIBGES/python26"
 		
 		// Boost::Python
 		$Lib        "$LIBGES/boost_python"

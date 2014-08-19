@@ -24,7 +24,7 @@ $Configuration "Debug"
 	{
 		// General
 		$OutputDirectory					"$OUTLIBDIR"
-		$IntermediateDirectory				".\Debug$_SUBDIRSUFFIX"
+		$IntermediateDirectory				".\obj\Debug$_SUBDIRSUFFIX"
 		$ExtensionsToDeleteOnClean
 		$BuildLogFile
 		$InheritedProjectPropertySheets
