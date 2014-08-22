@@ -114,19 +114,21 @@ static void WriteAchievementGlobalState( KeyValues *pKV, bool bPersistToSteamClo
 	{
 		Q_snprintf( szFilename, sizeof( szFilename ), "GameState.txt" );
 	}
+
 #ifdef GE_DLL
 	CUtlBuffer buffer;
 	pKV->WriteAsBinary( buffer );
 	filesystem->WriteFile( szFilename, "MOD", buffer );
 	pKV->deleteThis();
 	GEUTIL_DEncryptFile( szFilename, CAchievementMgr::GetEncryptionKey() );
-
+#else
 	// Never call pKV->SaveToFile!!!!
 	// Save to a buffer instead.
 	CUtlBuffer buf( 0, 0, CUtlBuffer::TEXT_BUFFER );
 	pKV->RecursiveSaveToFile( buf, 0 );
 	filesystem->WriteFile( szFilename, NULL, buf );
 	pKV->deleteThis();
+#endif
 
     //=============================================================================
     // HPE_BEGIN
@@ -189,7 +191,6 @@ static void WriteAchievementGlobalState( KeyValues *pKV, bool bPersistToSteamClo
         }
 #endif // NO_STEAM
 	}
-#endif // GE_DLL
 
     //=============================================================================
     // HPE_END
