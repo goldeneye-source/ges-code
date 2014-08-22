@@ -1,3 +1,9 @@
+# Unignore specific files
+!*.pbxproj
+!*.vcxproj
+!*.sln
+!*.mak
+
 # Python 3 build files
 *.pyd
 *.lib
