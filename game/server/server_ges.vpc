@@ -13,32 +13,12 @@ $Include "$SRCDIR\game\server\server_base.vpc"
 $Include "$SRCDIR\game\server\nav_mesh.vpc"
 $Include "$SRCDIR\vpc_scripts\ges_base.vpc"
 
-$Configuration "Debug"
-{
-	$Linker
-	{
-		// Needed for Python library
-		$AdditionalDependencies     "$BASE;python26_d.lib;%(AdditionalDependencies)" [$WIN32]
-		$IgnoreSpecificLibrary		"$BASE;libcmtd;msvcrt" [$WIN32]
-	}
-}
-
-$Configuration "Release"
-{
-	$Linker
-	{
-		// Needed for Python library
-		$AdditionalDependencies     "$BASE;python26.lib;%(AdditionalDependencies)" [$WIN32]
-		$IgnoreSpecificLibrary		"$BASE;msvcrt" [$WIN32]
-	}
-}
-
 $Configuration
 {
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;ges;ges\ai;ges\ent;ges\py;.\hl2;.\hl2mp"
-		$PreprocessorDefinitions	"$BASE;HL2_DLL;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20;Py_NO_ENABLE_SHARED"
+		$PreprocessorDefinitions	"$BASE;HL2_DLL;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20;Py_ENABLE_SHARED"
 	}
 	
 	$Linker
@@ -510,8 +490,8 @@ $Project "Server (GES)"
 	
 	$Folder	"Link Libraries"
 	{
-	    // Python 2.6
-		//$Lib		 "$LIBGES/python26"
+	    // Python (Linux Only, MSVC handles this within pyconfig.h)
+		$Lib		 "$LIBGES/python34" [$POSIX]
 		
 		// Boost::Python
 		$Lib        "$LIBGES/boost_python"

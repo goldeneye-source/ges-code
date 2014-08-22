@@ -43,8 +43,8 @@ public:
 	void UnregisterListener( IPythonListener *l );
 
 	// Globals and Paths
-	const char* GetRootPath() { return "scripts\\python"; }
-	const char* GetAbsBasePath() { return m_szAbsBasePath; }
+	const char* GetRootPath() { return "python"; }
+	const wchar_t* GetAbsBasePath() { return m_szAbsBasePath; }
 
 	bp::object Globals() { return main_namespace; }
 
@@ -64,7 +64,7 @@ private:
 	// Have we gone through a DLLInit?
 	bool m_bInit;
 
-	char m_szAbsBasePath[512];
+	wchar_t m_szAbsBasePath[512];
 
 	CUtlVector<IPythonListener*> m_vListeners;
 };

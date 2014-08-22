@@ -66,8 +66,8 @@ CPythonManager::~CPythonManager()
 	// Nothing to do, yet
 }
 
-extern int Py_OptimizeFlag;
-extern int Py_NoSiteFlag;
+PyAPI_DATA(int) Py_OptimizeFlag;
+PyAPI_DATA(int) Py_NoSiteFlag;
 void CPythonManager::InitDll()
 {
 	// Only init once!
@@ -81,12 +81,17 @@ void CPythonManager::InitDll()
 		Py_NoSiteFlag = 1;
 
 		// Set our base path early, before init!
-		filesystem->RelativePathToFullPath( GetRootPath(), "MOD", m_szAbsBasePath, sizeof(m_szAbsBasePath) );
-		Py_SetPythonHome( m_szAbsBasePath );
+		char base_path[512];
+		filesystem->RelativePathToFullPath( GetRootPath(), "MOD", base_path, sizeof(base_path) );
+		V_strtowcs( base_path, sizeof(base_path), m_szAbsBasePath, sizeof(m_szAbsBasePath) );
+		
+		wchar_t py_path[1024];
+		V_snwprintf( py_path, 1024, L"%s;%s\\lib", m_szAbsBasePath, m_szAbsBasePath );
+		Py_SetPath( py_path );
 
 		// Register modules and initialize
 		RegisterPythonModules();
-		Py_Initialize();
+		Py_Initialize();		
 	
 		// Extract __main__ and it's associated namespace [globals()]
 		main_module = bp::import("__main__");
@@ -94,10 +99,10 @@ void CPythonManager::InitDll()
 
 		// Push the base path into GEGlobal.PY_BASE_DIR
 		bp::object ge_global = bp::import( "GEGlobal" );
-		ge_global.attr("PY_BASE_DIR") = m_szAbsBasePath;
+		ge_global.attr("PY_BASE_DIR") = base_path;
 
 		// Execute our initialization routines
-		ExecFile( "GESInit.py" );
+		bp::import( "ges" );
 	}
 	catch ( bp::error_already_set const & )
 	{
@@ -105,14 +110,16 @@ void CPythonManager::InitDll()
 		PyObject *ptype, *pvalue, *ptraceback;
 		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
 
-		if ( pvalue != NULL )
-			Warning( "\nERROR: Could not load python!!!\n%s\n\n", PyString_AsString(pvalue) );
+		const char *errors = NULL;
+		PyObject* pyStr = PyUnicode_AsEncodedString(PyObject_Repr(pvalue), "utf-8", errors);
 
-		Py_DecRef( ptype );
-		Py_DecRef( pvalue );
-		Py_DecRef( ptraceback );
+		Warning( "Failed to load python with error: %s", PyBytes_AS_STRING(pyStr) );
+		AssertFatalMsg( false, "Failed to load python with error: %s", PyBytes_AS_STRING(pyStr) );
 
-		AssertFatal( "Failed to load python.\n" );
+		Py_XDECREF( pyStr );
+		Py_XDECREF( ptype );
+		Py_XDECREF( pvalue );
+		Py_XDECREF( ptraceback );
 	}
 	
 	// Let everyone know we are alive
@@ -168,7 +175,7 @@ bp::object CPythonManager::ExecFile( const char* name )
 {
 	char file[255];
 
-	Q_snprintf( file, 255, "%s\\%s", GEPy()->GetRootPath(), name );
+	Q_snprintf( file, 255, "%s\\ges\\%s", GEPy()->GetRootPath(), name );
 
 	char fullPath[255];
 	filesystem->RelativePathToFullPath( file, "MOD", fullPath, 255 );

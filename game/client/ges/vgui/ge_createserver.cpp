@@ -23,6 +23,7 @@
 #define RANDOM_VALUE	"_random"
 #define COMMAND_MAP		"resource/ges_createserver_map.txt"
 #define COMMAND_MAP_VAL	"cfg/ges_serversettings.txt"
+#define PYDIR			"python\\ges\\GamePlay\\*.py"
 
 using namespace vgui;
 
@@ -319,7 +320,7 @@ void CGECreateServer::PopulateControls( void )
 		char file[32];
 
 		scenariolist->AddItem( "#SERVER_RANDOM_SCENARIO", new KeyValues(RANDOM_VALUE) );
-		const char *pFilename = filesystem->FindFirstEx( "scripts\\python\\GamePlay\\*.py", "MOD", &findHandle );
+		const char *pFilename = filesystem->FindFirstEx( PYDIR, "MOD", &findHandle );
 		while ( pFilename )
 		{
 			// Add the scenario to the list if not __init__

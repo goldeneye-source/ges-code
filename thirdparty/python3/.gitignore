@@ -1,0 +1,8 @@
+# Python 3 build files
+*.pyd
+*.lib
+*.bsc
+*.exe
+*.dll
+Win32-*/
+pythonnt_rc*.h

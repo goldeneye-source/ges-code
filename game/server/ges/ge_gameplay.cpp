@@ -179,7 +179,7 @@ CGEBaseGameplayManager::~CGEBaseGameplayManager()
 void CGEBaseGameplayManager::Init()
 {
 	// Prepare our lists
-	LoadGamePlayList( "scripts\\python\\GamePlay\\*.py" );
+	LoadGamePlayList( "python\\ges\\GamePlay\\*.py" );
 	LoadScenarioCycle();
 
 	// Load the scenario

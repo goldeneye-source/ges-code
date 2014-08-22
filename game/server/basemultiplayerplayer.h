@@ -119,7 +119,7 @@ inline CBaseMultiplayerPlayer *ToBaseMultiplayerPlayer( CBaseEntity *pEntity )
 {
 	if ( !pEntity || !pEntity->IsPlayer() )
 		return NULL;
-#if _DEBUG
+#ifdef _DEBUG
 	return dynamic_cast<CBaseMultiplayerPlayer *>( pEntity );
 #else
 	return static_cast<CBaseMultiplayerPlayer *>( pEntity );

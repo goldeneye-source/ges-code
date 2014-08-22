@@ -14,7 +14,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define REG( Name )	extern void init##Name(); PyImport_AppendInittab( #Name , & init##Name );	
+#define REG( Name )	extern PyObject* PyInit_##Name(); PyImport_AppendInittab( #Name , &PyInit_##Name );	
 
 extern "C"
 {

@@ -1188,7 +1188,8 @@ initstdio(void)
      * and fileno() may point to an invalid file descriptor. For example
      * GUI apps don't have valid standard streams by default.
      */
-    if (!is_valid_fd(fd)) {
+	// GE_DLL FIX FROM http://stackoverflow.com/questions/23702936/embedded-python-py-initialize-cant-initialize-sys-standard-streams
+    if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
         std = Py_None;
         Py_INCREF(std);
     }
@@ -1203,7 +1204,7 @@ initstdio(void)
 
     /* Set sys.stdout */
     fd = fileno(stdout);
-    if (!is_valid_fd(fd)) {
+    if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
         std = Py_None;
         Py_INCREF(std);
     }
@@ -1219,7 +1220,7 @@ initstdio(void)
 #if 1 /* Disable this if you have trouble debugging bootstrap stuff */
     /* Set sys.stderr, replaces the preliminary stderr */
     fd = fileno(stderr);
-    if (!is_valid_fd(fd)) {
+    if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
         std = Py_None;
         Py_INCREF(std);
     }

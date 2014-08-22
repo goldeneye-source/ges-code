@@ -112,8 +112,8 @@ BOOST_PYTHON_MODULE(GEAiConst)
 		.value("SQUAD", bits_CAP_SQUAD)
 		.value("DUCK", bits_CAP_DUCK)
 		.value("NO_HIT_PLAYER", bits_CAP_NO_HIT_PLAYER)
-		.value("AIM_GUN", bits_CAP_AIM_GUN)
-		.value("NO_HIT_SQUADMATES", bits_CAP_NO_HIT_SQUADMATES);
+		.value("AIM_GUN", bits_CAP_AIM_GUN);
+		//.value("NO_HIT_SQUADMATES", bits_CAP_NO_HIT_SQUADMATES);
 
 	enum_< Memory_t >( "Memory" )
 		.value("CLEAR", MEM_CLEAR)

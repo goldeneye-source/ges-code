@@ -87,10 +87,10 @@ PyAPI_DATA(int) _Py_HashSecret_Initialized;
 /* hash function definition */
 #ifndef Py_LIMITED_API
 typedef struct {
-    Py_hash_t (*const hash)(const void *, Py_ssize_t);
-    const char *name;
-    const int hash_bits;
-    const int seed_bits;
+    Py_hash_t (*hash)(const void *, Py_ssize_t);
+    char *name;
+    int hash_bits;
+    int seed_bits;
 } PyHash_FuncDef;
 
 PyAPI_FUNC(PyHash_FuncDef*) PyHash_GetFuncDef(void);
