@@ -4,11 +4,22 @@
 !*.sln
 !*.mak
 
+# Configure output
+ges_build/
+
 # Python 3 build files
-*.pyd
+*.py[cdo]
+*.o
+*.a
+*.so
 *.lib
 *.bsc
 *.exe
 *.dll
-Win32-*/
 pythonnt_rc*.h
+build/
+bin/
+Include/pyconfig.h
+Modules/_testembed
+Parser/pgen
+Win32-*/

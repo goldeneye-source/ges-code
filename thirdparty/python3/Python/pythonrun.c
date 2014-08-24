@@ -1189,7 +1189,11 @@ initstdio(void)
      * GUI apps don't have valid standard streams by default.
      */
 	// GE_DLL FIX FROM http://stackoverflow.com/questions/23702936/embedded-python-py-initialize-cant-initialize-sys-standard-streams
+#ifdef _WIN32
     if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
+#else
+    if (!is_valid_fd(fd)) {
+#endif
         std = Py_None;
         Py_INCREF(std);
     }
@@ -1204,7 +1208,11 @@ initstdio(void)
 
     /* Set sys.stdout */
     fd = fileno(stdout);
+#ifdef _WIN32
     if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
+#else
+    if (!is_valid_fd(fd)) {
+#endif
         std = Py_None;
         Py_INCREF(std);
     }
@@ -1220,7 +1228,11 @@ initstdio(void)
 #if 1 /* Disable this if you have trouble debugging bootstrap stuff */
     /* Set sys.stderr, replaces the preliminary stderr */
     fd = fileno(stderr);
+#ifdef _WIN32
     if (!is_valid_fd(fd) || GetStdHandle(STD_INPUT_HANDLE) == NULL) {
+#else
+    if (!is_valid_fd(fd)) {
+#endif
         std = Py_None;
         Py_INCREF(std);
     }
