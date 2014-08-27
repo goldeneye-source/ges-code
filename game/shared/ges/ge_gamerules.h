@@ -72,6 +72,8 @@ public:
 
 	virtual bool ShouldUseRobustRadiusDamage( CBaseEntity *pEntity );
 
+	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer ) { return true; }
+
 	// -------------------
 	// Server Only - Inherited
 #ifdef GAME_DLL

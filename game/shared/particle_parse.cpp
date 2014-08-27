@@ -493,7 +493,7 @@ void StopParticleEffects( CBaseEntity *pEntity )
 	}
 
 #ifdef GAME_DLL
-	CReliableBroadcastRecipientFilter filter;
+	CBroadcastRecipientFilter filter;
 	DispatchEffect( "ParticleEffectStop", data, filter );
 #else
 	DispatchEffect( "ParticleEffectStop", data );

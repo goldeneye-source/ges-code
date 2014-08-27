@@ -686,7 +686,10 @@ ConVar::~ConVar( void )
 //-----------------------------------------------------------------------------
 void ConVar::InstallChangeCallback( FnChangeCallback_t callback )
 {
+#if 0 //GE_DLL
+	// GES Overrides engine callbacks and this assert is annoying
 	Assert( !m_pParent->m_fnChangeCallback || !callback );
+#endif
 	m_pParent->m_fnChangeCallback = callback;
 
 	if ( m_pParent->m_fnChangeCallback )
