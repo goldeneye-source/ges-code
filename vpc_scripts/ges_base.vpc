@@ -5,6 +5,9 @@
 //
 //-----------------------------------------------------------------------------
 
+$MacroRequired		"SRCDIR"
+$MacroRequired		"OUTBINDIR"
+
 $Configuration
 {
 	$Compiler
@@ -20,6 +23,12 @@ $Configuration
     {
 		// Needed for cURL library
         $AdditionalDependencies            "$BASE wsock32.lib Ws2_32.lib" [$WIN32]
+	}
+	
+	$PostBuildEvent [!$ANALYZE]
+	{
+		$CommandLine	"$BASE" "\n" \
+						"call $SRCDIR\deploy_ges.bat $OUTBINDIR $(TargetName)"
 	}
 }
 

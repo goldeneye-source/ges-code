@@ -11,6 +11,7 @@ $Configuration
 	{
 		// Add shared directories and thirdparty libraries
 		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\thirdparty;$SRCDIR\thirdparty\boost;$SRCDIR\thirdparty\python3\Include"
+		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\thirdparty\python3\PC" [$WIN32]
 		$PreprocessorDefinitions		"$BASE;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20"
 	}
 }

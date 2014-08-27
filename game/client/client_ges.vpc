@@ -16,7 +16,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;ges;ges\hud;ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements"
+		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\hud;.\ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements"
 		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL;SOURCE_2013"
 	}
 }

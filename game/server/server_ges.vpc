@@ -17,7 +17,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;ges;ges\ai;ges\ent;ges\py;.\hl2;.\hl2mp"
+		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\ai;.\ges\ent;.\ges\py;.\hl2;.\hl2mp"
 		$PreprocessorDefinitions	"$BASE;HL2_DLL;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20;Py_ENABLE_SHARED"
 	}
 	

@@ -46,10 +46,12 @@ enum Memory_t
 	MEMORY_CUSTOM1 = bits_MEMORY_CUSTOM1,
 };
 
-using namespace boost::python;
+#define ENUM_ATTR( value ) (int) value
 
 BOOST_PYTHON_MODULE(GEAiConst)
 {
+	using namespace boost::python;
+
 	// TODO: We need to convert this into a dynamic thing
 	enum_< Class_T  >("Class")
 		.value("NONE", CLASS_NONE)
@@ -92,49 +94,51 @@ BOOST_PYTHON_MODULE(GEAiConst)
 		.value("LOS", PATH_LOS)
 		.value("COVER", PATH_COVER);
 	
-	enum_< Capability_t >("Capability")
-		.value("MOVE_GROUND", bits_CAP_MOVE_GROUND)
-		.value("MOVE_JUMP", bits_CAP_MOVE_JUMP)
-		.value("MOVE_FLY", bits_CAP_MOVE_FLY)
-		.value("MOVE_CLIMB", bits_CAP_MOVE_CLIMB)
-		.value("MOVE_SWIM", bits_CAP_MOVE_SWIM)
-		.value("MOVE_SHOOT", bits_CAP_MOVE_SHOOT)
-		.value("SKIP_NAV_GROUND_CHECK", bits_CAP_SKIP_NAV_GROUND_CHECK)
-		.value("USE", bits_CAP_USE)
-		.value("USE_DOORS", (Capability_t)(bits_CAP_AUTO_DOORS | bits_CAP_OPEN_DOORS))
-		.value("TURN_HEAD", bits_CAP_TURN_HEAD)
-		.value("WEAPON_RANGE_ATTACK", bits_CAP_WEAPON_RANGE_ATTACK1)
-		.value("WEAPON_MELEE_ATTACK", bits_CAP_WEAPON_MELEE_ATTACK1)
-		.value("USE_WEAPONS", bits_CAP_USE_WEAPONS)
-		.value("ANIMATEDFACE", bits_CAP_ANIMATEDFACE)
-		.value("USE_SHOT_REGULATOR", bits_CAP_USE_SHOT_REGULATOR)
-		.value("FRIENDLY_DMG_IMMUNE", bits_CAP_FRIENDLY_DMG_IMMUNE)
-		.value("SQUAD", bits_CAP_SQUAD)
-		.value("DUCK", bits_CAP_DUCK)
-		.value("NO_HIT_PLAYER", bits_CAP_NO_HIT_PLAYER)
-		.value("AIM_GUN", bits_CAP_AIM_GUN);
-		//.value("NO_HIT_SQUADMATES", bits_CAP_NO_HIT_SQUADMATES);
+	class CCapability {};
+	class_<CCapability>("Capability")
+		.setattr("MOVE_GROUND", ENUM_ATTR(bits_CAP_MOVE_GROUND))
+		.setattr("MOVE_JUMP", ENUM_ATTR(bits_CAP_MOVE_JUMP))
+		.setattr("MOVE_FLY", ENUM_ATTR(bits_CAP_MOVE_FLY))
+		.setattr("MOVE_CLIMB", ENUM_ATTR(bits_CAP_MOVE_CLIMB))
+		.setattr("MOVE_SWIM", ENUM_ATTR(bits_CAP_MOVE_SWIM))
+		.setattr("MOVE_SHOOT", ENUM_ATTR(bits_CAP_MOVE_SHOOT))
+		.setattr("SKIP_NAV_GROUND_CHECK", ENUM_ATTR(bits_CAP_SKIP_NAV_GROUND_CHECK))
+		.setattr("USE", ENUM_ATTR(bits_CAP_USE))
+		.setattr("USE_DOORS", ENUM_ATTR(bits_CAP_AUTO_DOORS | bits_CAP_OPEN_DOORS))
+		.setattr("TURN_HEAD", ENUM_ATTR(bits_CAP_TURN_HEAD))
+		.setattr("WEAPON_RANGE_ATTACK", ENUM_ATTR(bits_CAP_WEAPON_RANGE_ATTACK1))
+		.setattr("WEAPON_MELEE_ATTACK", ENUM_ATTR(bits_CAP_WEAPON_MELEE_ATTACK1))
+		.setattr("USE_WEAPONS", ENUM_ATTR(bits_CAP_USE_WEAPONS))
+		.setattr("ANIMATEDFACE", ENUM_ATTR(bits_CAP_ANIMATEDFACE))
+		.setattr("USE_SHOT_REGULATOR", ENUM_ATTR(bits_CAP_USE_SHOT_REGULATOR))
+		.setattr("FRIENDLY_DMG_IMMUNE", ENUM_ATTR(bits_CAP_FRIENDLY_DMG_IMMUNE))
+		.setattr("SQUAD", ENUM_ATTR(bits_CAP_SQUAD))
+		.setattr("DUCK", ENUM_ATTR(bits_CAP_DUCK))
+		.setattr("NO_HIT_PLAYER", ENUM_ATTR(bits_CAP_NO_HIT_PLAYER))
+		.setattr("AIM_GUN", ENUM_ATTR(bits_CAP_AIM_GUN))
+		.setattr("NO_HIT_SQUADMATES", ENUM_ATTR(bits_CAP_NO_HIT_SQUADMATES));
 
-	enum_< Memory_t >( "Memory" )
-		.value("CLEAR", MEM_CLEAR)
-		.value("PROVOKED", MEMORY_PROVOKED)
-		.value("INCOVER", MEMORY_INCOVER)
-		.value("SUSPICIOUS", MEMORY_SUSPICIOUS)
-		.value("TASK_EXPENSIVE", MEMORY_TASK_EXPENSIVE)
-		.value("PATH_FAILED", MEMORY_PATH_FAILED)
-		.value("FLINCHED", MEMORY_FLINCHED)
-		.value("TOURGUIDE", MEMORY_TOURGUIDE)
-		.value("LOCKED_HINT", MEMORY_LOCKED_HINT)
-		.value("TURNING", MEMORY_TURNING)
-		.value("TURNHACK", MEMORY_TURNHACK)
-		.value("HAD_ENEMY", MEMORY_HAD_ENEMY)
-		.value("HAD_PLAYER", MEMORY_HAD_PLAYER)
-		.value("HAD_LOS", MEMORY_HAD_LOS)
-		.value("MOVED_FROM_SPAWN", MEMORY_MOVED_FROM_SPAWN)
-		.value("STUCK", MEMORY_CUSTOM4)
-		.value("CUSTOM3", MEMORY_CUSTOM3)
-		.value("CUSTOM2", MEMORY_CUSTOM2)
-		.value("CUSTOM1", MEMORY_CUSTOM1);
+	class CMemory {};
+	class_<CMemory>("Memory")
+		.setattr("CLEAR", ENUM_ATTR(MEM_CLEAR))
+		.setattr("PROVOKED", ENUM_ATTR(MEMORY_PROVOKED))
+		.setattr("INCOVER", ENUM_ATTR(MEMORY_INCOVER))
+		.setattr("SUSPICIOUS", ENUM_ATTR(MEMORY_SUSPICIOUS))
+		.setattr("TASK_EXPENSIVE", ENUM_ATTR(MEMORY_TASK_EXPENSIVE))
+		.setattr("PATH_FAILED", ENUM_ATTR(MEMORY_PATH_FAILED))
+		.setattr("FLINCHED", ENUM_ATTR(MEMORY_FLINCHED))
+		.setattr("TOURGUIDE", ENUM_ATTR(MEMORY_TOURGUIDE))
+		.setattr("LOCKED_HINT", ENUM_ATTR(MEMORY_LOCKED_HINT))
+		.setattr("TURNING", ENUM_ATTR(MEMORY_TURNING))
+		.setattr("TURNHACK", ENUM_ATTR(MEMORY_TURNHACK))
+		.setattr("HAD_ENEMY", ENUM_ATTR(MEMORY_HAD_ENEMY))
+		.setattr("HAD_PLAYER", ENUM_ATTR(MEMORY_HAD_PLAYER))
+		.setattr("HAD_LOS", ENUM_ATTR(MEMORY_HAD_LOS))
+		.setattr("MOVED_FROM_SPAWN", ENUM_ATTR(MEMORY_MOVED_FROM_SPAWN))
+		.setattr("STUCK", ENUM_ATTR(MEMORY_CUSTOM4))
+		.setattr("CUSTOM3", ENUM_ATTR(MEMORY_CUSTOM3))
+		.setattr("CUSTOM2", ENUM_ATTR(MEMORY_CUSTOM2))
+		.setattr("CUSTOM1", ENUM_ATTR(MEMORY_CUSTOM1));
 }
 
 #define SCHED( name )	#name, sched( #name, (int) SCHED_##name )
@@ -142,6 +146,8 @@ class CDummySchedule {};
 
 BOOST_PYTHON_MODULE(GEAiSched)
 {
+	using namespace boost::python;
+
 	object ai = import( "GEAi" );
 	object sched = ai.attr( "ISchedule" );
 
@@ -215,6 +221,8 @@ class CDummyTask {};
 
 BOOST_PYTHON_MODULE(GEAiTasks)
 {
+	using namespace boost::python;
+
 	object ai( import( "GEAi" ) );
 	object task = ai.attr( "ITask" );
 
@@ -365,6 +373,8 @@ class CDummyCondition {};
 
 BOOST_PYTHON_MODULE(GEAiCond)
 {
+	using namespace boost::python;
+
 	object ai( import( "GEAi" ) );
 	object cond = ai.attr( "ICondition" );
 
