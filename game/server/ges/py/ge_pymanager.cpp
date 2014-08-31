@@ -86,12 +86,12 @@ void CPythonManager::InitDll()
 		V_strtowcs( base_path, sizeof(base_path), m_szAbsBasePath, sizeof(m_szAbsBasePath) );
 		
 		wchar_t py_path[1024];
-		V_snwprintf( py_path, 1024, L"%s;%s\\lib", m_szAbsBasePath, m_szAbsBasePath );
+		V_snwprintf( py_path, 1024, L"%ls:%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
 		Py_SetPath( py_path );
 
 		// Register modules and initialize
 		RegisterPythonModules();
-		Py_Initialize();		
+		Py_Initialize();
 	
 		// Extract __main__ and it's associated namespace [globals()]
 		main_module = bp::import("__main__");
@@ -111,12 +111,26 @@ void CPythonManager::InitDll()
 		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
 
 		const char *errors = NULL;
-		PyObject* pyStr = PyUnicode_AsEncodedString(PyObject_Repr(pvalue), "utf-8", errors);
+		PyObject* pyValue = PyUnicode_AsEncodedString(PyObject_Repr(pvalue), "utf-8", errors);
+        
+//         PyThreadState *tstate = PyThreadState_GET();
+//         if (NULL != tstate && NULL != tstate->frame) {
+//             PyFrameObject *frame = tstate->frame;
+// 
+//             Warning("Python stack trace:\n");
+//             while (NULL != frame) {
+//                 int line = frame->f_lineno;
+//                 const char *filename = PyString_AsString(frame->f_code->co_filename);
+//                 const char *funcname = PyString_AsString(frame->f_code->co_name);
+//                 Warning("    %s(%d): %s\n", filename, line, funcname);
+//                 frame = frame->f_back;
+//             }
+//         }
 
-		Warning( "Failed to load python with error: %s", PyBytes_AS_STRING(pyStr) );
-		AssertFatalMsg( false, "Failed to load python with error: %s", PyBytes_AS_STRING(pyStr) );
+		Warning( "\nFailed to load python with error: %s\n", PyBytes_AS_STRING(pyValue) );
+		AssertFatalMsg( false, "Failed to load python" );
 
-		Py_XDECREF( pyStr );
+		Py_XDECREF( pyValue );
 		Py_XDECREF( ptype );
 		Py_XDECREF( pvalue );
 		Py_XDECREF( ptraceback );

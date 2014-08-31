@@ -491,7 +491,7 @@ $Project "Server (GES)"
 	$Folder	"Link Libraries"
 	{
 	    // Python (Linux Only, MSVC handles this within pyconfig.h)
-		$Lib		 "$LIBGES/python34" [$POSIX]
+		$ImpLib     "$LIBGES/python3" [$POSIX]
 		
 		// Boost::Python
 		$Lib        "$LIBGES/boost_python"

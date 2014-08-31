@@ -1,16 +1,15 @@
 #!/bin/bash
-#
-# This script runs a shell with the environment set up for the Steam runtime 
-# development environment.
 
-# The top level of the cross-compiler tree
-#TOP=$(cd "${0%/*}" && echo "${PWD}")
-(
+OLD_PATH=$PATH
+
 TOP=$(cd "${0%/*}" && echo "${PWD}/../steam-runtime-sdk")
 
-STEAM_RUNTIME_TARGET_ARCH=i386
+if [ -z "${STEAM_RUNTIME_HOST_ARCH}" ]; then
+    STEAM_RUNTIME_HOST_ARCH=$(dpkg --print-architecture)
+fi
+export STEAM_RUNTIME_HOST_ARCH
 
-export STEAM_RUNTIME_TARGET_ARCH
+export STEAM_RUNTIME_TARGET_ARCH=i386
 
 # The top level of the Steam runtime tree
 if [ -z "${STEAM_RUNTIME_ROOT}" ]; then
@@ -29,5 +28,23 @@ export STEAM_RUNTIME_ROOT
 
 export PATH="${TOP}/bin:$PATH"
 
+cd thirdparty/python3
+./build_python3.sh
+cd ../../
+
 make -f games.mak
-)
+
+if [ -d "$GES_PATH" ]; then
+    echo "Deploying binaries to GE:S directory..."
+    cp -v ./bin/mod_ges/client.so* $GES_PATH/bin/
+    cp -v ./bin/mod_ges/server.so* $GES_PATH/bin/
+    cp -v ./bin/mod_ges/libpython* $GES_PATH/bin/
+else
+    echo "Cannot deploy binaries since GES_PATH is unset or non-existant!"
+fi
+
+echo "Cleaning up..."
+export PATH=$OLD_PATH
+export STEAM_RUNTIME_ROOT=
+
+echo "GE:S Build Complete!"
