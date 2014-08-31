@@ -77,8 +77,10 @@
 // Projective textures
 #include "C_Env_Projected_Texture.h"
 
-// Biohazard's shader editor
-#include "ShaderEditor/ShaderEditorSystem.h"
+#if defined(GE_DLL) && defined(_WIN32)
+  // Biohazard's shader editor
+  #include "ShaderEditor/ShaderEditorSystem.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1351,13 +1353,15 @@ void CViewRender::ViewDrawScene( bool bDrew3dSkybox, SkyboxVisibility_t nSkyboxV
 
 	DrawWorldAndEntities( drawSkybox, view, nClearFlags, pCustomVisibility );
 
+#if defined(GE_DLL) && defined(_WIN32)
 	// Biohazard's shader editor
 	VisibleFogVolumeInfo_t fogVolumeInfo;
 	render->GetVisibleFogVolume( view.origin, &fogVolumeInfo );
 	WaterRenderInfo_t waterRenderInfo;
 	DetermineWaterRenderInfo( fogVolumeInfo, waterRenderInfo );
 	g_ShaderEditorSystem->CustomViewRender( &g_CurrentViewID, fogVolumeInfo, waterRenderInfo );
-
+#endif
+    
 	// Disable fog for the rest of the stuff
 	DisableFog();
 
@@ -1952,8 +1956,10 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 		pFreezeFrameView->Setup( view );
 		AddViewToScene( pFreezeFrameView );
 
+#if defined(GE_DLL) && defined(_WIN32)
 		// Biohazard's shader editor
 		g_ShaderEditorSystem->UpdateSkymask();
+#endif
 
 		g_bRenderingView = true;
 		s_bCanAccessCurrentView = true;
@@ -2051,8 +2057,10 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 		// Now actually draw the viewmodel
 		DrawViewModels( view, whatToDraw & RENDERVIEW_DRAWVIEWMODEL );
 
+#if defined(GE_DLL) && defined(_WIN32)
 		// Biohazard's shader editor
 		g_ShaderEditorSystem->UpdateSkymask( bDrew3dSkybox );
+#endif
 
 		DrawUnderwaterOverlay();
 
@@ -2090,10 +2098,12 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 			}
 			pRenderContext.SafeRelease();
 		}
-
+		
+#if defined(GE_DLL) && defined(_WIN32)
 		// Biohazard's shader editor
 		g_ShaderEditorSystem->CustomPostRender();
-
+#endif
+        
 		// And here are the screen-space effects
 
 		if ( IsPC() )

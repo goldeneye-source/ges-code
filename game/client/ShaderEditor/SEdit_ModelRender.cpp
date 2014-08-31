@@ -8,8 +8,8 @@
 
 #include "cbase.h"
 
-#include "vgui/iinput.h"
-#include "vgui_controls/controls.h"
+#include "vgui/IInput.h"
+#include "vgui_controls/Controls.h"
 
 #include "ShaderEditor/SEdit_ModelRender.h"
 #include "model_types.h"
@@ -375,7 +375,7 @@ int SEditModelRender::MaterialPicker( char ***szMat )
 				for ( int p = 0; p < numPaths; p++ )
 				{
 					char tmpPath[MAX_PATH];
-					Q_snprintf( tmpPath, MAX_PATH, "%s%s\0", pSHdr->pCdtexture( p ), matName );
+					Q_snprintf( tmpPath, MAX_PATH, "%s%s", pSHdr->pCdtexture( p ), matName );
 					Q_FixSlashes( tmpPath );
 					IMaterial *pTempMat = materials->FindMaterial( tmpPath, TEXTURE_GROUP_MODEL );
 					if ( !IsErrorMaterial( pTempMat ) )

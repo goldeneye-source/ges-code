@@ -186,7 +186,7 @@ $Project "Client (GES)"
             }			
 		}
 		
-		$Folder "Shader Editor"
+		$Folder "Shader Editor" [$WIN32]
 		{
 			$Folder	"Header Files"
 			{
@@ -194,14 +194,12 @@ $Project "Client (GES)"
 				$File	"$SRCDIR\game\client\ShaderEditor\IVShaderEditor.h"
 				$File	"$SRCDIR\game\client\ShaderEditor\ShaderEditorSystem.h"
 				$File	"$SRCDIR\game\client\ShaderEditor\SEdit_ModelRender.h"
-				//$File	"$SRCDIR\game\client\ShaderEditor\Grass\CGrassCluster.h"
 			}
  
 			$Folder	"Implementation Files"
 			{
 				$File	"$SRCDIR\game\client\ShaderEditor\ShaderEditorSystem.cpp"
 				$File	"$SRCDIR\game\client\ShaderEditor\SEdit_ModelRender.cpp"
-				//$File	"$SRCDIR\game\client\ShaderEditor\Grass\CGrassCluster.cpp"
 			}
 		}
 		
