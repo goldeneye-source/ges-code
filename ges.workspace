@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="ges" Database="">
+  <Project Name="client_linux32_ges" Path="game/client/client_linux32_ges.project" Active="No"/>
+  <Project Name="server_linux32_ges" Path="game/server/server_linux32_ges.project" Active="No"/>
+  <Project Name="vgui_controls_linux32" Path="vgui2/vgui_controls/vgui_controls_linux32.project" Active="No"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Project Name="client (ges)" ConfigName="Debug"/>
+      <Project Name="server (ges)" ConfigName="Debug"/>
+      <Project Name="vgui_controls" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="no">
+      <Project Name="client (ges)" ConfigName="Release"/>
+      <Project Name="server (ges)" ConfigName="Release"/>
+      <Project Name="vgui_controls" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

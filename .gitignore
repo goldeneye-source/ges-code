@@ -75,6 +75,9 @@ lib/public/**/vgui_controls.*
 *.batch_build
 .codelite/
 
+#linux
+.directory
+
 #GES Specific
 bin/
 libpython3.so

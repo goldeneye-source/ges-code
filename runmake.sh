@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 OLD_PATH=$PATH
 
 TOP=$(cd "${0%/*}" && echo "${PWD}/../steam-runtime-sdk")
