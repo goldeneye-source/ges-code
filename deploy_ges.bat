@@ -6,21 +6,28 @@
 :: Click on new (user variables for [login]
 :: Enter "GES_PATH" (with out the quotes) for the variable name 
 :: Enter the path to the mod files for the value (e.g. "D:\steam\steamapps\sourcemods\gesbeta3")
-:: Restart Vis and all should be well.
+:: Restart Visual Studio and all should be well.
 
 
 :: %1 = path to compiled files (eg: \src\game\client\Debug_ges)
 :: %2 = project (server or client)
 
-echo ------------------------------------------------
-echo Compile Path is %1
-echo Current Project is %2
-echo Mod Files Path is %GES_PATH%
+@echo off
+
 echo ------------------------------------------------
 
-if exist "%GES_PATH%\bin\%2.dll" attrib -r "%GES_PATH%\bin\%2.dll"
-if exist "%GES_PATH%\bin\%2.pdb" attrib -r "%GES_PATH%\bin\%2.pdb"
+if not exist "%GES_PATH%" (
 
-if exist "%1\%2.dll" copy "%1\%2.dll" "%GES_PATH%\bin\%2.dll"
-if exist "%1\%2.pdb" copy "%1\%2.pdb" "%GES_PATH%\bin\%2.pdb"
+  echo Cannot deploy binaries for %2; GES_PATH is not defined or incorrect!
+
+) else (
+
+  echo Deploying binaries for %2:
+  echo.
+
+  if exist "%1\%2.dll" xcopy /f /r /y "%1\%2.dll" "%GES_PATH%\bin\%2.dll"
+  if exist "%1\%2.pdb" xcopy /f /r /y "%1\%2.pdb" "%GES_PATH%\bin\%2.pdb"
+
+)
+
 echo ------------------------------------------------

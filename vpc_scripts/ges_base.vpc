@@ -27,7 +27,7 @@ $Configuration
 	
 	$PostBuildEvent [!$ANALYZE]
 	{
-		$CommandLine	"$BASE\ncall $SRCDIR\deploy_ges.bat $OUTBINDIR $(TargetName)" [$WIN32]
+		$CommandLine	"$BASE" "call $SRCDIR\deploy_ges.bat $OUTBINDIR $(TargetName)" [$WIN32]
 	}
 }
 
