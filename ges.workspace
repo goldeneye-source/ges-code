@@ -3,16 +3,28 @@
   <Project Name="client_linux32_ges" Path="game/client/client_linux32_ges.project" Active="No"/>
   <Project Name="server_linux32_ges" Path="game/server/server_linux32_ges.project" Active="No"/>
   <Project Name="vgui_controls_linux32" Path="vgui2/vgui_controls/vgui_controls_linux32.project" Active="No"/>
+  <Project Name="tier1_linux32" Path="tier1/tier1_linux32.project" Active="No"/>
+  <Project Name="raytrace_linux32" Path="raytrace/raytrace_linux32.project" Active="No"/>
+  <Project Name="boost_python_linux32_ges" Path="thirdparty/boost/libs/python/boost_python_linux32_ges.project" Active="No"/>
+  <Project Name="mathlib_linux32" Path="mathlib/mathlib_linux32.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Project Name="client (ges)" ConfigName="Debug"/>
       <Project Name="server (ges)" ConfigName="Debug"/>
       <Project Name="vgui_controls" ConfigName="Debug"/>
+      <Project Name="tier1" ConfigName="Debug"/>
+      <Project Name="raytrace" ConfigName="Debug"/>
+      <Project Name="boost_python" ConfigName="Debug"/>
+      <Project Name="mathlib" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Project Name="client (ges)" ConfigName="Release"/>
       <Project Name="server (ges)" ConfigName="Release"/>
       <Project Name="vgui_controls" ConfigName="Release"/>
+      <Project Name="tier1" ConfigName="Release"/>
+      <Project Name="raytrace" ConfigName="Release"/>
+      <Project Name="boost_python" ConfigName="Release"/>
+      <Project Name="mathlib" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

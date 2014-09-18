@@ -4,7 +4,7 @@ if ! [ -d "./ges_build" ]; then
   mkdir ges_build
 fi
 
-pushd ges_build
+pushd ges_build 1> /dev/null
 
 # Only configure if we haven't done it yet
 if ! [ -f "Makefile" ]; then
@@ -40,4 +40,4 @@ chmod 0664 ../../../bin/mod_ges/libpython*
 # Create a link to the library for gcc's use
 ln -vfs ../../../bin/mod_ges/libpython3.4m.so.1.0 ../../../lib/ges/linux32/libpython3.so
 
-popd
+popd 1> /dev/null
