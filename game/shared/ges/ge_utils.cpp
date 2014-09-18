@@ -332,7 +332,7 @@ void GEUTIL_Split( std::string s, char delim, CUtlVector<std::string> &elems )
 	}
 }
 
-void GEUTIL_ParseInternalLocalization( wchar_t *out, int size, const char *in, const char *trigger = "##" )
+void GEUTIL_ParseInternalLocalization( wchar_t *out, int out_len, const char *in, const char *trigger = "##" )
 {
 	std::string input( in );
 	std::wstring output;
@@ -385,16 +385,16 @@ void GEUTIL_ParseInternalLocalization( wchar_t *out, int size, const char *in, c
 	}
 
 	// Final copy
-	wcsncpy( out, output.c_str(), size );
+	wcsncpy( out, output.c_str(), out_len );
 }
 
-void GEUTIL_ParseLocalization( wchar_t *out, int size, const char *input )
+void GEUTIL_ParseLocalization( wchar_t *out, int out_len, const char *input )
 {
 	static wchar_t* tkn_names[] = { L"%s1", L"%s2", L"%s3", L"%s4", L"%s5", L"%s6", L"%s7", L"%s8", L"%s9", L"%s10" };
 	static int max_tkn_count = 10;
 
 	// Default is direct input -> output passthrough
-	Q_strtowcs( input, -1, out, size );
+	Q_strtowcs( input, -1, out, out_len * sizeof(wchar_t) );
 
 	if ( !input || Q_strlen(input) < 2 )
 		return;
@@ -403,9 +403,9 @@ void GEUTIL_ParseLocalization( wchar_t *out, int size, const char *input )
 	if ( input[0] != '#' || ( input[0] == '#' && input[1] == '#' ) )
 	{
 		// Parse internal localization (GES Specific!), looking for ## triggers
-		GEUTIL_ParseInternalLocalization( out, size, input );
+		GEUTIL_ParseInternalLocalization( out, out_len, input );
 		// Replace the key bindings
-		GEUTIL_ReplaceKeyBindings( out, out, size );
+		GEUTIL_ReplaceKeyBindings( out, out, out_len );
 		return;
 	}
 
@@ -450,16 +450,16 @@ void GEUTIL_ParseLocalization( wchar_t *out, int size, const char *input )
 		}
 
 		// Finally copy our built string into our output
-		wcsncpy( out, finalstr.c_str(), size );
+		wcsncpy( out, finalstr.c_str(), out_len );
 	}
 	else if ( found )
 	{
 		// We don't have any tokens, copy the localized text to the output
-		wcsncpy( out, found, size );
+		wcsncpy( out, found, out_len );
 	}
 
 	// Finally parse out key bindings
-	GEUTIL_ReplaceKeyBindings( out, out, size );
+	GEUTIL_ReplaceKeyBindings( out, out, out_len );
 }
 
 void GEUTIL_GetTextSize( const wchar_t *utext, vgui::HFont font, int &wide, int &tall )
