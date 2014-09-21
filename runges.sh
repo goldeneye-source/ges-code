@@ -1,15 +1,9 @@
 #!/bin/bash
 
-if [[ -z "$STEAMAPPS_PATH" && -z "$GES_PATH" ]]; then
+if [[ -d "$STEAMAPPS_PATH" && -d "$GES_PATH" ]]; then
   pushd "$STEAMAPPS_PATH/common/Source SDK Base 2013 Multiplayer/"
 
-  export GAME_DEBUGGER=gdb
-  export LD_LIBRARY_PATH="$GES_PATH/bin"
-
-  ./hl2.sh -game "$GES_PATH"
-
-  export GAME_DEBUGGER=
-  export LD_LIBRARY_PATH=
+  GAME_DEBUGGER=gdb LD_LIBRARY_PATH="$GES_PATH/bin" ./hl2.sh -game "$GES_PATH"
 
   popd
 else
