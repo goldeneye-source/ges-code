@@ -86,7 +86,11 @@ void CPythonManager::InitDll()
 		V_strtowcs( base_path, sizeof(base_path), m_szAbsBasePath, sizeof(m_szAbsBasePath) );
 		
 		wchar_t py_path[1024];
+#ifdef POSIX
 		V_snwprintf( py_path, 1024, L"%ls:%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
+#else
+		V_snwprintf( py_path, 1024, L"%ls;%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
+#endif
 		Py_SetPath( py_path );
 
 		// Register modules and initialize
