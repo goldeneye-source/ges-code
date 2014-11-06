@@ -18,6 +18,13 @@ ipch
 *.vcxproj*
 *.sln*
 
+# Code::Blocks / CodeLite
+.clang/
+.codelite/
+*.cbp
+*.layout
+*.workspace
+
 # Windows build products
 [Dd]ebug*/
 [Rr]elease*/
@@ -25,6 +32,7 @@ obj/
 
 # OSX/Linux build products
 *.mak*
+*.project
 *.xcodeproj/
 obj_*/
 !devtools/*.mak
