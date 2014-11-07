@@ -137,11 +137,11 @@ void GEUTIL_OverrideCommand( const char *real_name, const char *new_name, const 
 		return;
 
 	_realMapCommand->Shutdown();
-	_realMapCommand->Create( new_name, "", FCVAR_HIDDEN );       //Tony; create and hide it from the list.
+	_realMapCommand->CreateBase( new_name, "", FCVAR_HIDDEN );       //Tony; create and hide it from the list.
 	_realMapCommand->Init();
 
 	_overMapCommand->Shutdown();
-	_overMapCommand->Create( real_name, override_desc );
+	_overMapCommand->CreateBase( real_name, override_desc );
 	_overMapCommand->Init();
 }
 

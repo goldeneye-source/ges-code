@@ -4676,7 +4676,6 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 			y = (alignScreenTall / 2) + y;
 		}
 	}
->>>>>>> Incorporated GE:S specific VGUI changes
 
 	bool bUsesTitleSafeArea = false;
 	int titleSafeWide = 0;
@@ -4785,8 +4784,6 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 		SetZPos( inResourceData->GetInt( "zpos" ) );
 	}
 
-<<<<<<< HEAD
-=======
 #ifndef GE_DLL
 	// size
 	int wide, tall;
@@ -4834,13 +4831,8 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 			tall = alignScreenTall - tall;
 		}
 	}
-<<<<<<< HEAD
-
->>>>>>> Incorporated GE:S specific VGUI changes
-=======
 #endif
     
->>>>>>> Corrected merge issues with GE:S specifics
 	if( bUsesTitleSafeArea )
 	{
 		if ( _buildModeFlags & BUILDMODE_SAVE_WIDE_FULL )
