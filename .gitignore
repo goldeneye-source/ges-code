@@ -14,7 +14,6 @@ ipch
 *.sdf
 *.opensdf
 *.idb
-<<<<<<< HEAD
 *.vcxproj*
 *.sln*
 

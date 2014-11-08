@@ -66,6 +66,8 @@ bool GEUTIL_IsValidColorHint( int ch );
 char *GEUTIL_RemoveColorHints( char *src );
 wchar_t *GEUTIL_RemoveColorHints( wchar_t *src );
 
+void GEUTIL_StripWhitespace( char *str );
+
 // Delays removal of the given entity by the given time in seconds
 // it hides the entity from everyone until removal time
 void GEUTIL_DelayRemove( CBaseEntity *pEnt, float delay );

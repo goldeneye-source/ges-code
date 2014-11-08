@@ -688,7 +688,6 @@ int CGERules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
 	return GR_NOTTEAMMATE;
 }
 
-extern void StripChar(char *szBuffer, const char cWhiteSpace );
 void CGERules::LoadMapCycle()
 {
 		const char *mapcfile = mapcyclefile.GetString();
@@ -730,8 +729,7 @@ void CGERules::LoadMapCycle()
 						bool bIgnore = false;
 
 						// Strip out the spaces in the name
-						StripChar( m_MapList[i] , '\r');
-						StripChar( m_MapList[i] , ' ');
+						GEUTIL_StripWhitespace( m_MapList[i] );
 						
 						if ( !engine->IsMapValid( m_MapList[i] ) )
 						{

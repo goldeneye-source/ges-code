@@ -620,7 +620,6 @@ bool CGEBaseGameplayManager::ShouldEndMatch()
 	return false;
 }
 
-extern void StripChar(char *szBuffer, const char cWhiteSpace );
 void CGEBaseGameplayManager::LoadScenarioCycle()
 {
 	if ( m_vScenarioCycle.Count() > 0 )
@@ -656,8 +655,7 @@ void CGEBaseGameplayManager::LoadScenarioCycle()
 				bool bIgnore = false;
 
 				// Strip out the spaces in the name
-				StripChar( vList[i] , '\r');
-				StripChar( vList[i] , ' ');
+				GEUTIL_StripWhitespace( vList[i] );
 				
 				if ( !IsValidGamePlay( vList[i] ) )
 				{

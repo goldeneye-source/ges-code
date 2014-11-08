@@ -579,6 +579,18 @@ wchar_t *GEUTIL_RemoveColorHints( wchar_t *str )
 	return str;
 }
 
+void GEUTIL_StripWhitespace( char *szBuffer )
+{
+	char *szOut = szBuffer;
+
+	for ( char *szIn = szOut; *szIn; szIn++ )
+	{
+		if ( *szIn != ' ' && *szIn != '\r' && *szIn != '\n' )
+			*szOut++ = *szIn;
+	}
+	*szOut = '\0';
+}
+
 void GEUTIL_DelayRemove( CBaseEntity *pEnt, float delay )
 {
 	if ( !pEnt )
