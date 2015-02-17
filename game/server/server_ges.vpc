@@ -17,7 +17,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\ai;.\ges\ent;.\ges\py;.\hl2;.\hl2mp"
+		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\ai;.\ges\ent;.\ges\py;.\hl2;.\hl2mp,$SRCDIR\game\shared\Multiplayer"
 		$PreprocessorDefinitions	"$BASE;HL2_DLL;BOOST_AUTO_LINK_NOMANGLE;BOOST_PYTHON_STATIC_LIB;BOOST_PYTHON_NO_PY_SIGNATURES;BOOST_SERIALIZATION_NO_LIB;BOOST_PYTHON_MAX_ARITY=20;Py_ENABLE_SHARED"
 	}
 	
@@ -453,6 +453,10 @@ $Project "Server (GES)"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_player_shared.h"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_weapon_parse.cpp"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_weapon_parse.h"
+			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_playeranimstate.h"
+			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_playeranimstate.cpp"
+			$File	"$SRCDIR\game\shared\Multiplayer\multiplayer_animstate.h"
+			$File	"$SRCDIR\game\shared\Multiplayer\multiplayer_animstate.cpp"
 			
 			$Folder	"Weapons"
 			{

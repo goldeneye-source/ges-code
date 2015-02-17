@@ -16,7 +16,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\hud;.\ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements"
+		$AdditionalIncludeDirectories	"$BASE;.\ges;.\ges\hud;.\ges\vgui;.\hl2mp;.\hl2mp\ui;.\hl2;.\hl2\elements,$SRCDIR\game\shared\Multiplayer"
 		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL;SOURCE_2013"
 	}
 }
@@ -307,6 +307,10 @@ $Project "Client (GES)"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_player_shared.h"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_weapon_parse.cpp"
 			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_weapon_parse.h"
+			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_playeranimstate.h"
+			$File	"$SRCDIR\game\shared\hl2mp\hl2mp_playeranimstate.cpp"
+			$File	"$SRCDIR\game\shared\Multiplayer\multiplayer_animstate.h"
+			$File	"$SRCDIR\game\shared\Multiplayer\multiplayer_animstate.cpp"
 
 			$Folder	"Weapons"
 			{
