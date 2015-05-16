@@ -13,7 +13,7 @@ OLD_PATH=$PATH
 
 # Set our host and target architectures
 if [ -z "${STEAM_RUNTIME_HOST_ARCH}" ]; then
-    STEAM_RUNTIME_HOST_ARCH=$(dpkg --print-architecture)
+    STEAM_RUNTIME_HOST_ARCH=$(uname -m)
 fi
 
 if [ -z "$STEAM_RUNTIME_TARGET_ARCH" ]; then
