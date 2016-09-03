@@ -1,0 +1,37 @@
+# Ignore in source build files ...
+CMakeBuild
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+bin
+lib
+
+# Ignore all dotfiles...
+.*
+!.travis.yml
+
+# Ignore all back-up files...
+*~
+*.bak
+
+# except for .gitignore
+!.gitignore
+
+# Exclude QtCreator files
+CMakeLists.txt.user*
+
+# Ignore ctags file
+tags
+
+# Ignore pyc files
+*.pyc
+
+# Ignore Python source directories
+cython-*/
+Python-*/
+
+build/
+Python*.tgz

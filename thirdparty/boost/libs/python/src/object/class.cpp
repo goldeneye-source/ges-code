@@ -332,12 +332,8 @@ namespace objects
           for (instance_holder* p = kill_me->objects, *next; p != 0; p = next)
           {
               next = p->next();
-			  // Release takes care of calling the destructor + calling deallocate.
-			  p->release(inst, dynamic_cast<void*>(p));	
-			  
-			  // OLD:
-			  //p->~instance_holder();
-              //instance_holder::deallocate(inst, dynamic_cast<void*>(p));
+              p->~instance_holder();
+              instance_holder::deallocate(inst, dynamic_cast<void*>(p));
           }
         
           // Python 2.2.1 won't add weak references automatically when
