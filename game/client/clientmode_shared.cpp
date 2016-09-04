@@ -85,6 +85,12 @@ extern ConVar v_viewmodel_fov;
 extern ConVar voice_modenable;
 
 extern bool IsInCommentaryMode( void );
+extern const char* GetWearLocalizationString( float flWear );
+
+CON_COMMAND( cl_reload_localization_files, "Reloads all localization files" )
+{
+	g_pVGuiLocalize->ReloadLocalizationFiles();
+}
 
 #ifdef VOICE_VOX_ENABLE
 void VoxCallback( IConVar *var, const char *oldString, float oldFloat )
@@ -141,7 +147,7 @@ CON_COMMAND( hud_reloadscheme, "Reloads hud layout and animation scripts." )
 	if ( !mode )
 		return;
 
-	mode->ReloadScheme();
+	mode->ReloadScheme(true);
 }
 
 #ifdef _DEBUG
@@ -333,8 +339,14 @@ ClientModeShared::~ClientModeShared()
 	delete m_pViewport; 
 }
 
-void ClientModeShared::ReloadScheme( void )
+void ClientModeShared::ReloadScheme( bool flushLowLevel )
 {
+	// Invalidate the global cache first.
+	if (flushLowLevel)
+	{
+		KeyValuesSystem()->InvalidateCache();
+	}
+
 	m_pViewport->ReloadScheme( "resource/ClientScheme.res" );
 	ClearKeyValuesCache();
 }
@@ -376,7 +388,7 @@ void ClientModeShared::Init()
  	Assert( m_pReplayReminderPanel );
 #endif
 
-	ListenForGameEvent( "player_connect" );
+	ListenForGameEvent( "player_connect_client" );
 	ListenForGameEvent( "player_disconnect" );
 	ListenForGameEvent( "player_team" );
 	ListenForGameEvent( "server_cvar" );
@@ -462,7 +474,7 @@ void ClientModeShared::OverrideView( CViewSetup *pSetup )
 
 	if( ::input->CAM_IsThirdPerson() )
 	{
-		Vector cam_ofs = g_ThirdPersonManager.GetCameraOffsetAngles();
+		const Vector& cam_ofs = g_ThirdPersonManager.GetCameraOffsetAngles();
 		Vector cam_ofs_distance = g_ThirdPersonManager.GetFinalCameraOffset();
 
 		cam_ofs_distance *= g_ThirdPersonManager.GetDistanceFraction();
@@ -911,7 +923,7 @@ void ClientModeShared::LevelShutdown( void )
 
 void ClientModeShared::Enable()
 {
-	vgui::VPANEL pRoot = VGui_GetClientDLLRootPanel();;
+	vgui::VPANEL pRoot = VGui_GetClientDLLRootPanel();
 
 	// Add our viewport to the root panel.
 	if( pRoot != 0 )
@@ -938,7 +950,7 @@ void ClientModeShared::Enable()
 
 void ClientModeShared::Disable()
 {
-	vgui::VPANEL pRoot = VGui_GetClientDLLRootPanel();;
+	vgui::VPANEL pRoot = VGui_GetClientDLLRootPanel();
 
 	// Remove our viewport from the root panel.
 	if( pRoot != 0 )
@@ -967,7 +979,7 @@ void ClientModeShared::Layout()
 		m_pViewport->SetBounds(0, 0, wide, tall);
 		if ( changed )
 		{
-			ReloadScheme();
+			ReloadScheme(false);
 		}
 	}
 }
@@ -999,7 +1011,7 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 
 	const char *eventname = event->GetName();
 
-	if ( Q_strcmp( "player_connect", eventname ) == 0 )
+	if ( Q_strcmp( "player_connect_client", eventname ) == 0 )
 	{
 		if ( !hudChat )
 			return;
@@ -1164,7 +1176,7 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 		{
 			CBasePlayer *pSpectatorTarget = UTIL_PlayerByIndex( GetSpectatorTarget() );
 
-			if ( pSpectatorTarget && (GetSpectatorMode() == OBS_MODE_IN_EYE || GetSpectatorMode() == OBS_MODE_CHASE) )
+			if ( pSpectatorTarget && (GetSpectatorMode() == OBS_MODE_IN_EYE || GetSpectatorMode() == OBS_MODE_CHASE || GetSpectatorMode() == OBS_MODE_POI) )
 			{
 				if ( pSpectatorTarget->GetTeamNumber() == team )
 				{
@@ -1273,10 +1285,14 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 		entityquality_t iItemQuality = event->GetInt( "quality" );
 		int iMethod = event->GetInt( "method" );
 		int iItemDef = event->GetInt( "itemdef" );
+		bool bIsStrange = event->GetInt( "isstrange" );
+		bool bIsUnusual = event->GetInt( "isunusual" );
+		float flWear = event->GetFloat( "wear" );
+
 		C_BasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayerIndex );
 		const GameItemDefinition_t *pItemDefinition = dynamic_cast<GameItemDefinition_t *>( GetItemSchema()->GetItemDefinition( iItemDef ) );
 
-		if ( !pPlayer || !pItemDefinition )
+		if ( !pPlayer || !pItemDefinition || pItemDefinition->IsHidden() )
 			return;
 
 		if ( g_PR )
@@ -1296,19 +1312,101 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 				_snwprintf( wszItemFound, ARRAYSIZE( wszItemFound ), L"%ls", g_pVGuiLocalize->Find( pszLocString ) );
 
 				wchar_t *colorMarker = wcsstr( wszItemFound, L"::" );
+				const CEconItemRarityDefinition* pItemRarity = GetItemSchema()->GetRarityDefinition( pItemDefinition->GetRarity() );
+
 				if ( colorMarker )
 				{
-					const char *pszQualityColorString = EconQuality_GetColorString( (EEconItemQuality)iItemQuality );
-					if ( pszQualityColorString )
+					if ( pItemRarity )
 					{
-						hudChat->SetCustomColor( pszQualityColorString );
-						*(colorMarker+1) = COLOR_CUSTOM;
+						attrib_colors_t colorRarity = pItemRarity->GetAttribColor();
+						vgui::HScheme scheme = vgui::scheme()->GetScheme( "ClientScheme" );
+						vgui::IScheme *pScheme = vgui::scheme()->GetIScheme( scheme );
+						Color color = pScheme->GetColor( GetColorNameForAttribColor( colorRarity ), Color( 255, 255, 255, 255 ) );
+						hudChat->SetCustomColor( color );
 					}
+					else
+					{
+						const char *pszQualityColorString = EconQuality_GetColorString( (EEconItemQuality)iItemQuality );
+						if ( pszQualityColorString )
+						{
+							hudChat->SetCustomColor( pszQualityColorString );
+						}
+					}
+
+					*(colorMarker+1) = COLOR_CUSTOM;
 				}
 
 				// TODO: Update the localization strings to only have two format parameters since that's all we need.
 				wchar_t wszLocalizedString[256];
-				g_pVGuiLocalize->ConstructString( wszLocalizedString, sizeof( wszLocalizedString ), wszItemFound, 3, wszPlayerName, CEconItemLocalizedFullNameGenerator( GLocalizationProvider(), pItemDefinition, iItemQuality ).GetFullName(), L"" );
+				g_pVGuiLocalize->ConstructString( 
+					wszLocalizedString, 
+					sizeof( wszLocalizedString ), 
+					LOCCHAR( "%s1" ),
+					1, 
+					CEconItemLocalizedFullNameGenerator( GLocalizationProvider(), pItemDefinition, iItemQuality ).GetFullName()
+				);
+
+				locchar_t tempName[MAX_ITEM_NAME_LENGTH];
+				if ( pItemRarity )
+				{
+					// grade and Wear
+					loc_scpy_safe( tempName, wszLocalizedString );
+
+					const locchar_t *loc_WearText = LOCCHAR("");
+					const char *pszTooltipText = "TFUI_InvTooltip_Rarity";
+
+					if ( !IsWearableSlot( pItemDefinition->GetDefaultLoadoutSlot() ) )
+					{
+						loc_WearText = g_pVGuiLocalize->Find( GetWearLocalizationString( flWear ) );
+					}
+					else
+					{
+						pszTooltipText = "TFUI_InvTooltip_RarityNoWear";
+					}
+
+					g_pVGuiLocalize->ConstructString( wszLocalizedString,
+						ARRAYSIZE( wszLocalizedString ) * sizeof( locchar_t ),
+						g_pVGuiLocalize->Find( pszTooltipText ),
+						3,
+						g_pVGuiLocalize->Find( pItemRarity->GetLocKey() ),
+						tempName,
+						loc_WearText
+					);
+
+					if ( bIsUnusual )
+					{
+						loc_scpy_safe( tempName, wszLocalizedString );
+
+						g_pVGuiLocalize->ConstructString( wszLocalizedString,
+							ARRAYSIZE( wszLocalizedString ) * sizeof( locchar_t ),
+							LOCCHAR( "%s1 %s2" ),
+							2,
+							g_pVGuiLocalize->Find( "rarity4" ),
+							tempName 
+						);
+					}
+
+					if ( bIsStrange )
+					{
+						loc_scpy_safe( tempName, wszLocalizedString );
+
+						g_pVGuiLocalize->ConstructString( wszLocalizedString,
+							ARRAYSIZE( wszLocalizedString ) * sizeof( locchar_t ),
+							LOCCHAR( "%s1 %s2" ),
+							2,
+							g_pVGuiLocalize->Find( "strange" ),
+							tempName
+						);
+					}
+				}
+				
+				loc_scpy_safe( tempName, wszLocalizedString );
+				g_pVGuiLocalize->ConstructString(
+					wszLocalizedString,
+					sizeof( wszLocalizedString ),
+					wszItemFound,
+					3,
+					wszPlayerName, tempName, L"" );
 
 				char szLocalized[256];
 				g_pVGuiLocalize->ConvertUnicodeToANSI( wszLocalizedString, szLocalized, sizeof( szLocalized ) );
@@ -1348,85 +1446,6 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 		DevMsg( 2, "Unhandled GameEvent in ClientModeShared::FireGameEvent - %s\n", event->GetName()  );
 	}
 }
-
-#ifdef GE_DLL
-bool ClientModeShared::QueuePanel( const char *panelName, KeyValues *data /*=NULL*/ )
-{
-	// Default is not to queue anything
-	return false;
-}
-
-void ClientModeShared::AddPanelToQueue( const char *panelName, KeyValues *data, float delay /*=0.25f*/ )
-{
-	QueueSlot_t *slot = new QueueSlot_t;
-	slot->panel = gViewPortInterface->FindPanelByName( panelName );
-	slot->data = data;
-	slot->delay = delay;
-	slot->showtime = gpGlobals->curtime + delay;
-	slot->shown = false;
-	m_vPanelQueue.AddToTail( slot );
-}
-
-bool ClientModeShared::IsPanelQueued( const char *panelName )
-{
-	FOR_EACH_VEC( m_vPanelQueue, i )
-	{
-		if ( !m_vPanelQueue[i]->shown && !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
-			return true;
-	}
-	return false;
-}
-
-void ClientModeShared::ClearPanelQueue( const char *panelName /*=NULL*/ )
-{
-	FOR_EACH_VEC( m_vPanelQueue, i )
-	{
-		if ( !panelName || !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
-		{
-			if ( m_vPanelQueue[i]->data )
-				m_vPanelQueue[i]->data->deleteThis();
-			delete m_vPanelQueue[i];
-
-			// If we defined a panel name remove this entry and set our iterator back 1
-			if ( panelName )
-				m_vPanelQueue.FastRemove( i-- );
-		}
-	}
-
-	if ( !panelName )
-		m_vPanelQueue.RemoveAll();
-}
-
-void ClientModeShared::ProcessPanelQueue( void )
-{
-	if ( !m_vPanelQueue.Count() )
-		return;
-
-	QueueSlot_t *slot = m_vPanelQueue[0];
-
-	if ( slot->shown && !slot->panel->IsVisible()  )
-	{
-		// We have finished with this panel, time for the next item
-		delete slot;
-		m_vPanelQueue.FastRemove( 0 );
-
-		if ( m_vPanelQueue.Count() )
-			m_vPanelQueue[0]->showtime = gpGlobals->curtime + m_vPanelQueue[0]->delay;
-	}
-	else if ( !slot->shown && gpGlobals->curtime >= slot->showtime )
-	{
-		if ( slot->data )
-		{
-			slot->panel->SetData( slot->data );
-			slot->data->deleteThis();
-			slot->data = NULL;
-		}
-		
-		slot->panel->ShowPanel( true );
-		slot->shown = true;
-	}
-}
-#endif
 
 void ClientModeShared::UpdateReplayMessages()
 {

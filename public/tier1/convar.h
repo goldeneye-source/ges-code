@@ -103,9 +103,6 @@ class ConCommandBase
 	friend class ConCommand;
 	friend void ConVar_Register( int nCVarFlag, IConCommandBaseAccessor *pAccessor );
 	friend void ConVar_PublishToVXConsole();
-#ifdef GE_DLL
-	friend void GEUTIL_OverrideCommand( const char *real_name, const char *new_name, const char *override_name, const char *override_desc );
-#endif
 
 	// FIXME: Remove when ConVar changes are done
 	friend class CDefaultCvar;

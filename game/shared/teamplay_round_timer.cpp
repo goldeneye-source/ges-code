@@ -44,6 +44,14 @@
 #define ROUND_SETUP_2SECS	"Announcer.RoundBegins2Seconds"
 #define ROUND_SETUP_1SECS	"Announcer.RoundBegins1Seconds"
 
+#ifdef TF_CLIENT_DLL
+#define MERASMUS_SETUP_5SECS	"Merasmus.RoundBegins5Seconds"
+#define MERASMUS_SETUP_4SECS	"Merasmus.RoundBegins4Seconds"
+#define MERASMUS_SETUP_3SECS	"Merasmus.RoundBegins3Seconds"
+#define MERASMUS_SETUP_2SECS	"Merasmus.RoundBegins2Seconds"
+#define MERASMUS_SETUP_1SECS	"Merasmus.RoundBegins1Seconds"
+#endif
+
 #define ROUND_START_BELL	"Ambient.Siren"
 
 #define ROUND_TIMER_TIME_ADDED			"Announcer.TimeAdded"

@@ -355,11 +355,6 @@ extern "C"
 // ensures they are here even when linking against debug or release static libs
 //-----------------------------------------------------------------------------
 #ifndef NO_MEMOVERRIDE_NEW_DELETE
-#ifdef GE_DLL
-extern void AddTrack(unsigned long addr,  unsigned long asize,  const char *fname, unsigned long lnum);
-extern void RemoveTrack(unsigned long addr);
-#endif
-
 #ifdef OSX
 void *__cdecl operator new( size_t nSize ) throw (std::bad_alloc)
 #else
@@ -371,13 +366,7 @@ void *__cdecl operator new( size_t nSize )
 
 void *__cdecl operator new( size_t nSize, int nBlockUse, const char *pFileName, int nLine )
 {
-#ifdef GE_DLL
-	void *ptr = g_pMemAlloc->Alloc(nSize, pFileName, nLine);
-	AddTrack((DWORD)ptr, nSize, pFileName, nLine);
-	return ptr;
-#else
 	return g_pMemAlloc->Alloc(nSize, pFileName, nLine);
-#endif
 }
 
 #ifdef OSX
@@ -386,9 +375,6 @@ void __cdecl operator delete( void *pMem ) throw()
 void __cdecl operator delete( void *pMem )
 #endif
 {
-#ifdef GE_DLL
-	RemoveTrack((DWORD)pMem);
-#endif
 	g_pMemAlloc->Free( pMem );
 }
 
@@ -403,13 +389,7 @@ void *__cdecl operator new[]( size_t nSize )
 
 void *__cdecl operator new[] ( size_t nSize, int nBlockUse, const char *pFileName, int nLine )
 {
-#ifdef GE_DLL
-	void *ptr = g_pMemAlloc->Alloc(nSize, pFileName, nLine);
-	AddTrack((DWORD)ptr, nSize, pFileName, nLine);
-	return ptr;
-#else
 	return g_pMemAlloc->Alloc(nSize, pFileName, nLine);
-#endif
 }
 
 #ifdef OSX
@@ -418,9 +398,6 @@ void __cdecl operator delete[]( void *pMem ) throw()
 void __cdecl operator delete[]( void *pMem )
 #endif
 {
-#ifdef GE_DLL
-	RemoveTrack((DWORD)pMem);
-#endif
 	g_pMemAlloc->Free( pMem );
 }
 #endif

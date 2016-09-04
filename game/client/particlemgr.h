@@ -237,6 +237,13 @@ public:
 };
 
 
+struct ParticleSimListEntry_t
+{
+	CNewParticleEffect* m_pNewParticleEffect;
+	bool m_bBoundingBoxOnly;
+};
+
+
 //-----------------------------------------------------------------------------
 // interface IParticleEffect:
 //
@@ -715,8 +722,9 @@ private:
 		const CViewSetup& view, const VMatrix &worldToPixels, float flFocalDist );
 
 	bool RetireParticleCollections( CParticleSystemDefinition* pDef, int nCount, RetireInfo_t *pInfo, float flScreenArea, float flMaxTotalArea );
-	void BuildParticleSimList( CUtlVector< CNewParticleEffect* > &list );
-	bool EarlyRetireParticleSystems( int nCount, CNewParticleEffect **ppEffects );
+
+	void BuildParticleSimList( CUtlVector< ParticleSimListEntry_t > &list );
+	bool EarlyRetireParticleSystems( int nCount, ParticleSimListEntry_t *ppEffects );
 	static int RetireSort( const void *p1, const void *p2 ); 
 
 private:

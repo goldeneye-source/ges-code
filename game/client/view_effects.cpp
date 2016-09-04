@@ -170,6 +170,7 @@ static void ( *s_pfnFadeDoneCallback )( int parm1 );
 //			*pbuf - 
 // Output : static int
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 void __MsgFunc_Shake( bf_read &msg )
 {
 	ScreenShake_t shake;
@@ -179,7 +180,7 @@ void __MsgFunc_Shake( bf_read &msg )
 	shake.frequency = msg.ReadFloat();
 	shake.duration	= msg.ReadFloat();
 
-	vieweffects->Shake( shake );
+	g_ViewEffects.Shake( shake );
 }
 
 //-----------------------------------------------------------------------------
@@ -201,7 +202,7 @@ void __MsgFunc_Fade( bf_read &msg )
 	fade.b = msg.ReadByte(); // fade blue
 	fade.a = msg.ReadByte(); // fade blue
 
-	vieweffects->Fade( fade );
+	g_ViewEffects.Fade( fade );
 }
 
 //-----------------------------------------------------------------------------
@@ -231,7 +232,7 @@ static ConCommand shake_stop("shake_stop", CC_Shake_Stop, "Stops all active scre
 //-----------------------------------------------------------------------------
 void CC_Shake_Stop()
 {
-	((CViewEffects*)vieweffects)->ClearAllShakes();
+	g_ViewEffects.ClearAllShakes();
 }
 
 

@@ -208,6 +208,7 @@ bool CGameRules::IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer  )
 {
 	CBaseEntity *ent = NULL;
 
+    //GE_DLL null guard
 	if ( !pSpot || !pSpot->IsTriggered( pPlayer ) )
 	{
 		return false;
@@ -796,6 +797,7 @@ float CGameRules::GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, i
 	float flDamage = 0;
 	CAmmoDef *pAmmoDef = GetAmmoDef();
 
+    //GE_DLL null guard
 	if ( pAttacker && pAttacker->IsPlayer() )
 	{
 		flDamage = pAmmoDef->PlrDamage( nAmmoType );

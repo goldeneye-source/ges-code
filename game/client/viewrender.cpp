@@ -947,6 +947,17 @@ CViewRender::CViewRender()
 // Input  : drawViewmodel - 
 //			*viewmodel - 
 // Output : Returns true on success, false on failure.
+inline bool CViewRender::ShouldDrawEntities( void )
+{
+	return ( !m_pDrawEntities || (m_pDrawEntities->GetInt() != 0) );
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Check all conditions which would prevent drawing the view model
+// Input  : drawViewmodel - 
+//			*viewmodel - 
+// Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
 bool CViewRender::ShouldDrawViewModel( bool bDrawViewmodel )
 {
@@ -5009,7 +5020,7 @@ void CShadowDepthView::Draw()
 	}
 
 #ifdef GE_DLL
-	// TODO: Why is this here????
+	// TODO: Is this necessary? Gone from Valve's Code
 	pRenderContext.GetFrom(materials);
 	pRenderContext->PushRenderTargetAndViewport(m_pRenderTarget, m_pDepthTexture, 0, 0, m_pDepthTexture->GetMappingWidth(), m_pDepthTexture->GetMappingWidth());
 	pRenderContext.SafeRelease();
@@ -5060,7 +5071,7 @@ void CShadowDepthView::Draw()
 	}
 
 #ifdef GE_DLL
-	// TODO: Why is this here???
+	// TODO: Is this necessary? Gone from valve's code!
 	pRenderContext->PopRenderTargetAndViewport();
 #endif
 

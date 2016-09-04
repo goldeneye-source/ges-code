@@ -246,6 +246,7 @@ BEGIN_SIMPLE_DATADESC( CPlayerState )
 	// DEFINE_FIELD( hltv, FIELD_BOOLEAN ),
 	// DEFINE_FIELD( frags, FIELD_INTEGER ),
 	// DEFINE_FIELD( deaths, FIELD_INTEGER ),
+	// DEFINE_FIELD( deaths, FIELD_INTEGER ),
 END_DATADESC()
 
 // Global Savedata for player
@@ -584,6 +585,8 @@ CBasePlayer::CBasePlayer( )
 	m_bForceOrigin = false;
 	m_hVehicle = NULL;
 	m_pCurrentCommand = NULL;
+	m_iLockViewanglesTickNumber = 0;
+	m_qangLockViewangles.Init();
 	
 	// Setup our default FOV
 	m_iDefaultFOV = g_pGameRules->DefaultFOV();
@@ -1102,7 +1105,7 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			return 0;
 	}
 
-	if ( IsInCommentaryMode() )
+ 	if ( IsInCommentaryMode() )
 	{
 		if( !ShouldTakeDamageInCommentaryMode( info ) )
 			return 0;
@@ -1535,7 +1538,7 @@ void CBasePlayer::PackDeadPlayerItems( void )
 
 	// get the game rules 
 	iWeaponRules = g_pGameRules->DeadPlayerWeapons( this );
-	iAmmoRules = g_pGameRules->DeadPlayerAmmo( this );
+ 	iAmmoRules = g_pGameRules->DeadPlayerAmmo( this );
 
 	if ( iWeaponRules == GR_PLR_DROP_GUN_NO && iAmmoRules == GR_PLR_DROP_AMMO_NO )
 	{
@@ -1621,7 +1624,7 @@ void CBasePlayer::RemoveAllItems( bool removeSuit )
 
 	Weapon_SetLast( NULL );
 	RemoveAllWeapons();
-	RemoveAllAmmo();
+ 	RemoveAllAmmo();
 
 	if ( removeSuit )
 	{
@@ -1712,7 +1715,7 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			event->SetInt("attacker", 0 ); // hurt by "world"
 		}
 
-		gameeventmanager->FireEvent( event );
+        gameeventmanager->FireEvent( event );
 	}
 #endif
 	// Insert a combat sound so that nearby NPCs hear battle
@@ -2354,17 +2357,17 @@ bool CBasePlayer::StartObserverMode(int mode)
 	m_afPhysicsFlags |= PFLAG_OBSERVER;
 
 	// Holster weapon immediately, to allow it to cleanup
-	if ( GetActiveWeapon() )
+    if ( GetActiveWeapon() )
 		GetActiveWeapon()->Holster();
 
 	// clear out the suit message cache so we don't keep chattering
-	SetSuitUpdate(NULL, FALSE, 0);
+    SetSuitUpdate(NULL, FALSE, 0);
 
 	SetGroundEntity( (CBaseEntity *)NULL );
 	
 	RemoveFlag( FL_DUCKING );
 	
-	AddSolidFlags( FSOLID_NOT_SOLID );
+    AddSolidFlags( FSOLID_NOT_SOLID );
 
 	SetObserverMode( mode );
 
@@ -2374,7 +2377,7 @@ bool CBasePlayer::StartObserverMode(int mode)
 	}
 	
 	// Setup flags
-	m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+    m_Local.m_iHideHUD = HIDEHUD_HEALTH;
 	m_takedamage = DAMAGE_NO;		
 
 	// Become invisible
@@ -2424,6 +2427,7 @@ bool CBasePlayer::SetObserverMode(int mode )
 			break;
 
 		case OBS_MODE_CHASE :
+		case OBS_MODE_POI: // PASSTIME
 		case OBS_MODE_IN_EYE :	
 			// udpate FOV and viewmodels
 			SetObserverTarget( m_hObserverTarget );	
@@ -2745,7 +2749,10 @@ bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
 		Vector	dir, end;
 		Vector	start = target->EyePosition();
 		
-		AngleVectors( target->EyeAngles(), &dir );
+		QAngle ang = target->EyeAngles();
+		ang.z = 0; // PASSTIME no view roll when spectating ball
+
+		AngleVectors( ang, &dir );
 		VectorNormalize( dir );
 		VectorMA( start, -64.0f, dir, end );
 
@@ -2755,7 +2762,7 @@ bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
 		trace_t	tr;
 		UTIL_TraceRay( ray, MASK_PLAYERSOLID, target, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
 
-		JumptoPosition( tr.endpos, target->EyeAngles() );
+		JumptoPosition( tr.endpos, ang );
 	}
 	
 	return true;
@@ -2774,7 +2781,7 @@ bool CBasePlayer::IsValidObserverTarget(CBaseEntity * target)
 	CBasePlayer * player = ToBasePlayer( target );
 
 	/* Don't spec observers or players who haven't picked a class yet
-	if ( player->IsObserver() )
+ 	if ( player->IsObserver() )
 		return false;	*/
 
 	if( player == this )
@@ -2868,10 +2875,10 @@ CBaseEntity * CBasePlayer::FindNextObserverTarget(bool bReverse)
 		currentIndex += iDir;
 
 		// Loop through the clients
-		if (currentIndex > gpGlobals->maxClients)
-			currentIndex = 1;
+  		if (currentIndex > gpGlobals->maxClients)
+  			currentIndex = 1;
 		else if (currentIndex < 1)
-			currentIndex = gpGlobals->maxClients;
+  			currentIndex = gpGlobals->maxClients;
 
 	} while ( currentIndex != startIndex );
 		
@@ -2985,10 +2992,6 @@ float CBasePlayer::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 	return 0;
 }
 
-CBaseEntity	*CBasePlayer::GetHeldObject( void )
-{
-	return NULL;
-}
 
 //-----------------------------------------------------------------------------
 // Purpose:	Server side of jumping rules.  Most jumping logic is already
@@ -3537,6 +3540,8 @@ void CBasePlayer::ForceSimulation()
 	m_nSimulationTick = -1;
 }
 
+ConVar sv_usercmd_custom_random_seed( "sv_usercmd_custom_random_seed", "1", FCVAR_CHEAT, "When enabled server will populate an additional random seed independent of the client" );
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *buf - 
@@ -3561,6 +3566,16 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 		if ( !IsUserCmdDataValid( pCmd ) )
 		{
 			pCmd->MakeInert();
+		}
+
+		if ( sv_usercmd_custom_random_seed.GetBool() )
+		{
+			float fltTimeNow = float( Plat_FloatTime() * 1000.0 );
+			pCmd->server_random_seed = *reinterpret_cast<int*>( (char*)&fltTimeNow );
+		}
+		else
+		{
+			pCmd->server_random_seed = pCmd->random_seed;
 		}
 
 		ctx->cmds.AddToTail( *pCmd );
@@ -5109,7 +5124,7 @@ void CBasePlayer::Spawn( void )
 
 	m_Local.m_bDucked = false;// This will persist over round restart if you hold duck otherwise. 
 	m_Local.m_bDucking = false;
-	SetViewOffset( VEC_VIEW_SCALED( this ) );
+    SetViewOffset( VEC_VIEW_SCALED( this ) );
 	Precache();
 	
 	m_bitsDamageType = 0;
@@ -5774,7 +5789,7 @@ void CSprayCan::Think( void )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwnerEntity() );
 	if ( pPlayer )
 	{
-		int playernum = pPlayer->entindex();
+       	int playernum = pPlayer->entindex();
 		
 		Vector forward;
 		trace_t	tr;	
@@ -6061,12 +6076,12 @@ void CBasePlayer::ImpulseCommands( )
 	switch (iImpulse)
 	{
 	case 100:
-		// temporary flashlight for level designers
-		if ( FlashlightIsOn() )
+        // temporary flashlight for level designers
+        if ( FlashlightIsOn() )
 		{
 			FlashlightTurnOff();
 		}
-		else 
+        else 
 		{
 			FlashlightTurnOn();
 		}
@@ -6597,7 +6612,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		else
 		{
 			// switch to next spec mode if no parameter given
-			mode = GetObserverMode() + 1;
+ 			mode = GetObserverMode() + 1;
 			
 			if ( mode > LAST_PLAYER_OBSERVERMODE )
 			{
@@ -8071,7 +8086,7 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 			// Bring the weapon back
 			if  ( HasSpawnFlags( SF_SPEED_MOD_SUPPRESS_WEAPONS ) && pPlayer->GetActiveWeapon() == NULL )
 			{
-				pPlayer->SetActiveWeapon( pPlayer->Weapon_GetLast() );
+				pPlayer->SetActiveWeapon( pPlayer->GetLastWeapon() );
 				if ( pPlayer->GetActiveWeapon() )
 				{
 					pPlayer->GetActiveWeapon()->Deploy();
@@ -8565,7 +8580,7 @@ void CBasePlayer::SetVCollisionState( const Vector &vecAbsOrigin, const Vector &
 	switch( collisionState )
 	{
 	case VPHYS_WALK:
-		m_pShadowStand->SetPosition( vecAbsOrigin, vec3_angle, true );
+ 		m_pShadowStand->SetPosition( vecAbsOrigin, vec3_angle, true );
 		m_pShadowStand->SetVelocity( &vecAbsVelocity, NULL );
 		m_pShadowCrouch->EnableCollisions( false );
 		m_pPhysicsController->SetObject( m_pShadowStand );
@@ -9053,8 +9068,6 @@ void CBasePlayer::SetPlayerName( const char *name )
 		Assert( strlen(name) > 0 );
 
 		Q_strncpy( m_szNetname, name, sizeof(m_szNetname) );
-		// Be extra thorough
-		Q_RemoveAllEvilCharacters( m_szNetname );
 	}
 }
 

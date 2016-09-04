@@ -57,6 +57,60 @@ extern bool IsInCommentaryMode( void );
 
 ConVar  *sv_cheats = NULL;
 
+enum eAllowPointServerCommand {
+	eAllowNever,
+	eAllowOfficial,
+	eAllowAlways
+};
+
+#ifdef TF_DLL
+// The default value here should match the default of the convar
+eAllowPointServerCommand sAllowPointServerCommand = eAllowOfficial;
+#else
+eAllowPointServerCommand sAllowPointServerCommand = eAllowAlways;
+#endif // TF_DLL
+
+void sv_allow_point_servercommand_changed( IConVar *pConVar, const char *pOldString, float flOldValue )
+{
+	ConVarRef var( pConVar );
+	if ( !var.IsValid() )
+	{
+		return;
+	}
+
+	const char *pNewValue = var.GetString();
+	if ( V_strcasecmp ( pNewValue, "always" ) == 0 )
+	{
+		sAllowPointServerCommand = eAllowAlways;
+	}
+#ifdef TF_DLL
+	else if ( V_strcasecmp ( pNewValue, "official" ) == 0 )
+	{
+		sAllowPointServerCommand = eAllowOfficial;
+	}
+#endif // TF_DLL
+	else
+	{
+		sAllowPointServerCommand = eAllowNever;
+	}
+}
+
+ConVar sv_allow_point_servercommand ( "sv_allow_point_servercommand",
+#ifdef TF_DLL
+                                      // The default value here should match the default of the convar
+                                      "official",
+#else
+                                      // Other games may use this in their official maps, and only TF exposes IsValveMap() currently
+                                      "always",
+#endif // TF_DLL
+                                      FCVAR_NONE,
+                                      "Allow use of point_servercommand entities in map. Potentially dangerous for untrusted maps.\n"
+                                      "  disallow : Always disallow\n"
+#ifdef TF_DLL
+                                      "  official : Allowed for valve maps only\n"
+#endif // TF_DLL
+                                      "  always   : Allow for all maps", sv_allow_point_servercommand_changed );
+
 void ClientKill( edict_t *pEdict, const Vector &vecForce, bool bExplode = false )
 {
 	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( GetContainingEntity( pEdict ) );
@@ -573,7 +627,22 @@ void CPointServerCommand::InputCommand( inputdata_t& inputdata )
 	if ( !inputdata.value.String()[0] )
 		return;
 
-	engine->ServerCommand( UTIL_VarArgs( "%s\n", inputdata.value.String() ) );
+	bool bAllowed = ( sAllowPointServerCommand == eAllowAlways );
+#ifdef TF_DLL
+	if ( sAllowPointServerCommand == eAllowOfficial )
+	{
+		bAllowed = TFGameRules() && TFGameRules()->IsValveMap();
+	}
+#endif // TF_DLL
+
+	if ( bAllowed )
+	{
+		engine->ServerCommand( UTIL_VarArgs( "%s\n", inputdata.value.String() ) );
+	}
+	else
+	{
+		Warning( "point_servercommand usage blocked by sv_allow_point_servercommand setting\n" );
+	}
 }
 
 BEGIN_DATADESC( CPointServerCommand )

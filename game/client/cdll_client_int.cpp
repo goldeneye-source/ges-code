@@ -167,7 +167,6 @@
 #endif
 
 extern vgui::IInputInternal *g_InputInternal;
-const char *COM_GetModDirectory(); // return the mod dir (rather than the complete -game param, which can be a path)
 
 //=============================================================================
 // HPE_BEGIN
@@ -592,7 +591,8 @@ void DisplayBoneSetupEnts()
 		if ( pEnt->m_Count >= 3 )
 		{
 			printInfo.color[0] = 1;
-			printInfo.color[1] = printInfo.color[2] = 0;
+			printInfo.color[1] = 0;
+			printInfo.color[2] = 0;
 		}
 		else if ( pEnt->m_Count == 2 )
 		{
@@ -602,7 +602,9 @@ void DisplayBoneSetupEnts()
 		}
 		else
 		{
-			printInfo.color[0] = printInfo.color[0] = printInfo.color[0] = 1;
+			printInfo.color[0] = 1;
+			printInfo.color[1] = 1;
+			printInfo.color[2] = 1;
 		}
 		engine->Con_NXPrintf( &printInfo, "%25s / %3d / %3d", pEnt->m_ModelName, pEnt->m_Count, pEnt->m_Index );
 		printInfo.index++;
@@ -1251,9 +1253,6 @@ void CHLClient::Shutdown( void )
 	DisconnectTier1Libraries( );
 
 	gameeventmanager = NULL;
-#if defined(GE_DLL) && defined(_DEBUG)
-	GE_DumpMemoryLeaks();
-#endif
 
 #if defined( WIN32 ) && !defined( _X360 )
 	// NVNT Disconnect haptics system
@@ -2620,8 +2619,8 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 		// Halloween voice futzery?
 		else
 		{
-			float flHeadScale = 1.f;
-			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flHeadScale, head_scale );
+			float flVoicePitchScale = 1.f;
+			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flVoicePitchScale, voice_pitch_scale );
 
 			int iHalloweenVoiceSpell = 0;
 			CALL_ATTRIB_HOOK_INT_ON_OTHER( pEntity, iHalloweenVoiceSpell, halloween_voice_modulation );
@@ -2629,17 +2628,9 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 			{
 				params.pitch *= 0.8f;
 			}
-			else if( flHeadScale != 1.f )
+			else if( flVoicePitchScale != 1.f )
 			{
-				// Big head, deep voice
-				if( flHeadScale > 1.f )
-				{
-					params.pitch *= 0.8f;
-				}
-				else	// Small head, high voice
-				{
-					params.pitch *= 1.3f;
-				}
+				params.pitch *= flVoicePitchScale;
 			}
 		}
 	}

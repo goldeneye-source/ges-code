@@ -11,7 +11,6 @@
 $Games
 {
 	"HL2MP"
-	"GES"
 }
 
 // Makes the VPC scripts work in the SDK's context

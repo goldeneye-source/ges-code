@@ -783,7 +783,7 @@ void ConVar::InternalSetValue( const char *value )
 	
 	// Redetermine value
 	m_fValue		= fNewValue;
-	m_nValue		= ( int )( m_fValue );
+	m_nValue		= ( int )( fNewValue );
 
 	if ( !( m_nFlags & FCVAR_NEVER_AS_STRING ) )
 	{
@@ -825,12 +825,16 @@ void ConVar::ChangeStringValue( const char *tempVal, float flOldValue )
 	}
 
 	// Invoke any necessary callback function
-	if ( m_fnChangeCallback )
+	if (V_strcmp(pszOldValue, m_pszString) != 0)
 	{
-		m_fnChangeCallback( this, pszOldValue, flOldValue );
-	}
+		// Invoke any necessary callback function
+		if ( m_fnChangeCallback )
+		{
+			m_fnChangeCallback( this, pszOldValue, flOldValue );
+		}
 
-	g_pCVar->CallGlobalChangeCallbacks( this, pszOldValue, flOldValue );
+		g_pCVar->CallGlobalChangeCallbacks( this, pszOldValue, flOldValue );
+	}
 
 	stackfree( pszOldValue );
 }

@@ -8,12 +8,6 @@
 // Project definitions //
 /////////////////////////
 
-// Added for Boost::Python build
-$Project "boost_python"
-{
-	"thirdparty\boost\libs\python\boost_python.vpc" [($WIN32||$POSIX) && $GES]
-}
-
 $Project "captioncompiler"
 {
 	"utils\captioncompiler\captioncompiler.vpc" [$WIN32]
@@ -23,7 +17,6 @@ $Project "captioncompiler"
 $Project "client"
 {
 	"game\client\client_hl2mp.vpc"		[($WIN32||$POSIX) && $HL2MP]
-	"game\client\client_ges.vpc"		[($WIN32||$POSIX) && $GES]
 }
 
 $Project "fgdlib"
@@ -49,7 +42,6 @@ $Project "height2normal"
 $Project "server"
 {
 	"game\server\server_hl2mp.vpc"		[($WIN32||$POSIX) && $HL2MP]
-	"game\server\server_ges.vpc"		[($WIN32||$POSIX) && $GES]
 }
 
 $Project "mathlib"

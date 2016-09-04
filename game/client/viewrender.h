@@ -374,8 +374,7 @@ public:
 
 	// Add entity to transparent entity queue
 
-        // Output : Returns true on success, false on failure.
-	inline bool ShouldDrawEntities( void ) { return ( !m_pDrawEntities || (m_pDrawEntities->GetInt() != 0) ); }
+	bool			ShouldDrawEntities( void );
 	bool			ShouldDrawBrushModels( void );
 
 	const CViewSetup *GetViewSetup( ) const;

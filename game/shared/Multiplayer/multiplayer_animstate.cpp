@@ -91,6 +91,10 @@ CMultiPlayerAnimState::CMultiPlayerAnimState( CBasePlayer *pPlayer, MultiPlayerM
 
 	m_flMaxGroundSpeed = 0.0f;
 
+	// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+	// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+	// and the fact that m_flEyeYaw is never propogated from the server to the client.
+	// TODO: Fix this after Halloween 2014.
 	m_bForceAimYaw = false;
 
 	Init( pPlayer, movementData );
@@ -633,7 +637,7 @@ void CMultiPlayerAnimState::AddToGestureSlot( int iGestureSlot, Activity iGestur
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_nSequence = iGestureSequence;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flWeight = 1.0f;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendIn = 0.0f;
-	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendOut = 0.15f;  //<-- GE_DLL
+	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flBlendOut = 0.0f;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_bSequenceFinished = false;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flLastEventCheck = 0.0f;
 	m_aGestureSlots[iGestureSlot].m_pAnimLayer->m_flLastEventCheck = gpGlobals->curtime;
@@ -1661,6 +1665,10 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	bool bMoving = ( vecVelocity.Length() > 1.0f ) ? true : false;
 
 	// If we are moving or are prone and undeployed.
+	// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+	// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+	// and the fact that m_flEyeYaw is never propogated from the server to the client.
+	// TODO: Fix this after Halloween 2014.
 	if ( bMoving || m_bForceAimYaw )
 	{
 		// The feet match the eye direction when moving - the move yaw takes care of the rest.
@@ -1694,6 +1702,10 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	m_flGoalFeetYaw = AngleNormalize( m_flGoalFeetYaw );
 	if ( m_flGoalFeetYaw != m_flCurrentFeetYaw )
 	{
+		// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+		// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+		// and the fact that m_flEyeYaw is never propogated from the server to the client.
+		// TODO: Fix this after Halloween 2014.
 		if ( m_bForceAimYaw )
 		{
 			m_flCurrentFeetYaw = m_flGoalFeetYaw;

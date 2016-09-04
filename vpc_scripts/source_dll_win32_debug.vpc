@@ -23,8 +23,8 @@ $Configuration "Debug"
 	$General	
 	{
 		// General
-		$OutputDirectory					".\obj\Debug$_SUBDIRSUFFIX"
-		$IntermediateDirectory				".\obj\Debug$_SUBDIRSUFFIX"
+		$OutputDirectory					".\Debug$_SUBDIRSUFFIX"
+		$IntermediateDirectory				".\Debug$_SUBDIRSUFFIX"
 
 		$ExtensionsToDeleteOnClean
 		$BuildLogFile

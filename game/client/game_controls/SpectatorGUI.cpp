@@ -43,6 +43,7 @@
 #include "tf_gamerules.h"
 void AddSubKeyNamed( KeyValues *pKeys, const char *pszName );
 #endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -66,6 +67,7 @@ static const char *s_SpectatorModes[] =
 	"#Spec_Mode2",	// 	OBS_MODE_FIXED,		
 	"#Spec_Mode3",	// 	OBS_MODE_IN_EYE,	
 	"#Spec_Mode4",	// 	OBS_MODE_CHASE,		
+	"#Spec_Mode_POI",	// 	OBS_MODE_POI, PASSTIME
 	"#Spec_Mode5",	// 	OBS_MODE_ROAMING,	
 };
 
@@ -510,8 +512,6 @@ void CSpectatorGUI::PerformLayout()
 	// stretch the bottom bar across the screen
 	m_pBottomBarBlank->GetPos(x,y);
 	m_pBottomBarBlank->SetSize( w, h - y );
-	
-	BaseClass::PerformLayout();
 }
 
 //-----------------------------------------------------------------------------
@@ -858,4 +858,6 @@ CON_COMMAND_F( spec_player, "Spectate player by name", FCVAR_CLIENTCMD_CAN_EXECU
 		ForwardSpecCmdToServer( args );
 	}
 }
+
+
 

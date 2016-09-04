@@ -16,7 +16,6 @@ $Group "gamedlls"
 
 $Group "game"
 {
-	"boost_python"
 	"client"
 	"mathlib"
 	"raytrace"
@@ -32,7 +31,6 @@ $Group "shaders"
 
 $Group "everything"
 {
-	"boost_python"
 	"captioncompiler"
 	"client"
 	"fgdlib"

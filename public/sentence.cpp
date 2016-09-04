@@ -672,6 +672,10 @@ void CSentence::ParseDataVersionOnePointZero( CUtlBuffer& buf )
 		if ( strlen( token ) <= 0 )
 			break;
 
+		// end of block, return
+		if ( !V_strcmp( token, "}" ) )
+			break;
+
 		char section[ 256 ];
 		Q_strncpy( section, token, sizeof( section ) );
 

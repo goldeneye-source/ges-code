@@ -1,5 +1,3 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
 // Purpose: Basic BOT handling.
 //
 // $Workfile:     $

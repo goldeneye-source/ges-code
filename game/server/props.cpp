@@ -1838,6 +1838,8 @@ LINK_ENTITY_TO_CLASS( dynamic_prop, CDynamicProp );
 LINK_ENTITY_TO_CLASS( prop_dynamic, CDynamicProp );	
 LINK_ENTITY_TO_CLASS( prop_dynamic_override, CDynamicProp );	
 
+IMPLEMENT_AUTO_LIST( IPhysicsPropAutoList );
+
 BEGIN_DATADESC( CDynamicProp )
 
 	// Fields

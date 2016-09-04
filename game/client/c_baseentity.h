@@ -1241,7 +1241,7 @@ protected:
 
 public:
 	// Accessors for above
-	static int						GetPredictionRandomSeed( void );
+	static int						GetPredictionRandomSeed( bool bUseUnSyncedServerPlatTime = false );
 	static void						SetPredictionRandomSeed( const CUserCmd *cmd );
 	static C_BasePlayer				*GetPredictionPlayer( void );
 	static void						SetPredictionPlayer( C_BasePlayer *player );
@@ -1409,6 +1409,7 @@ public:
 
 	virtual bool					IsDeflectable() { return false; }
 
+	bool			IsCombatCharacter() { return MyCombatCharacterPointer() == NULL ? false : true; }
 protected:
 	int								m_nFXComputeFrame;
 
@@ -1456,6 +1457,8 @@ public:
 	// This can be used to setup the entity as a client-only entity. It gets an entity handle,
 	// a render handle, and is put into the spatial partition.
 	bool InitializeAsClientEntityByIndex( int iIndex, RenderGroup_t renderGroup );
+
+	void TrackAngRotation( bool bTrack );
 
 private:
 	friend void OnRenderStart();

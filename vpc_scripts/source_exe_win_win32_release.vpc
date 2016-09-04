@@ -27,12 +27,12 @@ $Configuration "Release"
 	$General
 	{
 		// General
-		$OutputDirectory					".\obj\Release$_SUBDIRSUFFIX"	[!$RETAIL && !$PROFILE]
-		$IntermediateDirectory				".\obj\Release$_SUBDIRSUFFIX"	[!$RETAIL && !$PROFILE]
-		$OutputDirectory					".\obj\Retail$_SUBDIRSUFFIX"	[$RETAIL]
-		$IntermediateDirectory				".\obj\Retail$_SUBDIRSUFFIX"	[$RETAIL]
-		$OutputDirectory					".\obj\Profile$_SUBDIRSUFFIX"	[!$RETAIL && $PROFILE]
-		$IntermediateDirectory				".\obj\Profile$_SUBDIRSUFFIX"	[!$RETAIL && $PROFILE]
+		$OutputDirectory					".\Release$_SUBDIRSUFFIX"	[!$RETAIL && !$PROFILE]
+		$IntermediateDirectory				".\Release$_SUBDIRSUFFIX"	[!$RETAIL && !$PROFILE]
+		$OutputDirectory					".\Retail$_SUBDIRSUFFIX"	[$RETAIL]
+		$IntermediateDirectory				".\Retail$_SUBDIRSUFFIX"	[$RETAIL]
+		$OutputDirectory					".\Profile$_SUBDIRSUFFIX"	[!$RETAIL && $PROFILE]
+		$IntermediateDirectory				".\Profile$_SUBDIRSUFFIX"	[!$RETAIL && $PROFILE]
 		$ExtensionsToDeleteOnClean
 		$BuildLogFile
 		$InheritedProjectPropertySheets
