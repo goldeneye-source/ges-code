@@ -53,7 +53,9 @@ public:
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_SLAPPERS; }
 
 	float		GetRange( void )		{	return	SLAPPER_RANGE;	}
+	bool		DamageWorld()			{	return	false;			}
 
+	virtual void	Precache(void);
 	void		AddViewKick( void );
 	void		SecondaryAttack( void )	{	return;	}
 
@@ -104,6 +106,7 @@ acttable_t	CWeaponSlappers::m_acttable[] =
 	{ ACT_GES_DRAW,						ACT_GES_GESTURE_DRAW_KNIFE,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_SLAPPERS,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_SLAPPERS,					false },
 };
 IMPLEMENT_ACTTABLE(CWeaponSlappers);
 
@@ -113,6 +116,17 @@ IMPLEMENT_ACTTABLE(CWeaponSlappers);
 CWeaponSlappers::CWeaponSlappers( void )
 {
 
+}
+
+void CWeaponSlappers::Precache(void)
+{
+	PrecacheModel("models/weapons/slappers/v_slappers.mdl");
+	PrecacheModel("models/weapons/slappers/w_slappers.mdl");
+
+	PrecacheScriptSound("Weapon_slappers.Swing");
+	PrecacheScriptSound("Weapon_slappers.Smack");
+
+	BaseClass::Precache();
 }
 
 void CWeaponSlappers::Spawn( void )
@@ -133,8 +147,8 @@ void CWeaponSlappers::AddViewKick( void )
 
 	QAngle punchAng;
 
-	punchAng.x = random->RandomFloat( 1.0f, 2.0f );
-	punchAng.y = random->RandomFloat( -2.0f, -1.0f );
+	punchAng.x = random->RandomFloat(-0.75f, 0.75f);
+	punchAng.y = random->RandomFloat(0.5f, 1.00f);
 	punchAng.z = 0.0f;
 	
 	pPlayer->ViewPunch( punchAng ); 
@@ -153,7 +167,7 @@ void CWeaponSlappers::HandleAnimEventMeleeHit( animevent_t *pEvent, CBaseCombatC
 	AngleVectors( GetAbsAngles(), &vecDirection );
 
 	Vector vecEnd;
-	VectorMA( pOperator->Weapon_ShootPosition(), 50, vecDirection, vecEnd );
+	VectorMA( pOperator->Weapon_ShootPosition(), SLAPPER_RANGE, vecDirection, vecEnd );
 	CBaseEntity *pHurt = pOperator->CheckTraceHullAttack( pOperator->Weapon_ShootPosition(), vecEnd, Vector(-16,-16,-16), Vector(36,36,36), GetGEWpnData().m_iDamage, DMG_CLUB );
 	
 	// did I hit someone?

@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye Source. All rights reserved. /////////////
 // 
 // File: ge_weaponautomatic.cpp
 // Description:
@@ -68,8 +68,10 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 		return;
 	
 	// Abort here to handle burst and auto fire modes
-	if ( (UsesClipsForAmmo1() && m_iClip1 == 0) || ( !UsesClipsForAmmo1() && !pPlayer->GetAmmoCount(m_iPrimaryAmmoType) ) )
+	if ((UsesClipsForAmmo1() && m_iClip1 == 0) || (!UsesClipsForAmmo1() && !pPlayer->GetAmmoCount(m_iPrimaryAmmoType)))
+	{
 		return;
+	}
 
 	pPlayer->DoMuzzleFlash();
 
@@ -87,9 +89,6 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 		m_nNumShotsFired++;
 	}
 
-	// Add an accuracy penalty which can move past our maximum penalty time if we're really spastic
-	m_flAccuracyPenalty += GetFireRate() * iBulletsToFire;
-
 	// Make sure we don't fire more than the amount in the clip, if this weapon uses clips
 	if ( UsesClipsForAmmo1() )
 	{
@@ -97,16 +96,8 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 			iBulletsToFire = m_iClip1;
 		m_iClip1 -= iBulletsToFire;
 	}
-		// Fire the bullets
-	FireBulletsInfo_t info;
-	info.m_iShots = iBulletsToFire;
-	info.m_vecSrc = pPlayer->Weapon_ShootPosition( );
-	info.m_vecDirShooting = pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
-	info.m_vecSpread = GetBulletSpread();
-	info.m_flDistance = MAX_TRACE_LENGTH;
-	info.m_iAmmoType = m_iPrimaryAmmoType;
-	info.m_iTracerFreq = 2;
-	pPlayer->FireBullets( info );
+
+	PrepareFireBullets(iBulletsToFire, pPlayer, pPlayer->Weapon_ShootPosition(), pPlayer->GetAutoaimVector(AUTOAIM_5DEGREES), true);
 
 	// Record our shots
 	RecordShotFired( iBulletsToFire );
@@ -120,9 +111,15 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
 	}
 
+	if (!m_iClip1)
+	{
+		m_bFireOnEmpty = true;
+		m_flNextEmptySoundTime = gpGlobals->curtime + max(GetClickFireRate(), 0.25);
+	}
+
 	SendWeaponAnim( GetPrimaryAttackActivity() );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-	//ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+	ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 }
 
 void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, float maxVerticleKickAngle, float fireDurationTime, float slideLimitTime )
@@ -131,7 +128,7 @@ void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy,
 	#define	KICK_MIN_Y			0.2f	//Degrees
 	#define	KICK_MIN_Z			0.1f	//Degrees
 
-	QAngle vecScratch;
+	QAngle vecScratch, vecOldScratch;
 	int iSeed = CBaseEntity::GetPredictionRandomSeed() & 255;
 	
 	//Find how far into our accuracy degradation we are
@@ -139,31 +136,49 @@ void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy,
 	float kickPerc = duration / slideLimitTime;
 
 	// do this to get a hard discontinuity, clear out anything under 10 degrees punch
-	pPlayer->ViewPunchReset( 10 );
+	// pPlayer->ViewPunchReset( 10 );
+
+	vecOldScratch = pPlayer->m_Local.m_vecPunchAngle;
 
 	//Apply this to the view angles as well
-	vecScratch.x = -( KICK_MIN_X + ( maxVerticleKickAngle * kickPerc ) );
-	vecScratch.y = -( KICK_MIN_Y + ( maxVerticleKickAngle * kickPerc ) ) / 3;
-	vecScratch.z = KICK_MIN_Z + ( maxVerticleKickAngle * kickPerc ) / 8;
+	vecScratch.x = abs(-( KICK_MIN_X + ( maxVerticleKickAngle * kickPerc ) ));
+	vecScratch.y = abs(-( KICK_MIN_Y + ( maxVerticleKickAngle * kickPerc ) ) / 3);
+	vecScratch.z = 0;
 
 	RandomSeed( iSeed );
 
-	//Wibble left and right
-	if ( RandomInt( -1, 1 ) >= 0 )
+	float lowYBound = min(vecOldScratch.y, -1);
+	float upperYBound = max(vecOldScratch.y, 1);
+
+	//Wibble left and right, weighted to go towards the normal view vector.
+	if (RandomFloat(lowYBound, upperYBound) >= 0)
 		vecScratch.y *= -1;
 
+	// The z punch just makes the character seem drunk.
+	/*
 	iSeed++;
 
-	//Wobble up and down
-	if ( RandomInt( -1, 1 ) >= 0 )
+	float lowZBound = min(vecOldScratch.z, -1);
+	float upperZBound = max(vecOldScratch.z, 1);
+
+	//Wobble up and down, weighted to go towards the normal view vector.
+	if (RandomFloat(lowZBound, upperZBound) >= 0)
 		vecScratch.z *= -1;
+	*/
+	iSeed++;
+
+	float lowXBound = min(vecOldScratch.x, -1);
+	float upperXBound = max(vecOldScratch.x, 1);
+
+	//Wobble in and out, weighted to go towards the normal view vector.
+	if (RandomFloat(lowXBound, upperXBound) >= 0)
+		vecScratch.x *= -1;
 
 	//Clip this to our desired min/max
 	UTIL_ClipPunchAngleOffset( vecScratch, pPlayer->m_Local.m_vecPunchAngle, QAngle( 24.0f, 3.0f, 1.0f ) );
 
 	//Add it to the view punch
-	// NOTE: 0.5 is just tuned to match the old effect before the punch became simulated
-	pPlayer->ViewPunch( vecScratch * 0.5 );
+	pPlayer->ViewPunch( vecScratch );
 }
 
 bool CGEWeaponAutomatic::Deploy( void )
@@ -244,6 +259,7 @@ bool CGEWeaponAutomatic::Reload( void )
 //-----------------------------------------------------------------------------
 void CGEWeaponAutomatic::AddViewKick( void )
 {
+	
 	//Get the view kick
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
@@ -256,5 +272,25 @@ void CGEWeaponAutomatic::AddViewKick( void )
 	viewPunch.y = SharedRandomFloat( "geautopay", GetGEWpnData().Kick.y_min, GetGEWpnData().Kick.y_max );
 	viewPunch.z = 0.0f;
 
-	DoMachineGunKick( pPlayer, 0.5f, viewPunch.y, m_fFireDuration, viewPunch.x );
+	if (viewPunch.x == 0.0f && viewPunch.y == 0.0f)
+		return;
+
+	CGEPlayer *pGEOwner = ToGEPlayer(GetOwner());
+
+	if (pGEOwner)
+	{
+		if (pGEOwner->IsInAimMode())
+		{
+			viewPunch.x *= 0.25;
+			viewPunch.y *= 0.25;
+		}
+
+		viewPunch.x *= GetAccPenalty() * 4 / GetAccShots() + 1;
+		viewPunch.y *= GetAccPenalty() * 4 / GetAccShots() + 1;
+	}
+
+	if (abs(viewPunch.x) >= 0.01 || abs(viewPunch.y) >= 0.01)
+		DoMachineGunKick( pPlayer, 0.5f, viewPunch.y, m_fFireDuration, viewPunch.x );
+	
+	BaseClass::AddViewKick();
 }

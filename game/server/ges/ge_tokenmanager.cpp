@@ -62,6 +62,7 @@ CGECaptureAreaDef::CGECaptureAreaDef()
 CGETokenManager::CGETokenManager( void )
 {
 	m_flNextEnforcement = 0;
+	m_flNextCapSpawn = 0;
 }
 
 CGETokenManager::~CGETokenManager( void )
@@ -86,6 +87,7 @@ void CGETokenManager::Reset( void )
 
 	// Reset our timers
 	m_flNextEnforcement = 0;
+	m_flNextCapSpawn = 0;
 }
 
 CGETokenDef* CGETokenManager::GetTokenDefForEdit( const char *szClassName )
@@ -584,7 +586,9 @@ void CGETokenManager::SpawnCaptureAreas( const char *name /*=NULL*/ )
 			}
 
 			if ( numToSpawn > 0 )
-				DevWarning( "[TknMgr] Ran out of spawners for capture area type %s!\n", name );
+				m_flNextCapSpawn = gpGlobals->curtime + 0.1;
+			else if (m_flNextCapSpawn < gpGlobals->curtime)
+				m_flNextCapSpawn = 0; // So make sure we don't continue remaking the capture points.
 
 			// We are done if we named an area specifically
 			if ( name )
@@ -717,6 +721,29 @@ int CGETokenManager::FilterSpawnersForToken( int spawner_type, int count, CUtlVe
 		}
 	}
 
+	// If our mapper has marked any special weapon spawns, we want to use those instead of the high level weapon spawns.
+	if (spawner_type == SPAWN_WEAPON && spawns.Count() > 1)
+	{
+		CUtlVector<EHANDLE> specialSpawns;
+
+		for ( int i = 0; i < spawns.Count(); i++ )
+		{
+			CGESpawner *pSpawn = (CGESpawner*)spawns[i].Get();
+			if (pSpawn->IsVerySpecial())
+			{
+				specialSpawns.AddToTail( pSpawn );
+			}
+		}
+
+		// Just because we had more than one viable spawner doesn't mean any of them were marked by the mapper.
+		// If we actually have any, wipe our spawns vector and replace it with the specialspawns vector.
+		if (specialSpawns.Count() > 0)
+		{
+			spawns.RemoveAll();
+			spawns.AddVectorToTail(specialSpawns);
+		}
+	}
+
 	// Find spawners at random using whatevers left from the pruning
 	int num_found = 0;
 
@@ -742,6 +769,8 @@ void CGETokenManager::FindSpawnersForCapArea( CGECaptureAreaDef *ca, CUtlVector<
 	int numToSpawn = ca->iLimit - ca->vAreas.Count();
 	if ( numToSpawn <= 0 )
 		return;
+
+	int origDesired = numToSpawn;
 
 	// Build list of existing areas
 	CUtlVector<Vector> existing;
@@ -775,6 +804,8 @@ void CGETokenManager::FindSpawnersForCapArea( CGECaptureAreaDef *ca, CUtlVector<
 	// Try to find defined capture area spawners first
 	if ( locations & LOC_CAPAREA )
 	{
+		int teamspawnernum = 0;
+
 		if ( (bMyTeam || bOtherTeam) && team >= FIRST_GAME_TEAM )
 		{
 			int desTeamSpawn;
@@ -784,10 +815,19 @@ void CGETokenManager::FindSpawnersForCapArea( CGECaptureAreaDef *ca, CUtlVector<
 				desTeamSpawn = (team == TEAM_MI6) ? SPAWN_CAPAREA_JANUS : SPAWN_CAPAREA_MI6;
 
 			numToSpawn -= FilterSpawnersForCapArea( ca, desTeamSpawn, numToSpawn, existing, spawners );
+
+			teamspawnernum = GEMPRules()->GetSpawnersOfType(desTeamSpawn)->Count();
+			// We might have enough they're just not enabled yet.
+			if (!m_flNextCapSpawn && teamspawnernum >= origDesired)
+				return;
 		}
 
 		// Always add the generic one (if needed)
 		numToSpawn -= FilterSpawnersForCapArea( ca, SPAWN_CAPAREA, numToSpawn, existing, spawners );
+
+		// We might have enough they're just not enabled yet.
+		if (!m_flNextCapSpawn && GEMPRules()->GetSpawnersOfType(SPAWN_CAPAREA)->Count() + teamspawnernum >= origDesired)
+			return;
 	}
 
 	// Default to player spawns otherwise
@@ -839,9 +879,10 @@ int CGETokenManager::FilterSpawnersForCapArea( CGECaptureAreaDef *ca, int spawne
 	spawns.AddVectorToTail( *GEMPRules()->GetSpawnersOfType( spawner_type ) );
 
 	// Check for disabled spawns
-	for ( int i=0; i < spawns.Count(); i++ )
+	for ( int i = 0; i < spawns.Count(); i++ )
 	{
 		CGESpawner *pSpawn = dynamic_cast<CGESpawner*>( spawns[i].Get() );
+
 		if ( pSpawn && pSpawn->IsDisabled() )
 		{
 			spawns.FastRemove( i-- );
@@ -885,6 +926,13 @@ void CGETokenManager::EnforceTokens( void )
 {
 	if ( gpGlobals->curtime < m_flNextEnforcement || !GEGameplay()->IsInRound() )
 		return;
+
+	// This will pretty much -never- be called, but needs to exist for maps that disable/enable areas at round start.
+	if (m_flNextCapSpawn && gpGlobals->curtime > m_flNextCapSpawn && GEGameplay()->IsInRound())
+	{
+		RemoveCaptureAreas();
+		SpawnCaptureAreas();
+	}
 
 	FOR_EACH_DICT( m_vTokenTypes, idx )
 	{
@@ -987,7 +1035,8 @@ void CGETokenManager::ApplyTokenSettings( CGETokenDef *ttype, CGEWeapon *pToken 
 			pGenToken->SetTeamRestriction( ttype->iTeam );
 
 			pGenToken->SetDamageModifier( ttype->flDmgMod );
-			pGenToken->SetSkin( ttype->nSkin );
+			if (ttype->nSkin != -1)
+				pGenToken->SetSkin( ttype->nSkin );
 		}
 	}
 }

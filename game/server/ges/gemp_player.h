@@ -73,6 +73,7 @@ public:
 	virtual bool IsValidObserverTarget( CBaseEntity* target );
 	virtual void CheckObserverSettings();
 	virtual int	 GetNextObserverSearchStartPoint( bool bReverse );
+	virtual void ObserverTransistion();
 
 	virtual CBaseEntity* EntSelectSpawnPoint();
 	virtual CBaseEntity* EntFindSpawnPoint( int iStart, int iType, int &iReturn,bool bAllowWrap = true, bool bRandomize = false );
@@ -97,11 +98,21 @@ public:
 	virtual void UpdateCampingTime();
 	virtual int  GetCampingPercent();
 
-	virtual unsigned int GetSteamHash()			{ return m_iSteamIDHash; }
+	virtual int			 GetSteamHash()			{ return m_iSteamIDHash; }
 	virtual int			 GetDevStatus()			{ return m_iDevStatus; }
+	virtual int			 GetSkinsCode()			{ return m_iSkinsCode; }
 
 	virtual void		 SetPlayerName( const char *name );
 	virtual const char  *GetCleanPlayerName()	{ return m_szCleanName; }
+
+	// Name that's safe for python to use, without color tags.
+	virtual const char  *GetSafeCleanPlayerName()	{ return m_szSafeCleanName; }
+
+	// Name that's safe for python to use, still contains color tags.
+	virtual const char  *GetSafePlayerName()	{ return m_szSafeName; }
+
+	virtual int		GetUsedWeaponSkin(int weapid)				{ return weapid < WEAPON_RANDOM ? m_iWeaponSkinInUse.Get(weapid) : 0; }
+	virtual void	SetUsedWeaponSkin(int weapid, int value)	{ if (weapid < WEAPON_RANDOM) m_iWeaponSkinInUse.Set(weapid, value); }
 
 	virtual void  ShowScenarioHelp();
 
@@ -120,12 +131,35 @@ public:
 	virtual float GetNextJumpTime()				{ return m_flNextJumpTime; }
 	virtual void  SetNextJumpTime( float time ) { m_flNextJumpTime = time; }
 
+	virtual float GetJumpPenalty()				{ return m_flJumpPenalty; }
+	virtual void  SetJumpPenalty(float time)	{ m_flJumpPenalty = time; }
+
 	virtual void  SetStartJumpZ( float val )	{ m_flStartJumpZ = val; }
 	virtual float GetStartJumpZ()				{ return m_flStartJumpZ; }
+
+	virtual float GetLastJumpTime()				{ return m_flLastJumpTime; }
+	virtual void  SetLastJumpTime(float time)	{ m_flLastJumpTime = time; }
+
+	virtual void  SetLastLandingVelocity(float vel)	{ m_flLastLandVelocity = vel; }
+	virtual float GetLastLandingVelocity()		{ return m_flLastLandVelocity; }
+
+	virtual void UpdateJumpPenalty();
+
+	virtual float GetRunStartTime()					{ return m_flRunTime; }
+	virtual void  SetRunStartTime(float time)		{ m_flRunTime = time; }
+	
+	virtual int   GetRunCode()					{ return m_flRunCode; }
+	virtual void  SetRunCode(float code)		{ m_flRunCode = code; }
 
 	virtual CBaseEntity	*GiveNamedItem( const char *szName, int iSubType = 0 );
 	virtual void  GiveDefaultItems();
 	virtual bool  ClientCommand( const CCommand &args );
+
+	virtual float GetLastNameChangeTime()		{ return m_flLastNameChange; };
+	virtual int GetNameChangeCount()			{ return m_iNameChangeCount; };
+
+	virtual void SetLastNameChangeTime( float newtime )	{ m_flLastNameChange = newtime; };
+	virtual void SetNameChangeCount( int amount )	{ m_iNameChangeCount = amount; };
 
 	virtual bool  BumpWeapon( CBaseCombatWeapon *pWeapon );
 
@@ -137,6 +171,12 @@ public:
 		SS_BLOCKED_NO_SPOT,
 		SS_BLOCKED_GAMEPLAY,
 	};
+
+	// Spawn system info functions
+	Vector	GetLastDeath() { return m_vLastDeath; }
+	Vector	GetLastSpawn() { return m_vLastSpawn; }
+	float	GetLastSpawnTime() { return m_flSpawnTime; }
+
 
 protected:
 	// Spawn state management
@@ -151,14 +191,28 @@ protected:
 	// Used to throttle bunnyhopping
 	CNetworkVar( float,	m_flStartJumpZ );
 	CNetworkVar( float,	m_flNextJumpTime );
+	CNetworkVar( float, m_flLastJumpTime );
+	CNetworkVar( float, m_flJumpPenalty );
+	CNetworkVar( float, m_flLastLandVelocity);
+
+	CNetworkVar( float, m_flRunTime );
+	CNetworkVar( int, m_flRunCode );
+	CNetworkArray( int, m_iWeaponSkinInUse, WEAPON_RANDOM ); //Random marks the last of the actual weapons.
+
+	CNetworkVar(int, m_iSteamIDHash);
 
 	char m_szCleanName[32];
+
+	char m_szSafeName[32]; // Name that's safe for python to use.
+	char m_szSafeCleanName[32]; // Clean name that's safe for python to use.
 
 	int m_iMatchScore;
 	int m_iMatchDeaths;
 
-	int m_iSteamIDHash;
 	int m_iDevStatus;
+	uint64 m_iSkinsCode;
+	uint64 m_iClientSkinsCode;
+
 	// This vector keeps track of all the objects thrown by the player
 	// so they don't overpopulate the world
 	CUtlVector<CBaseHandle> m_hThrownObjects;
@@ -188,6 +242,13 @@ protected:
 	bool	m_bFirstSpawn;
 	bool	m_bPreSpawn;
 	bool	m_bSpawnFromDeath;
+
+	float	m_flLastNameChange;
+	int		m_iNameChangeCount;
+
+	// Spawn system personal modifiers.
+	Vector	m_vLastDeath;
+	Vector	m_vLastSpawn;
 };
 
 CGEMPPlayer *ToGEMPPlayer( CBaseEntity *pEntity );

@@ -9,8 +9,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "hudelement.h"
-#include "vgui_controls/panel.h"
-#include "vgui_controls/controls.h"
+#include "vgui_controls/Panel.h"
+#include "vgui_controls/Controls.h"
 
 using namespace vgui;
 

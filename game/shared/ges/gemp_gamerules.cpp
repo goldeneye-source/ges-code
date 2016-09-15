@@ -21,10 +21,9 @@
 	#include "c_ge_player.h"
 	#include "c_ge_gameplayresource.h"
 #else
-	#include "ai/ge_ai.h"
-	#include "ai/npc_gebase.h"
+	#include "ge_ai.h"
 	#include "ai_network.h"
-	
+	#include "npc_gebase.h"
 	#include "ge_gameplay.h"
 	#include "eventqueue.h"
 	#include "items.h"
@@ -41,8 +40,12 @@
 	#include "ge_gameplayresource.h"
 	#include "ge_tokenmanager.h"
 	#include "ge_loadoutmanager.h"
+	#include "ge_mapmanager.h"
 	#include "ge_stats_recorder.h"
 	#include "ge_bot.h"
+
+	#include "ge_triggers.h"
+	#include "ge_door.h"
 
 	extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 	extern void ClientActive( edict_t *pEdict, bool bLoadGame );
@@ -60,12 +63,17 @@
 	void GETeamplay_Callback( IConVar *var, const char *pOldString, float flOldValue );
 	void GEBotThreshold_Callback( IConVar *var, const char *pOldString, float fOldValue );
 	void GEVelocity_Callback( IConVar *var, const char *pOldString, float fOldValue );
+	void GEInfAmmo_Callback(IConVar *var, const char *pOldString, float fOldValue);
+	void GEAlertCode_Callback(IConVar *var, const char *pOldString, float fOldValue);
 #endif
 
 #include "gemp_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+#define GES_DEFAULT_SPAWNINVULN		3.0f
+#define GES_DEFAULT_SPAWNBREAK		true
 
 // -----------------------
 // Console Variables
@@ -82,15 +90,11 @@ ConVar ge_teamautobalance	( "ge_teamautobalance", "1", FCVAR_REPLICATED|FCVAR_NO
 ConVar ge_tournamentmode	( "ge_tournamentmode",	"0", FCVAR_REPLICATED|FCVAR_NOTIFY, "Turns on tournament mode that disables certain gameplay checks" );
 ConVar ge_respawndelay		( "ge_respawndelay",	"6", FCVAR_REPLICATED, "Changes the minimum delay between respawns" );
 
-ConVar ge_armorrespawntime	( "ge_armorrespawntime",  "10", FCVAR_REPLICATED|FCVAR_NOTIFY, "Time in seconds between armor respawns (ge_dynamicarmorrespawn must be off!)" );
 ConVar ge_itemrespawntime	( "ge_itemrespawntime",	  "10", FCVAR_REPLICATED|FCVAR_NOTIFY, "Time in seconds between ammo respawns (ge_dynamicweaponrespawn must be off!)" );
 ConVar ge_weaponrespawntime	( "ge_weaponrespawntime", "10", FCVAR_REPLICATED|FCVAR_NOTIFY, "Time in seconds between weapon respawns (ge_dynamicweaponrespawn must be off!)" );
 
 ConVar ge_dynweaponrespawn		 ( "ge_dynamicweaponrespawn", "1", FCVAR_REPLICATED, "Changes the respawn delay for weapons and ammo to be based on how many players are connected" );
 ConVar ge_dynweaponrespawn_scale ( "ge_dynamicweaponrespawn_scale", "1.0", FCVAR_REPLICATED, "Changes the dynamic respawn delay scale for weapons and ammo" );
-
-ConVar ge_dynarmorrespawn		 ( "ge_dynamicarmorrespawn", "1", FCVAR_REPLICATED, "Changes the respawn delay for armor to be based on how many players are connected" );
-ConVar ge_dynarmorrespawn_scale  ( "ge_dynamicarmorrespawn_scale", "1.0", FCVAR_REPLICATED, "Changes the dynamic respawn delay scale for armor" );
 
 ConVar ge_radar_range			 ( "ge_radar_range", "1500", FCVAR_REPLICATED|FCVAR_NOTIFY, "Change the radar range (in inches), default is 125ft" );
 ConVar ge_radar_showenemyteam	 ( "ge_radar_showenemyteam", "1", FCVAR_REPLICATED|FCVAR_NOTIFY, "Allow the radar to show enemies during teamplay (useful for tournaments)" );
@@ -101,18 +105,31 @@ ConVar ge_bot_threshold			( "ge_bot_threshold", "0", FCVAR_REPLICATED|FCVAR_NOTI
 ConVar ge_bot_openslots			( "ge_bot_openslots", "0", FCVAR_REPLICATED, "Number of open slots to leave for incoming players." );
 ConVar ge_bot_strict_openslot	( "ge_bot_strict_openslot", "0", FCVAR_REPLICATED, "Count spectators in determining whether to leave an open player slot." );
 
-ConVar ge_roundtime	( "ge_roundtime", "240", FCVAR_REPLICATED, "Round time in seconds that can be played.", true, 0, true, 3000, GERoundTime_Callback );
-ConVar ge_rounddelay( "ge_rounddelay", "15", FCVAR_GAMEDLL, "Delay, in seconds, between rounds.", true, 3, true, 40 );
+ConVar ge_roundtime	( "ge_roundtime", "0", FCVAR_REPLICATED, "Round time in seconds that can be played.", true, 0, true, 3000, GERoundTime_Callback );
+ConVar ge_rounddelay( "ge_rounddelay", "10", FCVAR_GAMEDLL, "Delay, in seconds, between rounds.", true, 2, true, 40 );
 ConVar ge_roundcount( "ge_roundcount", "0", FCVAR_REPLICATED, "Number of rounds that should be held in the given match time (calculates ge_roundtime), use 0 to disable", GERoundCount_Callback );
 ConVar ge_teamplay	( "ge_teamplay", "0", FCVAR_REPLICATED, "Turns on team play if the current scenario supports it.", GETeamplay_Callback );
 ConVar ge_velocity	( "ge_velocity", "1.0", FCVAR_REPLICATED|FCVAR_NOTIFY, "Player movement velocity multiplier, applies in multiples of 0.25 [0.7 to 2.0]", true, 0.7, true, 2.0, GEVelocity_Callback );
+ConVar ge_infiniteammo( "ge_infiniteammo", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Players never run out of ammo!", GEInfAmmo_Callback );
+ConVar ge_nextnextmap( "ge_nextnextmap", "", FCVAR_GAMEDLL, "Map to switch to immediately upon loading next map");
+ConVar ge_alertcodeoverride("ge_alertcodeoverride", "-1", FCVAR_GAMEDLL, "Override alert code with this value. bit 1 = desynch spread, bit 2 = use mersine twister, bit 3 = check player speed", GEAlertCode_Callback);
+ConVar ge_votekickpreference("ge_votekickpreference", "-1", FCVAR_GAMEDLL, "-1 = allow alertcode to dictate votekick behavior, 0 = disable, 1 = enable.");
+
+void GEAlertCode_Callback(IConVar *var, const char *pOldString, float flOldValue)
+{
+	ConVar *cVar = static_cast<ConVar*>(var);
+	int value = cVar->GetInt();
+
+	if ( value >= 0 )
+		iAlertCode = value;
+}
 
 void GERoundTime_Callback( IConVar *var, const char *pOldString, float flOldValue )
 {
 	static bool in_func = false;
 	if ( in_func || !GEMPRules() )
 		return;
-	
+
 	// Guard against recursion
 	in_func = true;
 	// Grab the desired round time
@@ -139,8 +156,8 @@ void GERoundCount_Callback( IConVar *var, const char *pOldString, float flOldVal
 	ConVar *cVar = static_cast<ConVar*>(var);
 	int num_rounds = cVar->GetInt();
 
-	// If we have less than 0 ignore this functionality (ie, use ge_roundtime exclusively)
-	if ( num_rounds <= 0 ) {
+	// If numrounds is 0 then ignore this and use ge_roundtime
+	if (num_rounds <= 0) {
 		return;
 	} else if ( num_rounds == 1 ) {
 		// Set our round time to the match time since we only want 1 round
@@ -193,7 +210,40 @@ void GEVelocity_Callback( IConVar *var, const char *pOldString, float fOldValue 
 
 	Msg( "Velocity set to %0.2f times normal speed!\n", value );
 
+	FOR_EACH_PLAYER(pPlayer)
+		pPlayer->SetMaxSpeed( GE_NORM_SPEED * GEMPRules()->GetSpeedMultiplier(pPlayer) );
+	END_OF_PLAYER_LOOP()
+
 	denyReentrant = false;
+}
+
+void GEInfAmmo_Callback(IConVar *var, const char *pOldString, float flOldValue)
+{
+	if (!GEMPRules())
+		return;
+
+	ConVar *cVar = static_cast<ConVar*>(var);
+
+	bool newstate = cVar->GetBool();
+
+	GEMPRules()->SetGlobalInfAmmoState(newstate);
+
+	if (!newstate)
+		return;
+
+	const char* ammotypes[13] = { AMMO_9MM, AMMO_RIFLE, AMMO_BUCKSHOT, AMMO_MAGNUM, AMMO_GOLDENGUN, AMMO_MOONRAKER, AMMO_ROCKET, AMMO_SHELL, AMMO_TIMEDMINE, AMMO_REMOTEMINE, AMMO_TKNIFE, AMMO_GRENADE, AMMO_PROXIMITYMINE };
+	// Somewhat dinky way of still allowing ammo pickups for mines/knives/grenades during inf ammo.  Just give the player one less than the max!
+	int ammoamounts[13] = { AMMO_9MM_MAX, AMMO_RIFLE_MAX, AMMO_BUCKSHOT_MAX, AMMO_MAGNUM_MAX, AMMO_GOLDENGUN_MAX, AMMO_MOONRAKER_MAX, AMMO_ROCKET_MAX,
+							AMMO_SHELL_MAX, AMMO_TIMEDMINE_MAX - 1, AMMO_REMOTEMINE_MAX - 1, AMMO_TKNIFE_MAX - 1, AMMO_GRENADE_MAX - 1, AMMO_PROXIMITYMINE_MAX - 1};
+
+	FOR_EACH_PLAYER(pPlayer)
+		pPlayer->RemoveAllAmmo(); // First strip their ammo so if someone spazzes out on the console command they don't end up with max ammo for throwables.
+
+		for (int i = 0; i < 13; i++)
+		{
+			pPlayer->GiveAmmo(ammoamounts[i], GetAmmoDef()->Index(ammotypes[i]), true);
+		}
+	END_OF_PLAYER_LOOP()
 }
 
 void GEBotThreshold_Callback( IConVar *var, const char *pOldString, float fOldValue )
@@ -271,13 +321,25 @@ IMPLEMENT_NETWORKCLASS_ALIASED( GEMPGameRulesProxy, DT_GEMPGameRulesProxy )
 
 BEGIN_NETWORK_TABLE_NOBASE( CGEMPRules, DT_GEMPRules )
 #ifdef CLIENT_DLL
+	RecvPropInt( RECVINFO( m_iRandomSeedOffset ) ),
 	RecvPropBool( RECVINFO( m_bTeamPlayDesired ) ),
+	RecvPropBool( RECVINFO( m_bGlobalInfAmmo )),
+	RecvPropBool( RECVINFO( m_bGamemodeInfAmmo )),
 	RecvPropInt( RECVINFO( m_iTeamplayMode ) ),
+	RecvPropInt( RECVINFO( m_iScoreboardMode )),
+	RecvPropInt( RECVINFO( m_iAwardEventCode )),
+	RecvPropFloat(RECVINFO( m_flMapFloorHeight )),
 	RecvPropEHandle( RECVINFO( m_hMatchTimer ) ),
 	RecvPropEHandle( RECVINFO( m_hRoundTimer ) ),
 #else
+	SendPropInt( SENDINFO( m_iRandomSeedOffset )),
 	SendPropBool( SENDINFO( m_bTeamPlayDesired ) ),
+	SendPropBool( SENDINFO( m_bGlobalInfAmmo ) ),
+	SendPropBool( SENDINFO( m_bGamemodeInfAmmo ) ),
 	SendPropInt( SENDINFO( m_iTeamplayMode ) ),
+	SendPropInt( SENDINFO( m_iScoreboardMode ) ),
+	SendPropInt( SENDINFO( m_iAwardEventCode )),
+	SendPropFloat( SENDINFO( m_flMapFloorHeight )),
 	SendPropEHandle( SENDINFO( m_hMatchTimer ) ),
 	SendPropEHandle( SENDINFO( m_hRoundTimer ) ),
 #endif
@@ -358,12 +420,21 @@ CGEMPRules::CGEMPRules()
 
 	m_bTeamPlayDesired	 = false;
 	m_bInTeamBalance	 = false;
-	m_bUseTeamSpawns	 = true;
+	m_bUseTeamSpawns	 = false;
 	m_bSwappedTeamSpawns = false;
+
+	m_bGlobalInfAmmo = false;
+	m_bGamemodeInfAmmo = false;
+
+	m_bAllowSuperfluousAreas = true;
 
 	m_bEnableAmmoSpawns	 = true;
 	m_bEnableArmorSpawns = true;
 	m_bEnableWeaponSpawns= true;
+
+	m_iScoreboardMode = 0;
+
+	m_iAwardEventCode = 0;
 
 	m_iPlayerWinner = m_iTeamWinner = 0;
 
@@ -373,11 +444,21 @@ CGEMPRules::CGEMPRules()
 	m_flNextBotCheck		= 0;
 	m_flNextIntermissionCheck = 0;
 
+	m_flSpawnInvulnDuration = GES_DEFAULT_SPAWNINVULN;
+	m_bSpawnInvulnCanBreak = GES_DEFAULT_SPAWNBREAK;
+
+	m_flMapFloorHeight = 125.0;
+	m_iRandomSeedOffset = 0;
+
 	m_szNextLevel[0] = '\0';
 	m_szGameDesc[0] = '\0';
 
 	// Find "sv_alltalk" convar and set the value accordingly
 	m_pAllTalkVar = cvar->FindVar( "sv_alltalk" );
+
+	// Copy over our override value.
+	if (ge_alertcodeoverride.GetInt() >= 0)
+		iAlertCode = ge_alertcodeoverride.GetInt();
 
 	// Create entity resources
 	g_pRadarResource = (CGERadarResource*) CBaseEntity::Create( "radar_resource", vec3_origin, vec3_angle );
@@ -397,9 +478,16 @@ CGEMPRules::CGEMPRules()
 	m_pLoadoutManager = new CGELoadoutManager;
 	m_pLoadoutManager->ParseLoadouts();
 
+	// Create map manager
+	m_pMapManager = new CGEMapManager;
+	m_pMapManager->ParseMapSelectionData();
+
+	// Figure out what day it is
+	//int day, month, year;
+	//GetCurrentDate(&day, &month, &year);
+
 	// Load our bot names
 	g_vBotNames.RemoveAll();
-
 	CUtlBuffer buf;
 	buf.SetBufferType( true, false );
 	if ( filesystem->ReadFile( "scripts/bot_names.txt", "MOD", buf ) )
@@ -477,7 +565,15 @@ void CGEMPRules::OnScenarioInit()
 	SetAmmoSpawnState( true );
 	SetWeaponSpawnState( true );
 	SetArmorSpawnState( true );
-	SetTeamSpawn( true );
+	SetTeamSpawn( false ); // Only CTF uses teamspawns nowadays.
+
+	SetGlobalInfAmmoState( ge_infiniteammo.GetBool() );
+	SetGamemodeInfAmmoState( false );
+	SetScoreboardMode( 0 ); //Default points.
+
+	SetSpawnInvulnInterval( GES_DEFAULT_SPAWNINVULN );
+	SetSpawnInvulnCanBreak( GES_DEFAULT_SPAWNBREAK );
+	SetSuperfluousAreasState( true ); // Superlous areas allowed by default.
 
 	// Make sure the round timer is enabled
 	// NOTE: The match timer can not be disabled
@@ -540,6 +636,11 @@ void CGEMPRules::OnRoundStart()
 	SetRoundWinner( 0 );
 	SetRoundTeamWinner( TEAM_UNASSIGNED );
 
+	// Update the teamplay global variable to make sure it's right.
+	// If the game thinks it's teamplay when it isn't, it won't do any clientside prediction since it thinks both players
+	// are on the same team and shouldn't be able to damage each other.
+	gpGlobals->teamplay = IsTeamplay();
+
 	// Start the round timer
 	StartRoundTimer( ge_roundtime.GetFloat() );
 
@@ -585,6 +686,17 @@ void CGEMPRules::OnRoundEnd()
 // handles special particulars like swapping team spawns
 void CGEMPRules::SetupRound()
 {
+	// Purge the trap list so it can be reconstructed on world reload.
+	m_vTrapList.RemoveAll();
+
+	// Get the system time for the random seed selector.
+	tm sysTime;
+	VCRHook_LocalTime(&sysTime);
+
+	// Pick a new random seed offset so that any entities using it won't just get the same value over and over again.
+	// Pgameplay and date affect this.
+	m_iRandomSeedOffset = GetSpawnInvulnInterval() + sysTime.tm_sec + sysTime.tm_min * 60 + sysTime.tm_hour * 3600;
+
 	// Reload the world entities (unless protected)
 	WorldReload();
 
@@ -610,7 +722,7 @@ bool CGEMPRules::WeaponShouldRespawn( const char *classname )
 {
 	if ( Q_stristr( classname, "mine" ) || 
 		 !Q_stricmp( classname, "weapon_grenade" ) || 
-		 !Q_stricmp( classname, "weapon_knife" ) )
+		 !Q_stricmp( classname, "weapon_knife_throwing" ) )
 		return false;
 
 	return m_bEnableWeaponSpawns;
@@ -630,16 +742,6 @@ Vector CGEMPRules::VecItemRespawnSpot( CItem *pItem )
 QAngle CGEMPRules::VecItemRespawnAngles( CItem *pItem )
 {
 	return pItem->GetOriginalSpawnAngles();
-}
-
-float CGEMPRules::FlArmorRespawnTime( CItem *pItem )
-{
-	// Use dynamic respawn calculation if provided
-	if ( ge_dynarmorrespawn.GetBool() )
-		return (15.4 - 1.8 * sqrt( (float)max(GetNumAlivePlayers(), 8) )) * ge_dynarmorrespawn_scale.GetFloat();
-
-	// Otherwise return the static delay
-	return ge_armorrespawntime.GetFloat();
 }
 
 float CGEMPRules::FlItemRespawnTime( CItem *pItem )
@@ -808,6 +910,46 @@ int CGEMPRules::GetRoundWinner()
 	return winnerid;
 }
 
+static int playerRoundRankSort(CGEMPPlayer* const *a, CGEMPPlayer* const *b)
+{
+	int ascore = (*a)->GetRoundScore();
+	int bscore = (*b)->GetRoundScore();
+
+	if (ascore > bscore)
+		return -1;
+	else if (ascore == bscore)
+		return 0;
+	else return 1;
+}
+
+static int playerMatchRankSort(CGEMPPlayer* const *a, CGEMPPlayer* const *b)
+{
+	int ascore = (*a)->GetMatchScore();
+	int bscore = (*b)->GetMatchScore();
+
+	if (ascore > bscore)
+		return -1;
+	else if (ascore == bscore)
+		return 0;
+	else return 1;
+}
+
+void CGEMPRules::GetRankSortedPlayers( CUtlVector<CGEMPPlayer*> &sortedplayers, bool matchRank )
+{
+	sortedplayers.RemoveAll();
+
+	// Add up all the players that have played in or are playing in the round.
+	FOR_EACH_MPPLAYER(pPlayer)
+		if (pPlayer->IsActive() || pPlayer->GetRoundScore() || pPlayer->GetRoundDeaths())
+			sortedplayers.AddToTail(pPlayer);
+	END_OF_PLAYER_LOOP()
+
+	if (matchRank)
+		sortedplayers.Sort(playerMatchRankSort);
+	else
+		sortedplayers.Sort(playerRoundRankSort);
+}
+
 void CGEMPRules::GetTaggedConVarList( KeyValues *pCvarTagList )
 {
 	BaseClass::GetTaggedConVarList( pCvarTagList );
@@ -840,11 +982,6 @@ void CGEMPRules::GetTaggedConVarList( KeyValues *pCvarTagList )
 	key = new KeyValues( "ge_bot_threshold" );
 	key->SetString( "convar", "ge_bot_threshold" );
 	key->SetString( "tag", "BOTS" );
-	pCvarTagList->AddSubKey( key );
-
-	key = new KeyValues( "ge_velocity" );
-	key->SetString( "convar", "ge_velocity" );
-	key->SetString( "tag", "speed mod" );
 	pCvarTagList->AddSubKey( key );
 }
 
@@ -886,6 +1023,12 @@ const char *CGEMPRules::GetChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer )
 
 void CGEMPRules::LevelInitPreEntity()
 {
+	// Tell the map manager to grab the map settings.
+	if (m_pMapManager)
+		m_pMapManager->ParseCurrentMapData();
+	else
+		Warning( "No Map Manager On Level Init!\n" );
+
 	// Create the Gameplay Manager if not existing already
 	if ( !GEGameplay() )
 		CreateGameplayManager();
@@ -897,6 +1040,19 @@ void CGEMPRules::LevelInitPreEntity()
 		CreateAiManager();
 	else
 		Warning( "[GERules] Ai manager already existed!\n" );
+
+
+	if ( Q_strcmp(ge_nextnextmap.GetString(), "") )
+	{
+		const char *nextmapname = ge_nextnextmap.GetString();
+
+		if (engine->IsMapValid(nextmapname))
+		{
+			Msg("Nextnextmap switch triggered, going to %s\n", nextmapname);
+			GEMPRules()->SetupChangeLevel(nextmapname);
+			ge_nextnextmap.SetValue("");
+		}
+	}
 }
 
 void CGEMPRules::FrameUpdatePreEntityThink()
@@ -925,18 +1081,80 @@ void CGEMPRules::Think()
 
 	EnforceBotCount();
 
+	if (m_flKickEndTime && m_flKickEndTime < gpGlobals->curtime)
+	{
+		if ( !CheckVotekick() )
+		{
+			CRecipientFilter *filter = new CReliableBroadcastRecipientFilter;
+
+			UTIL_ClientPrintFilter(*filter, 3, "Votekick Failed!");
+
+			Q_strcpy(m_pKickTargetID, "NULLID"); // No more votekick.
+			m_flKickEndTime = 0;
+			m_flLastKickCall = gpGlobals->curtime;
+		}
+	}
+
 	// Enforce token management
 	m_pTokenManager->EnforceTokens();
 }
 
 void CGEMPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info )
 {
+	CTakeDamageInfo modinfo = info;
+
 	CBaseEntity *weap = info.GetWeapon();
 	if ( !weap )
 		weap = info.GetInflictor();
 
-	BaseClass::PlayerKilled( pVictim, info );
-	GetScenario()->OnPlayerKilled( ToGEPlayer(pVictim), ToGEPlayer(info.GetAttacker()), weap);
+	CBaseEntity *pKiller = info.GetAttacker();
+	CBaseEntity *pLastAttacker = ToGEPlayer(pVictim)->GetLastAttacker();
+	CBaseEntity *pInflictor = info.GetInflictor();
+	const char *inflictor_name = NULL;
+
+	if (pInflictor)
+		inflictor_name = pInflictor->GetClassname();
+
+	bool trapInflictor = (Q_strncmp(inflictor_name, "func_ge_door", 12) == 0 || Q_strncmp(inflictor_name, "trigger_trap", 12) == 0);
+
+	// First try to give credit to players who activated an entity system that killed this player.
+	if ( pKiller && !pKiller->IsPlayer() && trapInflictor )
+	{
+		CBaseEntity *pTrapActivator = NULL;
+
+		if (Q_strncmp(inflictor_name, "trigger_trap", 12) == 0)
+		{
+			CTriggerTrap *traptrigger = static_cast<CTriggerTrap*>(pInflictor);
+
+			pTrapActivator = traptrigger->GetTrapOwner();
+		}
+		else
+		{
+			CGEDoor *trapdoor = static_cast<CGEDoor*>(pInflictor);
+
+			pTrapActivator = trapdoor->GetLastActivator();
+		}
+
+		// If we found an activator of the trap, give them credit for the kill.
+		if (pTrapActivator)
+		{
+			modinfo.SetAttacker(pTrapActivator);
+			pKiller = pTrapActivator; // Set this so the rest of the death code knows we have a new killer.
+		}
+	}
+
+
+	// Try to give credit for suicides to someone.
+	if ((!pKiller || !pKiller->IsPlayer() || pKiller == pVictim) && pLastAttacker)
+	{
+		modinfo.SetAttacker(pLastAttacker);
+		modinfo.SetWeapon(NULL); // Set the weapon to weapon_none so transfered suicides with a given weapon don't just count as kills with that weapon.
+		if (!trapInflictor)
+			modinfo.AddDamageType(DMG_NERVEGAS); //Add the NerveGas damage type as a flag to tell other parts of the code that this was a transfered kill.
+	}
+
+	BaseClass::PlayerKilled( pVictim, modinfo );
+	GetScenario()->OnPlayerKilled( ToGEPlayer(pVictim), ToGEPlayer(modinfo.GetAttacker()), weap );
 }
 
 
@@ -952,6 +1170,17 @@ void CGEMPRules::ClientActive( CBasePlayer *pPlayer )
 	if ( pGEPlayer->IsBotPlayer() )
 		m_vBotList.AddToTail( pGEPlayer );
 
+	if (Q_strcmp("NULLID", m_pKickTargetID)) // Votekick currently going on.
+	{
+		int curplayercount = 0;
+
+		FOR_EACH_MPPLAYER(pCountPlayer)
+			curplayercount++;
+		END_OF_PLAYER_LOOP()
+
+		m_iVoteGoal = round(curplayercount * m_flVoteFrac); // Need a certain percent of players to agree.
+	}
+
 	GetScenario()->ClientConnect( pGEPlayer );
 }
 
@@ -961,6 +1190,53 @@ void CGEMPRules::ClientDisconnected( edict_t *pEntity )
 	CGEMPPlayer *player = (CGEMPPlayer*) CBaseEntity::Instance( pEntity );
 	if ( player )
 	{
+		// If a player has this player as their last attacker, nullify it to prevent invalid pointer.
+		FOR_EACH_PLAYER(pPlayer)
+			if (pPlayer->GetLastAttacker() == player)
+				pPlayer->SetLastAttacker(NULL);
+		END_OF_PLAYER_LOOP()
+
+		// Next wipe any traps this player may own.
+		for (int i = 0; i < m_vTrapList.Count(); i++)
+		{
+			const char *inflictor_name = m_vTrapList[i]->GetClassname();
+
+			if (Q_strncmp(inflictor_name, "trigger_trap", 12) == 0)
+			{
+				CTriggerTrap *traptrigger = static_cast<CTriggerTrap*>(m_vTrapList[i]);
+
+				if (traptrigger->GetTrapOwner() == player)
+					traptrigger->SetTrapOwner(NULL);
+			}
+
+			if (Q_strncmp(inflictor_name, "func_ge_door", 12) == 0)
+			{
+				CGEDoor *trapdoor = static_cast<CGEDoor*>(m_vTrapList[i]);
+
+				if (trapdoor->GetLastActivator() == player)
+					trapdoor->SetLastActivator(NULL);
+			}
+		}
+
+		if (Q_strcmp("NULLID", m_pKickTargetID)) // Votekick currently going on.
+		{
+			if ( m_vVoterIDs.Find(player->GetSteamHash()) != -1 )
+			{
+				m_vVoterIDs.FindAndRemove(player->GetSteamHash());
+				m_iVoteCount--; // Player voted, so take that vote away.
+			}
+
+			int curplayercount = -1; // Account for the fact that this player is leaving.
+
+			FOR_EACH_MPPLAYER(pCountPlayer)
+				curplayercount++;
+			END_OF_PLAYER_LOOP()
+
+			m_iVoteGoal = round( curplayercount * m_flVoteFrac ); // Need a certain percent of players to agree.
+
+			CheckVotekick(); // Could have pushed us over the threshold.
+		}
+
 		player->RemoveLeftObjects();
 		GetScenario()->ClientDisconnect( player );
 
@@ -987,7 +1263,8 @@ void CGEMPRules::HandleTimeLimitChange()
 	ChangeMatchTimer( mp_timelimit.GetInt() * 60.0f );
 
 	// Recalculate our round times based on the new map time
-	GERoundCount_Callback( &ge_roundcount, ge_roundcount.GetString(), ge_roundcount.GetFloat() );
+	if (mp_timelimit.GetInt() > 0)
+		GERoundCount_Callback( &ge_roundcount, ge_roundcount.GetString(), ge_roundcount.GetFloat() );
 }
 
 void CGEMPRules::SetupChangeLevel( const char *next_level /*= NULL*/ )
@@ -1013,15 +1290,79 @@ void CGEMPRules::SetupChangeLevel( const char *next_level /*= NULL*/ )
 		if ( *nextlevel.GetString() )
 			Q_strncpy( m_szNextLevel, nextlevel.GetString(), sizeof(m_szNextLevel) );
 		else
-			GetNextLevelName( m_szNextLevel, sizeof(m_szNextLevel) );
+		{
+			const char* GESNewMap = m_pMapManager->SelectNewMap();
+
+			if (GESNewMap)
+				Q_strncpy(m_szNextLevel, GESNewMap, sizeof(m_szNextLevel));
+			else
+				GetNextLevelName(m_szNextLevel, sizeof(m_szNextLevel));
+		}
 	}
 
 	// Tell our players what the next map will be
-	IGameEvent *event = gameeventmanager->CreateEvent( "server_mapannounce" );
-	if ( event )
+	IGameEvent *event = gameeventmanager->CreateEvent("server_mapannounce");
+	if (event)
 	{
-		event->SetString( "levelname", m_szNextLevel );
-		gameeventmanager->FireEvent( event );
+		event->SetString("levelname", m_szNextLevel);
+		gameeventmanager->FireEvent(event);
+	}
+
+	MapSelectionData *curMapData = m_pMapManager->GetCurrentMapSelectionData();
+	MapSelectionData *nextMapData = m_pMapManager->GetMapSelectionData(m_szNextLevel);
+
+	if ( nextMapData && curMapData && nextMapData->resintensity + curMapData->resintensity >= 10 )
+	{
+		ge_nextnextmap.SetValue(m_szNextLevel);
+		Q_strncpy(m_szNextLevel, "ge_transition", sizeof(m_szNextLevel));
+	}
+	
+	// Record our rotation log, but only if this isn't a transistion.
+	if (Q_strcmp(curMapData->mapname, "ge_transition"))
+	{
+		CUtlVector<const char*> vMaps;
+		CUtlVector<const char*> vModes;
+		CUtlVector<const char*> vWepnames;
+		CUtlVector<CGELoadout*> vWeapons;
+		char linebuffer[128];
+
+		GetMapManager()->GetRecentMaps(vMaps);
+		GEGameplay()->GetRecentModes(vModes);
+		GetLoadoutManager()->GetRecentLoadouts(vWeapons);
+
+		for (int i = 0; i < vWeapons.Count(); i++)
+			vWepnames.AddToTail(vWeapons[i]->GetIdent());
+
+		FileHandle_t file = filesystem->Open("gamesetuprecord.txt", "w", "MOD");
+
+		if (file)
+		{
+			filesystem->Write("Maps:\n", V_strlen("Maps:\n"), file);
+			for (int i = 0; i < vMaps.Count(); i++)
+			{
+				Q_snprintf(linebuffer, 128, "%s\n", vMaps[i]);
+				filesystem->Write(linebuffer, V_strlen(linebuffer), file);
+			}
+			filesystem->Write("-\n", V_strlen("-\n"), file);
+
+			filesystem->Write("Modes:\n", V_strlen("Modes:\n"), file);
+			for (int i = 0; i < vModes.Count(); i++)
+			{
+				Q_snprintf(linebuffer, 128, "%s\n", vModes[i]);
+				filesystem->Write(linebuffer, V_strlen(linebuffer), file);
+			}
+			filesystem->Write("-\n", V_strlen("-\n"), file);
+
+			filesystem->Write("Weps:\n", V_strlen("Weps:\n"), file);
+			for (int i = 0; i < vWepnames.Count(); i++)
+			{
+				Q_snprintf(linebuffer, 128, "%s\n", vWepnames[i]);
+				filesystem->Write(linebuffer, V_strlen(linebuffer), file);
+			}
+			filesystem->Write("-\n", V_strlen("-\n"), file);
+
+			filesystem->Close(file);
+		}
 	}
 
 	// Notify everyone
@@ -1145,6 +1486,10 @@ void CGEMPRules::StopMatchTimer()
 void CGEMPRules::SetRoundTimerEnabled( bool state )
 {
 	Assert( m_hRoundTimer.Get() != NULL );
+
+	if (m_hRoundTimer->IsEnabled() == state)
+		return; // We're already in this state so we don't need to do anything.
+
 	if ( state ) {
 		m_hRoundTimer->Enable();
 		StartRoundTimer( ge_roundtime.GetFloat() );
@@ -1161,7 +1506,7 @@ void CGEMPRules::StartRoundTimer( float time_sec /*=-1*/ )
 	m_hRoundTimer->Start( time_sec );
 }
 
-void CGEMPRules::ChangeRoundTimer( float new_time_sec )
+void CGEMPRules::ChangeRoundTimer( float new_time_sec, bool announce )
 {
 	Assert( m_hRoundTimer.Get() != NULL );
 
@@ -1171,21 +1516,23 @@ void CGEMPRules::ChangeRoundTimer( float new_time_sec )
 		// Notify if we extended or shortened the round
 		if ( new_time_sec > 0 )
 		{
-			char szMinSec[8], szDir[16];
-			float min = new_time_sec / 60.0f;
-			int sec = (int)( 60 * (min - (int)min) );
-			Q_snprintf( szMinSec, 8, "%d:%02d", (int)min, sec );
+			if (announce)
+			{
+				char szMinSec[8], szDir[16];
+				float min = new_time_sec / 60.0f;
+				int sec = (int)(60 * (min - (int)min));
+				Q_snprintf(szMinSec, 8, "%d:%02d", (int)min, sec);
 
-			// If we don't have enough time left in the round append the difference
-			if ( new_time_sec > m_hRoundTimer->GetLength() )
-				Q_strncpy( szDir, "#Extended", 16 );
-			else
-				Q_strncpy( szDir, "#Shortened", 16 );
+				// Tell the everyone that we've extended or shortened the round.
+				if (new_time_sec > m_hRoundTimer->GetLength())
+					Q_strncpy(szDir, "#Extended", 16);
+				else
+					Q_strncpy(szDir, "#Shortened", 16);
 
+				UTIL_ClientPrintAll(HUD_PRINTTALK, "#GES_RoundTime_Changed", szDir, szMinSec);
+			}
 			// Set the new time
 			m_hRoundTimer->ChangeLength( new_time_sec );
-
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#GES_RoundTime_Changed", szDir, szMinSec );
 		}
 		else
 		{
@@ -1193,6 +1540,86 @@ void CGEMPRules::ChangeRoundTimer( float new_time_sec )
 			StopRoundTimer();
 		}
 	}
+}
+
+void CGEMPRules::SetRoundTimer(float new_time_sec, bool announce)
+{
+	Assert(m_hRoundTimer.Get() != NULL);
+
+	// Check to make sure we will actually make a change
+	if (new_time_sec != m_hRoundTimer->GetTimeRemaining())
+	{
+		// Notify if we extended or shortened the round
+		if (new_time_sec > 0)
+		{
+			if (announce)
+			{
+				char szMinSec[8], szDir[16];
+				float min = new_time_sec / 60.0f;
+				int sec = (int)(60 * (min - (int)min));
+				Q_snprintf(szMinSec, 8, "%d:%02d", (int)min, sec);
+
+				// Tell the everyone that we've extended or shortened the round.
+				if (new_time_sec > m_hRoundTimer->GetTimeRemaining())
+					Q_strncpy(szDir, "#Extended", 16);
+				else
+					Q_strncpy(szDir, "#Shortened", 16);
+
+				UTIL_ClientPrintAll(HUD_PRINTTALK, "#GES_RoundTime_Changed", szDir, szMinSec);
+			}
+			// Set the new time
+			m_hRoundTimer->SetCurrentLength( new_time_sec );
+		}
+		else
+		{
+			// The round timer has been disabled
+			StopRoundTimer();
+		}
+	}
+}
+
+CON_COMMAND(ge_setcurrentroundtime, "Sets the amount of seconds left in the round.  Does not affect subsequent rounds.")
+{
+	if (!UTIL_IsCommandIssuedByServerAdmin())
+		return;
+
+	GEMPRules()->SetRoundTimer(atoi(args[1]));
+}
+
+void CGEMPRules::AddToRoundTimer(float new_time_sec, bool announce)
+{
+	Assert(m_hRoundTimer.Get() != NULL);
+
+	// If we don't have any time on the clock, we don't have any time to add to.
+	if (m_hRoundTimer->IsStarted())
+	{
+		// Notify if we extended or shortened the round
+		if (announce)
+		{
+			char szMinSec[8], szDir[16];
+			float min = abs(new_time_sec) / 60.0f;
+			int sec = (int)abs(60 * (min - (int)min));
+			Q_snprintf(szMinSec, 8, "%d:%02d", (int)min, sec);
+
+			// Tell the everyone that we've extended or shortened the round.
+			if (new_time_sec > 0)
+				Q_strncpy(szDir, "#Extended", 16);
+			else
+				Q_strncpy(szDir, "#Shortened", 16);
+
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "#GES_Roundtime_Added", szDir, szMinSec);
+		}
+		// Set the new time
+		m_hRoundTimer->AddToLength(new_time_sec);
+	}
+}
+
+CON_COMMAND(ge_addtoroundtime, "Add the given number of seconds to the current roundtime.  Does not affect subsequent rounds.")
+{
+	if (!UTIL_IsCommandIssuedByServerAdmin())
+		return;
+
+	GEMPRules()->AddToRoundTimer(atoi(args[1]));
 }
 
 void CGEMPRules::SetRoundTimerPaused( bool state )
@@ -1206,6 +1633,27 @@ void CGEMPRules::StopRoundTimer()
 	Assert( m_hRoundTimer.Get() != NULL );
 	UTIL_ClientPrintAll( HUD_PRINTTALK, "#GES_RoundTime_Disabled" );
 	m_hRoundTimer->Stop();
+}
+
+void CGEMPRules::SetSpawnInvulnInterval(float duration)
+{
+	m_flSpawnInvulnDuration = duration;
+}
+
+
+void CGEMPRules::SetSpawnInvulnCanBreak(bool canbreak)
+{
+	m_bSpawnInvulnCanBreak = canbreak;
+}
+
+float CGEMPRules::GetSpawnInvulnInterval()
+{
+	return m_flSpawnInvulnDuration;
+}
+
+bool CGEMPRules::GetSpawnInvulnCanBreak()
+{
+	return m_bSpawnInvulnCanBreak;
 }
 
 void CGEMPRules::SetTeamplay( bool state, bool force /*= false*/ )
@@ -1425,7 +1873,7 @@ void CGEMPRules::BalanceTeams()
 			for ( int i=0; i < pHeavyTeam->GetNumPlayers(); ++i )
 			{
 				pPlayer = ToGEMPPlayer( pHeavyTeam->GetPlayer(i) );
-				if ( !pPlayer || !GetScenario()->CanPlayerChangeTeam( pPlayer, pHeavyTeam->GetTeamNumber(), pLightTeam->GetTeamNumber() ) )
+				if ( !pPlayer || !GetScenario()->CanPlayerChangeTeam( pPlayer, pHeavyTeam->GetTeamNumber(), pLightTeam->GetTeamNumber(), true ) ) // Autobalance is always forced.
 					continue;
 
 				players.AddToTail( pPlayer );
@@ -1474,11 +1922,18 @@ void CGEMPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info 
 	int weaponid = WEAPON_NONE;
 	int killer_ID = 0;
 	int custom = 0;
+	bool VictimInPVS = true;
+	int dist = 0;
+	int wepSkin = 0;
+	int dmgType = 0;
 
 	// Find the killer & the scorer
 	CBaseEntity *pInflictor = info.GetInflictor();
 	CBaseEntity *pKiller = info.GetAttacker();
 	CBaseEntity *pWeapon = info.GetWeapon();
+
+	if (info.GetDamageType())
+		dmgType = info.GetDamageType();
 
 	// Is the killer a player?
 	if ( pKiller->IsPlayer() )
@@ -1490,11 +1945,20 @@ void CGEMPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info 
 			CGEWeapon *pGEWeapon = ToGEWeapon( (CBaseCombatWeapon*)pWeapon );
 			killer_weapon_name = pGEWeapon->GetPrintName();
 			weaponid = pGEWeapon->GetWeaponID();
+			if (weaponid < WEAPON_RANDOM)
+				wepSkin = pGEWeapon->GetSkin();
 		}
 		else
 		{
 			killer_weapon_name = pInflictor->GetClassname();  // it's just that easy
 		}
+
+		dist = floor((pKiller->GetAbsOrigin() - pVictim->GetAbsOrigin()).Length());
+
+		CGEPlayer *pGEKiller = ToGEPlayer(pKiller);
+
+		if (pGEKiller)
+			VictimInPVS = pGEKiller->CheckInPVS(pVictim);
 	}
 	else
 	{
@@ -1504,22 +1968,85 @@ void CGEMPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info 
 	// We only need to check the classname if we didn't explicitly resolve the weapon above
 	if ( weaponid == WEAPON_NONE )
 	{
-		if ( Q_stristr( killer_weapon_name, "npc_" ) && !pInflictor->IsNPC() )
+		if (!Q_stricmp( killer_weapon_name, "player" ))
+		{
+			// Detects killbinds and displays a special message for them
+			dmgType = DMG_GENERIC;
+			killer_weapon_name = "self";
+		}
+		else if (dmgType & DMG_NERVEGAS) // Make sure we're actually looking for a weapon first, if this flag is set we want to pretend there isn't one.
+		{
+			killer_weapon_name = default_killer;
+		}
+		else if ( Q_stristr( killer_weapon_name, "npc_" ) && !pInflictor->IsNPC() )
 		{
 			CGEBaseGrenade *pNPC = ToGEGrenade( pInflictor );
 			killer_weapon_name = pNPC->GetPrintName();
 			weaponid = pNPC->GetWeaponID();
 			custom = pNPC->GetCustomData();
 		}
-		else if ( info.GetDamageType() & DMG_BLAST )
+		else if (!Q_stricmp(killer_weapon_name, "trigger_trap")) // Use the trigger's name as the weapon name if it's a kill, or replace the death message with a special one on suicide.
+		{
+			CTriggerTrap *traptrigger = static_cast<CTriggerTrap*>(pInflictor);
+
+			if (!pKiller->IsPlayer())
+			{
+				string_t sDeathMsg = traptrigger->GetTrapDeathString();
+
+				if (sDeathMsg != NULL_STRING)
+					killer_weapon_name = UTIL_VarArgs("-TD-%s", sDeathMsg);
+				else
+					killer_weapon_name = "#GE_Trap";
+			}
+			else if (pKiller == pVictim)
+			{
+				string_t sDeathMsg = traptrigger->GetTrapSuicideString();
+
+				if (sDeathMsg != NULL_STRING)
+					killer_weapon_name = UTIL_VarArgs("-TD-%s", sDeathMsg);
+				else
+					killer_weapon_name = "#GE_Trap";
+			}
+			else
+			{
+				string_t sDeathMsg = traptrigger->GetTrapKillString();
+
+				if (sDeathMsg != NULL_STRING) // We have a kill message to go along with our kill
+					killer_weapon_name = UTIL_VarArgs("-TD-%s", sDeathMsg);
+				else // We don't have a kill message, but we might be able to use the entity name
+				{
+					string_t sEntName = pInflictor->GetEntityName();
+
+					if (sEntName != NULL_STRING)
+						killer_weapon_name = UTIL_VarArgs("%s", sEntName);
+					else
+						killer_weapon_name = "#GE_Trap";
+				}
+			}
+
+			weaponid = WEAPON_TRAP;
+		}
+		else if (Q_strncmp(killer_weapon_name, "func_ge_door", 12) == 0)
+		{
+			// Detects ge door kills and displays the entity name in the killfeed if it has one.
+			string_t sEntName = pInflictor->GetEntityName();
+
+			if (sEntName != NULL_STRING)
+				killer_weapon_name = UTIL_VarArgs("%s", sEntName);
+			else
+				killer_weapon_name = "#GE_Trap";
+
+			weaponid = WEAPON_TRAP;
+		}
+		else if (dmgType & DMG_BLAST)
 		{
 			// Special case if we didn't have a weapon check if we were damaged by an explosion
 			killer_weapon_name = "#GE_Explosion";
 			weaponid = WEAPON_EXPLOSION;
 		}
-		else if ( Q_strncmp( killer_weapon_name, "func_", 5 ) == 0 || Q_strncmp( killer_weapon_name, "prop_", 5 ) == 0 )
+		else
 		{
-			// The "world" killed us if it's a prop or func object (crushed / blown up)
+			// The "world" killed us if we can't figure out who did
 			killer_weapon_name = default_killer;
 		}
 	}
@@ -1536,6 +2063,10 @@ void CGEMPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info 
 		event->SetInt( "weaponid", weaponid );
 		event->SetBool( "headshot", pVictim->LastHitGroup() == HITGROUP_HEAD );
 		event->SetBool( "penetrated", FBitSet(info.GetDamageStats(), FIRE_BULLETS_PENETRATED_SHOT)?true:false );
+		event->SetInt( "dist", dist);
+		event->SetInt( "weaponskin", wepSkin);
+		event->SetInt( "dmgtype", dmgType);
+		event->SetBool( "InPVS", VictimInPVS);
 		event->SetInt( "custom", custom );
 		gameeventmanager->FireEvent( event );
 	}
@@ -1543,15 +2074,158 @@ void CGEMPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info 
 
 bool CGEMPRules::OnPlayerSay(CBasePlayer* player, const char* text)
 {
-	CGEPlayer* pPlayer = ToGEPlayer(player);
+	CGEMPPlayer* pPlayer = ToGEMPPlayer(player);
 
 	if (!pPlayer || !text)
 		return false;
+
+	if (!Q_strncmp("!gevotekick", text, 11))
+	{
+		CRecipientFilter *filter = NULL;
+
+		int curplayercount = 0;
+
+		FOR_EACH_MPPLAYER(pCountPlayer)
+			curplayercount++;
+		END_OF_PLAYER_LOOP()
+
+		if (ge_votekickpreference.GetInt() == 0 || (ge_votekickpreference.GetInt() == -1 && !(iAlertCode & 8)))
+		{
+			filter = new CSingleUserRecipientFilter(player);
+
+			UTIL_ClientPrintFilter(*filter, 3, "Vote kick disabled on this server.");
+		}
+		else if (Q_strcmp("NULLID", m_pKickTargetID))
+		{
+			filter = new CSingleUserRecipientFilter(player);
+
+			UTIL_ClientPrintFilter(*filter, 3, "There is already someone being targeted with votekick!");
+		}
+		else if (m_flLastKickCall && (m_flLastKickCall + 120 > gpGlobals->curtime || (m_pLastKickCaller == player && m_flLastKickCall + 240 > gpGlobals->curtime)))
+		{
+			filter = new CSingleUserRecipientFilter(player);
+
+			char sKickTime[128];
+
+			int votewait = m_flLastKickCall + 120 - gpGlobals->curtime;
+
+			if (m_pLastKickCaller == player)
+				votewait += 120;
+
+			Q_snprintf(sKickTime, sizeof(sKickTime), "You must wait %d seconds before starting another votekick!", votewait);
+
+			UTIL_ClientPrintFilter(*filter, 3, sKickTime);
+		}
+		else if ( curplayercount < 4 )
+		{
+			filter = new CSingleUserRecipientFilter(player);
+
+			UTIL_ClientPrintFilter(*filter, 3, "Need at least 4 players in the server to call a votekick!");
+		}
+		else
+		{
+			filter = new CReliableBroadcastRecipientFilter;
+
+			char targetname[32];
+			CBasePlayer *pKickTarget;
+
+			if (!Q_strncmp("!gevotekickid", text, 13))
+			{
+				Q_StrRight(text, -14, targetname, 32);
+
+				pKickTarget = UTIL_PlayerByUserId( Q_atoi(targetname) );
+			}
+			else
+			{
+				Q_StrRight(text, -12, targetname, 32);
+
+				pKickTarget = UTIL_PlayerByName(targetname);
+			}
+
+			if (pKickTarget)
+				Q_strcpy(m_pKickTargetID, pKickTarget->GetNetworkIDString());
+
+			if (Q_strcmp("NULLID", m_pKickTargetID) && pKickTarget)
+			{
+				char sKickNotice[128];
+				Q_snprintf(sKickNotice, sizeof(sKickNotice), "%s has called a votekick on %s!", player->GetPlayerName(), pKickTarget->GetPlayerName());
+
+				UTIL_ClientPrintFilter(*filter, 3, sKickNotice);
+				UTIL_ClientPrintFilter(*filter, 3, "Press g to agree!");
+
+				m_iVoteCount = 1; // Person who called the kick of course voted yes.
+				m_iVoteGoal = 0;
+				m_flKickEndTime = gpGlobals->curtime + 40;
+				m_pLastKickCaller = pPlayer;
+				m_vVoterIDs.RemoveAll();
+				m_vVoterIDs.AddToTail(pPlayer->GetSteamHash()); // Make sure they can't vote again.
+
+
+				m_flVoteFrac = iVotekickThresh * 0.01; // Pretty high by default to prevent abuse.
+
+				if (pPlayer->GetDevStatus() == GE_DEVELOPER)
+					m_flVoteFrac = iVotekickThresh * 0.005;
+				else if (pPlayer->GetDevStatus() == GE_BETATESTER)
+					m_flVoteFrac = iVotekickThresh * 0.006;
+				else if (pPlayer->GetDevStatus() == GE_CONTRIBUTOR)
+					m_flVoteFrac = iVotekickThresh * 0.007;
+				else if (pPlayer->GetDevStatus() > 0) // Acheivement medals get a small bonus too.
+					m_flVoteFrac = iVotekickThresh * 0.009;
+
+				if ( iAlertCode & 32 ) // Martial Law, developers can kick instantly.
+				{
+					if (pPlayer->GetDevStatus() == GE_DEVELOPER)
+						m_flVoteFrac = 0;
+					else if (pPlayer->GetDevStatus() == GE_BETATESTER)
+						m_flVoteFrac = 0;
+				}
+
+				m_iVoteGoal = round( curplayercount * m_flVoteFrac ); // Need a certain percent of players to agree.
+
+				CheckVotekick();
+			}
+		}
+
+		return true;
+	}
+	else if (Q_strcmp("NULLID", m_pKickTargetID) && !Q_strcmp("!voodoo", text))
+	{
+		CRecipientFilter *filter = new CSingleUserRecipientFilter(player);
+
+		if (m_vVoterIDs.Find(pPlayer->GetSteamHash()) != -1)
+			UTIL_ClientPrintFilter(*filter, 3, "You already voted!");
+		else
+		{
+			filter = new CReliableBroadcastRecipientFilter;
+
+			m_iVoteCount++;
+			m_vVoterIDs.AddToTail(pPlayer->GetSteamHash());
+
+			char sKickProgress[128];
+			Q_snprintf(sKickProgress, sizeof(sKickProgress), "Vote count is now %d/%d!", m_iVoteCount, m_iVoteGoal);
+
+			UTIL_ClientPrintFilter(*filter, 3, sKickProgress);
+		}
+
+		CheckVotekick();
+
+		return true;
+	}
 
 	return GetScenario()->OnPlayerSay(pPlayer, text);
 }
 
 #endif // GAME_DLL
+
+void CGEMPRules::SetMapFloorHeight(float height)
+{
+	m_flMapFloorHeight = height;
+}
+
+float CGEMPRules::GetMapFloorHeight()
+{
+	return m_flMapFloorHeight;
+}
 
 // Match Timer Functions
 bool CGEMPRules::IsMatchTimeRunning()
@@ -1601,6 +2275,8 @@ float CGEMPRules::GetRoundTimeRemaining()
 {	
 	if ( m_hRoundTimer.Get() )
 		return m_hRoundTimer->GetTimeRemaining();
+
+	Warning("Could not find round timer!\n");
 	return 0;
 }
 
@@ -1609,31 +2285,30 @@ bool CGEMPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
-		::V_swap(collisionGroup0,collisionGroup1);
+		swap(collisionGroup0,collisionGroup1);
 	}
 	
-	if (collisionGroup0 == COLLISION_GROUP_MI6 && collisionGroup1 == COLLISION_GROUP_MI6)		
+	if ( collisionGroup0 == COLLISION_GROUP_MI6 && (collisionGroup1 == COLLISION_GROUP_MI6 || collisionGroup1 == COLLISION_GROUP_GRENADE_MI6) )
 		return false;
 
-	if (collisionGroup0 == COLLISION_GROUP_JANUS && collisionGroup1 == COLLISION_GROUP_JANUS)		
+	if ( collisionGroup0 == COLLISION_GROUP_JANUS && ( collisionGroup1 == COLLISION_GROUP_JANUS || collisionGroup1 == COLLISION_GROUP_GRENADE_JANUS ) )
 		return false;
 
-	//remap these as to not fuck the collisions up for the lower classes.	
-	if (collisionGroup0 == COLLISION_GROUP_MI6)		
-		collisionGroup0 = COLLISION_GROUP_PLAYER;	
+	int switchlist[4] = { COLLISION_GROUP_MI6, COLLISION_GROUP_JANUS, COLLISION_GROUP_GRENADE_MI6, COLLISION_GROUP_GRENADE_JANUS };
+	int fixlist[4] = { COLLISION_GROUP_PLAYER, COLLISION_GROUP_PLAYER, COLLISION_GROUP_GRENADE, COLLISION_GROUP_GRENADE };
 
-	if (collisionGroup0 == COLLISION_GROUP_JANUS)		
-		collisionGroup0 = COLLISION_GROUP_PLAYER;	
+	// remap these as to not fuck the collisions up for the lower classes.
+	for (int i = 0; i < 4; i++)
+	{
+		if (collisionGroup0 == switchlist[i])
+			collisionGroup0 = fixlist[i];
 
-	if (collisionGroup1 == COLLISION_GROUP_MI6)		
-		collisionGroup1 = COLLISION_GROUP_PLAYER;	
-
-	if (collisionGroup1 == COLLISION_GROUP_JANUS)		
-		collisionGroup1 = COLLISION_GROUP_PLAYER;
+		if (collisionGroup1 == switchlist[i])
+			collisionGroup1 = fixlist[i];
+	}
 
 	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
 }
-
 
 bool CGEMPRules::IsTeamplay()
 {

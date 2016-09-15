@@ -24,13 +24,14 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define MINE_LIFETIME		180.0f	// 3 Minutes
+#define MINE_LIFETIME		300.0f	// 5 Minutes
 #define	MINE_POWERUPTIME	3.0f	// seconds
 #define MINE_TIMEDDELAY		3.0f	// seconds
 
 #define MINE_PROXYBEEPDISTSCALE	1.3f	// units from the edge of the explosion dist
 #define MINE_PROXYDELAY			0.28f	// seconds
 #define MINE_PROXBEEPDELAY		2.5f	// seconds
+#define MINE_WIDTH				1.5f	// inches
 
 BEGIN_DATADESC( CGEMine )
 
@@ -59,14 +60,14 @@ CGEMine::~CGEMine( void )
 {
 }
 
+extern ConVar sv_gravity;
+
 void CGEMine::Spawn( void )
 {
 	Precache();
 	BaseClass::Spawn();
 
-	SetModel( "models/weapons/mines/w_mine.mdl" );
-
-	SetSolid( SOLID_BBOX );
+	SetSolid( SOLID_VPHYSICS );
 	SetMoveType( MOVETYPE_FLYGRAVITY );
 
 	SetCollisionGroup( COLLISION_GROUP_MINE );
@@ -88,8 +89,6 @@ void CGEMine::Spawn( void )
 	m_bExploded  = false;
 	m_bPreExplode = false;
 
-	SetGravity( UTIL_ScaleForGravity( 560 ) );	// slightly lower gravity
-
 	m_bInAir = true;
 
 	m_flSpawnTime = gpGlobals->curtime;
@@ -110,11 +109,12 @@ void CGEMine::InputExplode( inputdata_t &inputdata )
 
 	// Convert our mine angles to a Normal Vector
 	AngleVectors( angles, &forward );
-	if ( angles.y != 180.0f )
-		forward.z *= -1; // invert our z only if we aren't on the ceiling
 
-	// Create the explosion 16 units AWAY from the surface we are attached to
-	ExplosionCreate( GetAbsOrigin() - forward*16.0f, GetAbsAngles(), inputdata.pActivator, GetDamage(), GetDamageRadius(), 
+	//if ( angles.y != 180.0f )
+	//	forward.z *= -1; // invert our z only if we aren't on the ceiling
+
+	// Create the explosion 4 units AWAY from the surface we are attached to
+	ExplosionCreate( GetAbsOrigin() + forward*4, GetAbsAngles(), inputdata.pActivator, GetDamage(), GetDamageRadius(), 
 		SF_ENVEXPLOSION_NOSMOKE | SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS, 0.0f, this);
 
 	// Effectively hide us from everyone until the explosion is done with
@@ -124,7 +124,10 @@ void CGEMine::InputExplode( inputdata_t &inputdata )
 void CGEMine::Precache( void )
 {
 	BaseClass::Precache();
-	PrecacheModel( "models/weapons/mines/w_mine.mdl" );
+	PrecacheModel("models/weapons/mines/w_proximitymine.mdl");
+	PrecacheModel("models/weapons/mines/w_remotemine.mdl");
+	PrecacheModel("models/weapons/mines/w_timedmine.mdl");
+
 	PrecacheScriptSound( "weapon_mines.Attach" );
 	PrecacheScriptSound( "Mine.Beep" );
 }
@@ -134,13 +137,13 @@ void CGEMine::SetMineType( GEWeaponID type )
 	m_iWeaponID = type;
 
 	if ( type == WEAPON_REMOTEMINE ) {
-		m_nSkin = FAMILY_GROUP_REMOTE;
+		SetModel("models/weapons/mines/w_remotemine.mdl");
 		SetClassname( "npc_mine_remote" );
 	} else if ( type == WEAPON_TIMEDMINE ) {
-		m_nSkin = FAMILY_GROUP_TIMED;
+		SetModel("models/weapons/mines/w_timedmine.mdl");
 		SetClassname( "npc_mine_timed" );
 	} else if ( type == WEAPON_PROXIMITYMINE ) {
-		m_nSkin = FAMILY_GROUP_PROXIMITY;
+		SetModel("models/weapons/mines/w_proximitymine.mdl");
 		SetClassname( "npc_mine_proximity" );
 	} else {
 		Warning( "Mine set to invalid weapon ID!\n");
@@ -184,44 +187,67 @@ void CGEMine::MineThink( void )
 		for ( CEntitySphereQuery sphere( vecMinePos, GetDamageRadius() ); 
 				( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
 		{
-			UTIL_TraceLine( vecMinePos, pEntity->GetAbsOrigin(), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr );
-			// If we can't see this entity, ignore it
-			if ( tr.fraction != 1.0 )
+			if (pEntity->IsWorld() || pEntity == this || pEntity == this->GetParent())
 				continue;
-
-			const char *className = pEntity->GetClassname();
 
 			// Filter out undesirable entities
 			if ( pEntity->IsPlayer() )
 			{
 				CBasePlayer *pPlayer = ToBasePlayer( pEntity );
-				// Don't let teammates explode their team's proxy mines
-				if ( !GERules()->FPlayerCanTakeDamage( pPlayer, (CBasePlayer*)GetThrower() ) || pPlayer->IsObserver() )
+				// Don't let teammates explode their team's proxy mines.  Also stop observers, or people who have just spawned, from triggering any.
+				if ( !GERules()->FPlayerCanTakeDamage(pPlayer, (CBasePlayer*)GetThrower()) || pPlayer->IsObserver() || ToGEPlayer(pPlayer)->IsRadarCloaked() )
 					continue;
-			}
-			else if ( !pEntity->IsNPC() && !Q_strnicmp( className, "npc_", 4 ) )
-			{
-				if ( !Q_stricmp( className, "npc_tknife" ) && !((CGETKnife*)pEntity)->IsInAir() )
-					continue;
-				else if ( !Q_strnicmp( className, "npc_mine", 8 ) && !((CGEMine*)pEntity)->IsInAir() )
-					continue;
-				else if ( !Q_stricmp( className, "npc_grenade" ) && !((CGEGrenade*)pEntity)->IsInAir() )
-					continue;
-				else if ( !Q_stricmp( className, "npc_shell" ) )
-					continue;
-				else if ( !Q_stricmp( className, "npc_rocket" ) )
-					continue;
+
+				// Trace to the player's eyes, then their feet, then their midsection for a more robust detection code.
+
+				UTIL_TraceLine(vecMinePos, pPlayer->EyePosition(), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
+				if (tr.fraction != 1.0)
+				{
+					UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin(), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
+					if (tr.fraction != 1.0)
+					{
+						UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin() + 32, MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
+						if (tr.fraction != 1.0)
+							continue;
+					}
+				}
 			}
 			else
-				continue;
+			{
+				if (!pEntity->IsSolid())
+					continue;
+
+				// Some non-player entity, so just do a single check to the origin
+				UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin(), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
+				if (tr.fraction != 1.0)
+					continue;
+			}
 
 			// Distance to the target
 			dist = (tr.endpos - vecMinePos).Length();
 
-			// Explode if we are in range
-			if( dist <= range )
+			Vector entvel, minevel;
+
+			entvel = pEntity->GetAbsVelocity();
+			minevel = Vector(0, 0, 0);
+
+			if (entvel.Length() == 0 && pEntity->VPhysicsGetObject())
+				pEntity->VPhysicsGetObject()->GetVelocity(&entvel, NULL);
+
+			if (GetParent())
+			{
+				if (GetParent()->GetAbsVelocity() == 0 && GetParent()->VPhysicsGetObject())
+					pEntity->VPhysicsGetObject()->GetVelocity(&minevel, NULL);
+				else
+					minevel = GetParent()->GetAbsVelocity();
+			}
+
+
+			// Explode if we are in range and the object is moving fast enough
+			if (dist <= range && (entvel - minevel).Length() > 150)
 			{
 				// Emit the beep sound
+				DevMsg("Triggered on %s, which was moving %f \n", pEntity->GetClassname(), entvel.Length());
 				EmitSound("Mine.Beep");
 				g_EventQueue.AddEvent( this, "Explode", MINE_PROXYDELAY, GetThrower(), this );
 			}
@@ -239,28 +265,32 @@ endOfThink:
 
 void CGEMine::MineTouch( CBaseEntity *pOther )
 {
-	if ( !pOther->IsSolid() )
+	if (!m_bInAir)
 		return;
-	
+
+	if (!pOther->IsSolid())
+		return;
+
 	if ( !PassServerEntityFilter( this, pOther) )
 		return;
 
-	if ( !g_pGameRules->ShouldCollide( GetCollisionGroup(), pOther->GetCollisionGroup() ) )
+	if ( !g_pGameRules->ShouldCollide(GetCollisionGroup(), pOther->GetCollisionGroup()) )
 		return;
 
-	if( !m_bInAir )
-		return;
+	//Mines can collide in midair but only bounce off of eachother.
+	if (!strncmp(pOther->GetClassname(), "npc_mine_", 9) && (((CGEMine*)pOther)->m_bInAir || ((CGEMine*)pOther->GetRootMoveParent())->m_bInAir))
+	{
+		pOther->SetAbsVelocity(GetAbsVelocity() + pOther->GetAbsVelocity());
 
-	//If we can't align it properly, must have barely touched it, let it continue.
-	if( !AlignToSurf( pOther ) )
-		return;
+		if ( GetParent() || pOther->GetParent() || FirstMoveChild() || pOther->FirstMoveChild() ) //Only independant mines can attach to eachother.
+		{
+			g_EventQueue.AddEvent(this, "Explode", 0, GetOwnerEntity(), this);
+			return;
+		}
+	}
 
-	m_bInAir = false;
-	m_flAttachTime = gpGlobals->curtime;
-
-	EmitSound("weapon_mines.Attach");
-
-	SetTouch( NULL );
+	//If we passed all the checks let's try to attach to it.  This can still fail.
+	AlignToSurf(pOther);
 }
 
 int CGEMine::OnTakeDamage( const CTakeDamageInfo &inputInfo )
@@ -269,15 +299,7 @@ int CGEMine::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		return 0;
 
 	// Mines can suffer blast and bullet damage
-	if( inputInfo.GetDamageType() & DMG_BLAST )
-	{
-		m_iHealth -= inputInfo.GetDamage();
-		if ( m_iHealth <= 0 )
-			g_EventQueue.AddEvent( this, "Explode", 0, GetThrower(), this );
-
-		return inputInfo.GetDamage();
-	}
-	else if ( inputInfo.GetDamageType() & DMG_BULLET )
+	else if ((inputInfo.GetDamageType() & DMG_BLAST && inputInfo.GetDamage() > 40) || inputInfo.GetDamageType() & DMG_BULLET)
 	{
 		m_iHealth -= inputInfo.GetDamage();
 		if ( m_iHealth <= 0 )
@@ -301,14 +323,69 @@ const char* CGEMine::GetPrintName( void )
 		return "Mine";
 }
 
+void CGEMine::MineAttach(CBaseEntity *pEntity)
+{
+	//Mines can collide in midair but only bounce off of eachother.
+	if (!strncmp(pEntity->GetClassname(), "npc_mine_", 9) && (GetParent() || FirstMoveChild()))
+	{
+		g_EventQueue.AddEvent(this, "Explode", 0, GetOwnerEntity(), this); //If we picked up a mine in midair then we're not in a good spot to add ourselves to another higherarchy.
+		return;
+	}
+
+	// If this is true we must have hit a prop so make sure we follow it if it moves!
+	if (pEntity->GetMoveType() != MOVETYPE_NONE)
+	{
+		SetMoveType(MOVETYPE_VPHYSICS);
+		FollowEntity(pEntity, false);
+		CreateVPhysics();
+		AddSolidFlags(FSOLID_TRIGGER); //This lets us shoot our own mines.
+		SetAbsVelocity(Vector(0, 0, 0));
+	}
+	else
+	{
+		CreateVPhysics();
+		SetMoveType(MOVETYPE_NONE); //Make sure we can't knock the mines off a wall.
+		AddSolidFlags(FSOLID_TRIGGER);
+		SetAbsVelocity(Vector(0, 0, 0));
+	}
+
+	m_bInAir = false;
+	m_flAttachTime = gpGlobals->curtime;
+
+	EmitSound("weapon_mines.Attach");
+
+	RemoveFlag(FL_DONTTOUCH);
+}
+
 bool CGEMine::AlignToSurf( CBaseEntity *pSurface )
 {
-	Vector vecAiming;
+	Vector vecVelocity, vecAiming, vecUp, vecRight, traceOrigin;
+	float speed;
 	trace_t tr;
 
-	vecAiming = GetAbsVelocity() / GetAbsVelocity().Length();
+	speed = GetAbsVelocity().Length();
+	vecVelocity = GetAbsVelocity();
+	vecAiming = vecVelocity / speed;
 
-	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + (vecAiming * 64), MASK_SOLID, this, GetCollisionGroup(), &tr );
+	VectorVectors(vecAiming, vecUp, vecRight);
+	Vector traceArray[9] = { Vector(0, 0, 0), (vecRight + vecUp)*0.7, (vecRight - vecUp)*0.7, (-vecRight + vecUp)*0.7, (-vecRight - vecUp)*0.7, vecUp, vecRight, -vecUp, -vecRight };
+	for (int i = 0; i < 9; i++)
+	{
+		traceOrigin = GetAbsOrigin() + traceArray[i] * MINE_WIDTH;
+
+		UTIL_TraceLine(traceOrigin, traceOrigin + (vecAiming * 4), MASK_SOLID, this, GetCollisionGroup(), &tr);
+
+		if (tr.fraction < 1.0 && tr.m_pEnt == pSurface)
+			break;
+	}
+
+	// If we still haven't hit something it's time for desperate mesaures.
+	if (tr.fraction == 1.0)
+	{
+		Vector originTrace = ( pSurface->GetAbsOrigin() - GetAbsOrigin() );
+
+		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + originTrace / originTrace.Length() * 6, MASK_SOLID, this, GetCollisionGroup(), &tr);
+	}
 
 	if( tr.surface.flags & SURF_SKY )
 	{
@@ -316,34 +393,23 @@ bool CGEMine::AlignToSurf( CBaseEntity *pSurface )
 		UTIL_Remove(this);
 		return false;
 	}
-	
+
 	if (tr.fraction < 1.0)
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
-		if ( pEntity && !(pEntity->GetFlags() & FL_CONVEYOR) )
+		if ( pEntity )
 		{
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
+			VPhysicsDestroyObject();
 
 			angles.x += 90.0f;
 
-			SetAbsAngles( angles );
 			SetAbsOrigin( tr.endpos );
 
-			// If this is true we must have hit a prop so make sure we follow it if it moves!
-			if ( pSurface->GetMoveType() != MOVETYPE_NONE )
-			{
-				VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
-				SetMoveType( MOVETYPE_VPHYSICS );
-				FollowEntity( pEntity, false );
-			}
-			else
-			{
-				SetMoveType( MOVETYPE_NONE );
-				IPhysicsObject *pObject = VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
-				pObject->EnableMotion( false );
-				AddSolidFlags( FSOLID_NOT_SOLID );
-			}
+			SetAbsAngles(angles);
+
+			MineAttach(pEntity);
 
 			return true;
 		}

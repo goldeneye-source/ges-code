@@ -11,6 +11,7 @@
 #include "ge_pyprecom.h"
 #include "ge_pyfuncs.h"
 #include "ge_weapon.h"
+#include "ge_ammocrate.h"
 #include "gemp_player.h"
 
 // Type name definitions for friendly errors
@@ -22,6 +23,7 @@ DECLARE_TYPE_NAME2( Color, "GEUtil.Color" );
 DECLARE_TYPE_NAME2( Vector, "GEUtil.Vector" );
 DECLARE_TYPE_NAME2( CBaseEntity*, "GEEntity.CBaseEntity" );
 DECLARE_TYPE_NAME2( CGEWeapon*, "GEWeapon.CGEWeapon" );
+DECLARE_TYPE_NAME2( CGEAmmoCrate*, "GEAmmoCrate.CGEAmmoCrate" );
 DECLARE_TYPE_NAME2( CGEPlayer*, "GEPlayer.CGEPlayer" );
 DECLARE_TYPE_NAME2( CGEMPPlayer*, "GEPlayer.CGEMPPlayer" );
 

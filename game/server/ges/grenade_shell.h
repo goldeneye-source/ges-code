@@ -47,6 +47,7 @@ private:
 	int m_iBounceCount;
 	CHandle<SmokeTrail> m_hSmokeTrail;
 	float m_flFloorTimeout;
+	bool m_bHitPlayer;
 };
 
 #endif

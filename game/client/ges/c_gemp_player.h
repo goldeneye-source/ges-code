@@ -36,8 +36,29 @@ public:
 	float GetNextJumpTime()				{ return m_flNextJumpTime; }
 	void SetNextJumpTime( float time )	{ m_flNextJumpTime = time; }
 
+	virtual float GetLastJumpTime()				{ return m_flLastJumpTime; }
+	virtual void  SetLastJumpTime(float time)	{ m_flLastJumpTime = time; }
+
+	virtual float GetJumpPenalty()				{ return m_flJumpPenalty; }
+	virtual void  SetJumpPenalty(float time)	{ m_flJumpPenalty = time; }
+	virtual void  AddJumpPenalty(float time)	{ m_flJumpPenalty += time; }
+
+	virtual void  SetLastLandingVelocity(float vel)	{ m_flLastLandVelocity = vel; }
+	virtual float  GetLastLandingVelocity()		{ return m_flLastLandVelocity; }
+
 	void SetStartJumpZ( float val )		{ m_flStartJumpZ=val; }
 	float GetStartJumpZ()				{ return m_flStartJumpZ; }
+
+	virtual float GetRunStartTime()					{ return m_flRunTime; }
+	virtual void  SetRunStartTime(float time)		{ m_flRunTime = time; }
+
+	virtual int   GetRunCode()					{ return m_flRunCode; }
+	virtual void  SetRunCode(float code)		{ m_flRunCode = code; }
+
+	virtual int  GetSteamHash()					{ return m_iSteamIDHash; }
+
+	virtual int	  GetUsedWeaponSkin(int weapid)	{ return m_iWeaponSkinInUse[weapid]; }
+	virtual void  SetUsedWeaponSkin(int weapid, int value)	{ m_iWeaponSkinInUse[weapid] = value; }
 
 	// Observer calcs overrides for bots
 	virtual Vector GetChaseCamViewOffset( CBaseEntity *target );
@@ -45,6 +66,14 @@ public:
 private:
 	float m_flStartJumpZ;
 	float m_flNextJumpTime;
+	float m_flJumpPenalty;
+	float m_flLastJumpTime;
+	float m_flLastLandVelocity;
+	float m_flRunTime;
+	int m_flRunCode;
+	int m_iSteamIDHash; // We need this to decode our save files.
+
+	int m_iWeaponSkinInUse[WEAPON_RANDOM];
 };
 
 C_GEMPPlayer *ToGEMPPlayer( CBaseEntity *pEntity );

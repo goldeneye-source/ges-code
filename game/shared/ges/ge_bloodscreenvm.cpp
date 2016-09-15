@@ -1,4 +1,4 @@
-///////////// Copyright Â© 2010, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2010, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_bloodscreenvm.cpp
 // Description:
@@ -83,6 +83,16 @@ void CGEBloodScreenVM::CalcViewModelView( CBasePlayer *owner, const Vector& eyeP
 void CGEBloodScreenVM::Spawn( void )
 {
 	BaseClass::Spawn();
+}
+
+void CGEBloodScreenVM::SendViewModelMatchingSequence( int sequence )
+{
+	SetSequence( sequence );
+
+	m_nAnimationParity = ( m_nAnimationParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
+
+	SetCycle( 0 );
+	ResetSequenceInfo();
 }
 
 #ifdef CLIENT_DLL

@@ -40,7 +40,9 @@ public:
 	void SetIdent( const char* szIdent )	{ Q_strncpy(m_szIdent, szIdent, LOADOUT_IDENT_LEN); }
 	void SetPrintName( const char* szName )	{ Q_strncpy(m_szPrintName, szName, LOADOUT_NAME_LEN); }
 	void SetWeight( int weight )			{ m_iWeight = weight; }
+	void SetGroup(int type)					{ m_iGroup = type; }
 	int  GetWeight()						{ return m_iWeight; }
+	int  GetGroup()							{ return m_iGroup; }
 
 	// Used to deconflict with tokens
 	void SwitchActiveWeapon( int slot );
@@ -58,11 +60,13 @@ protected:
 private:
 	int  TranslateWeaponName( const char* szName );
 	void ChooseRandomWeapons( void );
+	int PickGroupWeapon(CUtlVector<int> &weapons, CUtlVector<int> &weights, CUtlVector<int> &strengths, int basegroup, int allowexplosives);
 
 	char m_szIdent[LOADOUT_IDENT_LEN];
 	char m_szPrintName[LOADOUT_NAME_LEN];
 
 	int m_iWeight;
+	int m_iGroup;
 	
 	// Weapons for this loadout as GEWeaponID
 	// Loaded is what gets used for SetWeapon(..) calls

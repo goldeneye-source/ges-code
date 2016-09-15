@@ -162,7 +162,12 @@ void CGEViewEffects::DrawCrosshair( void )
 		if (zoom < 90.0f )
 			offset.x *= 1 / tan( DEG2RAD(zoom) / 2.0f );
 
-		GEUTIL_DrawSprite3D( m_MatCrosshair, offset, size, size );
+		int alpha = 255;
+
+		if (!pPlayer->IsInAimMode() && !pPlayer->IsObserver())
+			alpha = (int)clamp((1 - (pPlayer->GetFullyZoomedTime() - gpGlobals->curtime) / GE_AIMMODE_DELAY) * 255, 0, 255); //The clamp is important because zooming weapons can have longer aimmode delays.
+
+		GEUTIL_DrawSprite3D( m_MatCrosshair, offset, size, size, alpha );
 	}
 }
 
@@ -178,7 +183,7 @@ bool CGEViewEffects::ShouldDrawCrosshair( C_GEPlayer *pPlayer )
 		if ( obsTarget && obsTarget->IsPlayer() )
 		{
 			// Only show crosshair if we are observing "In Eye"
-			if ( obsTarget->IsInAimMode() && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+			if ( obsTarget->StartedAimMode() && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
 				return true;
 		}
 
@@ -186,7 +191,7 @@ bool CGEViewEffects::ShouldDrawCrosshair( C_GEPlayer *pPlayer )
 	}
 
 	// Only draw the crosshair when we are actually established in aim mode
-	if( pPlayer->IsInAimMode() )
+	if ( pPlayer->StartedAimMode() )
 		return true;
 
 	return false;

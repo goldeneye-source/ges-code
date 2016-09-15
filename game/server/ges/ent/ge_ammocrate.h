@@ -39,12 +39,20 @@ public:
 	
 	// Ammo Crate specific functions
 	void SetAmmoType( int id );
+	int GetAmmoType();
 	bool HasAmmo();
+	void UpdateOnRemove();
+
+	void SetWeaponID( int id );
+	int GetWeaponID() { return m_iWeaponID; }
+	int GetWeight() { return m_iWeight; }
 
 private:
 	int  m_iAmmoID;
 	int  m_iAmmoAmount;
 	bool m_bGaveGlobalAmmo;
+	int  m_iWeaponID;
+	int  m_iWeight;
 };
 
 #endif

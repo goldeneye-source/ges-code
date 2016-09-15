@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008 LodleNet. All rights reserved. /////////////
+///////////// Copyright © 2008 LodleNet. All rights reserved. /////////////
 //
 //   Project     : Server (GES)
 //   File        : gebot_player.cpp
@@ -133,6 +133,7 @@ void CGEBotPlayer::InitialSpawn( void )
 		m_pNPC->m_lifeState = LIFE_DEAD;
 		m_pNPC->AddSolidFlags( FSOLID_NOT_SOLID );
 		m_pNPC->SetCondition( COND_NPC_FREEZE );
+		m_pNPC->ClearAllSchedules();
 
 		// Kill off some client specific stuff
 		SetSpawnState( SS_ACTIVE );
@@ -141,6 +142,8 @@ void CGEBotPlayer::InitialSpawn( void )
 
 	CBaseEntity::SetAllowPrecache( allowPrecache );
 }
+
+ConVar ge_bot_givespawninvuln("ge_bot_givespawninvuln", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Bots are allowed to have spawn invulnerability.");
 
 void CGEBotPlayer::Spawn( void )
 {
@@ -152,6 +155,7 @@ void CGEBotPlayer::Spawn( void )
 	AddFlag( FL_NOTARGET ); // Don't let NPC's "see" us
 	SetMoveType( MOVETYPE_NOCLIP );
 	AddSolidFlags( FSOLID_NOT_SOLID );
+	SetSolid( SOLID_NONE );
 	// Make sure we are virginal
 	RemoveAllAmmo();
 	RemoveAllWeapons();
@@ -162,6 +166,7 @@ void CGEBotPlayer::Spawn( void )
 		m_pNPC->SetLocalOrigin( GetAbsOrigin() + Vector(0,0,5) );
 		m_pNPC->SetAbsVelocity( vec3_origin );
 		m_pNPC->SetLocalAngles( GetLocalAngles() );
+		m_pNPC->CleanupScriptsOnTeleport( false );
 
 		m_pNPC->Spawn();
 		m_pNPC->Activate();
@@ -169,7 +174,10 @@ void CGEBotPlayer::Spawn( void )
 
 		// Freeze us if we are in intermission
 		if ( GEMPRules()->IsIntermission() )
+		{
+			m_pNPC->ClearAllSchedules();
 			m_pNPC->SetCondition( COND_NPC_FREEZE );
+		}
 
 		// Setup collision rules based on teamplay
 		if ( GERules()->IsTeamplay() )	
@@ -190,8 +198,12 @@ void CGEBotPlayer::Spawn( void )
 		m_pNPC->m_lifeState = LIFE_DEAD;
 		m_pNPC->RemoveAllWeapons();
 		m_pNPC->AddSolidFlags( FSOLID_NOT_SOLID );
+		m_pNPC->ClearAllSchedules();
 		m_pNPC->SetCondition( COND_NPC_FREEZE );
 	}
+
+	if ( !ge_bot_givespawninvuln.GetBool() )
+		StopInvul(); // Bots don't usually get spawn invuln since they don't care if they get spawn killed.
 }
 
 void CGEBotPlayer::ForceRespawn( void )
@@ -205,9 +217,14 @@ void CGEBotPlayer::ForceRespawn( void )
 void CGEBotPlayer::FreezePlayer( bool state /*=true*/ )
 {
 	if ( m_pNPC.Get() )
+	{
+		m_pNPC->ClearAllSchedules();
 		m_pNPC->SetCondition( COND_NPC_FREEZE );
+	}
 	else
+	{
 		m_pNPC->SetCondition( COND_NPC_UNFREEZE );
+	}
 }
 
 int CGEBotPlayer::UpdateTransmitState( void )
@@ -401,7 +418,7 @@ void CGEBotPlayer::SetPlayerModel( const char* szCharName, int iCharSkin /*=0*/,
 void CGEBotPlayer::FireBullets( const FireBulletsInfo_t &info )
 {
 	// We never fire bullets, this is just to disable spawn invuln when we shoot essentially
-	if ( m_bInSpawnInvul && !IsObserver() )
+	if ( m_bInSpawnInvul && !IsObserver() && GEMPRules()->GetSpawnInvulnCanBreak() )
 		StopInvul();
 }
 
@@ -468,9 +485,9 @@ void CGEBotPlayer::DropAllTokens( void )
 	}
 }
 
-void CGEBotPlayer::Event_Dying( const CTakeDamageInfo &info )
+void CGEBotPlayer::Event_Dying( void )
 {
-	BaseClass::Event_Dying( info );
+	BaseClass::Event_Dying();
 
 //	SetThink( &CGEBotPlayer::PlayerDeathThink );
 //	SetNextThink( gpGlobals->curtime + 0.1f );
@@ -484,7 +501,7 @@ void CGEBotPlayer::CreateRagdollEntity()
 void CGEBotPlayer::PreThink( void )
 {
 	BaseClass::PreThink();
-	
+
 	// Move us to where the NPC is for radar (mainly)
 	SetAbsOrigin( m_pNPC->GetAbsOrigin() );
 	SetLocalAngles( m_pNPC->GetLocalAngles() );
@@ -509,20 +526,39 @@ void CGEBotPlayer::PostThink( void )
 
 void CGEBotPlayer::GiveHat()
 {
-	if ( m_hHat.Get() )
+	if (IsObserver())
+	{
+		// Make sure we DO NOT have a hat as an observer
+		KnockOffHat(true);
+		return;
+	}
+
+	if (m_hHat.Get())
 		return;
 
 	const char* hatModel = GECharacters()->Get(m_iCharIndex)->m_pSkins[m_iSkinIndex]->szHatModel;
-	if ( !hatModel || hatModel[0] == '\0' )
+	if (!hatModel || hatModel[0] == '\0')
 		return;
+
+	SpawnHat(hatModel);
+}
+
+void CGEBotPlayer::SpawnHat(const char* hatModel, bool canBeRemoved)
+{
+	if (IsObserver() && !IsAlive()) // Observers can't have any hats.  Need this here so direct hat assignment doesn't make floating hats.
+		return;
+
+	// Get rid of any hats we're currently wearing.
+	if (m_hHat.Get())
+		KnockOffHat(true);
 
 	// Simple check to ensure consistency
 	int setnum, boxnum;
-	if ( m_pNPC->LookupHitbox( "hat", setnum, boxnum ) )
-		m_pNPC->SetHitboxSet( setnum );
+	if (m_pNPC->LookupHitbox("hat", setnum, boxnum))
+		m_pNPC->SetHitboxSet(setnum);
 
-	CBaseEntity *hat = CreateNewHat( EyePosition(), GetAbsAngles(), hatModel );
-	hat->FollowEntity( m_pNPC, true );
+	CBaseEntity *hat = CreateNewHat(EyePosition(), GetAbsAngles(), hatModel);
+	hat->FollowEntity(m_pNPC, true);
 	m_hHat = hat;
 }
 
@@ -569,12 +605,9 @@ void CGEBotPlayer::GiveDefaultItems( void )
 
 	const CGELoadout *loadout = GEMPRules()->GetLoadoutManager()->CurrLoadout();
 	if ( loadout )
-	{
-		if ( ge_startarmed.GetInt() >= 1 )
-			pGivenWeapon = m_pNPC->GiveNamedItem( "weapon_knife" );			
-
+	{		
 		// Give the weakest weapon in our set if more conditions are met
-		if ( ge_startarmed.GetInt() >= 2 )
+		if ( ge_startarmed.GetInt() >= 1 )
 		{
 			int wID = loadout->GetFirstWeapon();
 			int aID = GetAmmoDef()->Index( GetAmmoForWeapon(wID) );
@@ -583,6 +616,9 @@ void CGEBotPlayer::GiveDefaultItems( void )
 			m_pNPC->GiveAmmo( GetAmmoDef()->CrateAmount(aID), aID );
 			pGivenWeapon = m_pNPC->GiveNamedItem( WeaponIDToAlias(wID) );
 		}
+
+		//if (ge_startarmed.GetInt() >= 2)
+		//	pGivenWeapon = m_pNPC->GiveNamedItem("weapon_knife");
 	} 
 	else
 	{
@@ -590,8 +626,9 @@ void CGEBotPlayer::GiveDefaultItems( void )
 		pGivenWeapon = m_pNPC->GiveNamedItem( "weapon_knife" );
 	}
 
+	// Switch to the best given weapon
 	if ( pGivenWeapon )
-		m_pNPC->Weapon_Switch( (CBaseCombatWeapon*) pGivenWeapon );
+		m_pNPC->Weapon_Switch((CBaseCombatWeapon*)pGivenWeapon);
 }
 
 CBaseCombatWeapon *CGEBotPlayer::GetActiveWeapon()

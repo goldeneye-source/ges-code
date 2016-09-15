@@ -31,6 +31,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_ZMG; }
 
 	DECLARE_ACTTABLE();
@@ -70,6 +71,7 @@ acttable_t CWeaponZMG::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponZMG );
 
@@ -81,3 +83,17 @@ CWeaponZMG::CWeaponZMG( void )
 
 }
 
+void CWeaponZMG::Precache(void)
+{
+	PrecacheModel("models/weapons/zmg/v_zmg.mdl");
+	PrecacheModel("models/weapons/zmg/w_zmg.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/phantom");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon.SMG_Reload");
+	PrecacheScriptSound("Weapon_zmg.Single");
+	PrecacheScriptSound("Weapon_zmg.NPC_Single");
+
+	BaseClass::Precache();
+}

@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_player.h
 // Description:
@@ -30,29 +30,29 @@ class CGEWeapon;
 class CGEPlayer : public CHL2MP_Player
 {
 public:
-	DECLARE_CLASS( CGEPlayer, CHL2MP_Player );
+	DECLARE_CLASS(CGEPlayer, CHL2MP_Player);
 
 	CGEPlayer();
-	~CGEPlayer( void );
+	~CGEPlayer(void);
 
 
-	static CGEPlayer *CreatePlayer( const char *className, edict_t *ed )
+	static CGEPlayer *CreatePlayer(const char *className, edict_t *ed)
 	{
 		CGEPlayer::s_PlayerEdict = ed;
 
-		if ( Q_strcmp(className, "player") == 0 )
-			return (CGEPlayer*)CreateEntityByName( "mp_player" );
+		if (Q_strcmp(className, "player") == 0)
+			return (CGEPlayer*)CreateEntityByName("mp_player");
 		else
-			return (CGEPlayer*)CreateEntityByName( className );
+			return (CGEPlayer*)CreateEntityByName(className);
 	}
 
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
-	virtual void Precache( void );
-	virtual void PrecacheFootStepSounds( void ) { };
+	virtual void Precache(void);
+	virtual void PrecacheFootStepSounds(void) { };
 
-	virtual void InitialSpawn( void );
+	virtual void InitialSpawn(void);
 	virtual void Spawn();
 
 	// -------------------------------------------------
@@ -60,17 +60,23 @@ public:
 	// -------------------------------------------------
 
 	//This will return true if the player is 'fully' in AimMode
-	void ResetAimMode( bool forced=false );
+	void ResetAimMode(bool forced = false);
 	bool IsInAimMode();
+	bool StartedAimMode()					{ return (m_flFullZoomTime > 0); }
+	bool IsRadarCloaked()					{ return m_bInSpawnInvul; }
 	bool AddArmor( int amount );
+	bool CheckInPVS(CBaseEntity *pEnt);
 
 	virtual void KnockOffHat( bool bRemove = false, const CTakeDamageInfo *dmg = NULL );
+	// Main way to assign hats to characters.  Uses model specific hats.
 	virtual void GiveHat( void );
+	// Method of assigning whatever hat you want to a player.
+	virtual void SpawnHat( const char* hatModel, bool canBeRemoved = true );
 
 	void HideBloodScreen( void );
 
 	// Functions for Python
-	void  SetSpeedMultiplier( float mult )	{ m_flSpeedMultiplier = clamp( mult, 0.5f, 1.5f ); }
+	void  SetSpeedMultiplier(float mult);
 	float GetSpeedMultiplier()				{ return m_flSpeedMultiplier; }
 	void  SetDamageMultiplier( float mult )	{ m_flDamageMultiplier = clamp( mult, 0, 200.0f ); }
 	float GetDamageMultiplier()				{ return m_flDamageMultiplier; }
@@ -85,7 +91,9 @@ public:
 
 	// Custom damage tracking function
 	virtual void Event_DamagedOther( CGEPlayer *pOther, int dmgTaken, const CTakeDamageInfo &inputInfo );
-	
+	virtual void PlayHitsound(int dmgTaken, int dmgtype);
+	virtual void PlayKillsound();
+
 	// -------------------------------------------------
 
 	// Redfine this to ensure when we call this function we set the weapons to loadup on the right VM
@@ -106,7 +114,7 @@ public:
 	// Used to setup invul time
 	virtual int  OnTakeDamage( const CTakeDamageInfo &inputInfo );
 	virtual int	 OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
 	
 	// Custom Pain Sounds
 	virtual void OnDamagedByExplosion( const CTakeDamageInfo &info ) { }
@@ -117,13 +125,14 @@ public:
 	virtual void  CalcViewModelView( const Vector& eyeOrigin, const QAngle& eyeAngles);
 	virtual float GetSequenceGroundSpeed( CStudioHdr *pStudioHdr, int iSequence );
 
-	virtual void	DoMuzzleFlash( void );
+	virtual void	RemoveAmmo(int iCount, int iAmmoIndex);
 	virtual void	FireBullets( const FireBulletsInfo_t &info );
 	virtual Vector	GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget = NULL );
 
 	virtual void FinishClientPutInServer();
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual void DropAllTokens();
+	virtual void DropTopWeapons();
 
 	virtual void SetPlayerModel( void );
 	virtual void SetPlayerModel( const char* szCharName, int iCharSkin = 0, bool bNoSelOverride = false );
@@ -145,16 +154,21 @@ public:
 	virtual void GiveNamedWeapon(const char* ident, int ammoCount, bool stripAmmo = false );
 	virtual void StripAllWeapons();
 
+	virtual CBaseEntity* GetLastAttacker(bool onlyrecent = true);
+	virtual void SetLastAttacker(CBaseEntity* lastAttacker) { m_pLastAttacker = lastAttacker; }
+
+	void CheckAimMode(void);
+
 protected:
 	// Purely GE Functions & Variables
-	void CheckAimMode( void );
-
 	bool ShouldRunRateLimitedCommand( const CCommand &args );
 
 	void NotifyPickup( const char *classname, int type );
 
 	void StartInvul( float time );
 	void StopInvul( void );
+
+	int CalcInvul(int damage, CGEPlayer *pAttacker, int weapid);
 
 	void SetCharIndex(int index){m_iCharIndex = index;}
 
@@ -165,11 +179,14 @@ protected:
 	int m_iScoreBoardColor;
 	int m_iCharIndex;
 	int m_iSkinIndex;
+	int m_bRemovableHat;
 
 	float m_flDamageMultiplier;
 	float m_flSpeedMultiplier;
 
-	bool m_bSentHitSoundThisFrame;
+	int m_iFrameDamageOutput;
+	int m_iFrameDamageOutputType;
+	bool m_bKilledOtherThisFrame;
 
 	// Invulnerability variables
 	float		m_flEndInvulTime;
@@ -177,24 +194,33 @@ protected:
 	int			m_iViewPunchScale;
 	int			m_iDmgTakenThisFrame;
 	Vector		m_vDmgForceThisFrame;
-	int			m_iPrevDmgTaken;
+	int			m_iAttackList [16];
+	float		m_iAttackListTimes [16];
+
+	// Explosion invulnerability variables
+	float		m_flEndExpDmgTime;
+	int			m_iExpDmgTakenThisInterval;
+	Vector		m_vExpDmgForceThisFrame;
+
+	// Kill credit variables, these are important for tracking who gets credit for suicides and other things.
 	CBaseEntity *m_pLastAttacker;
-	CBaseEntity *m_pCurrAttacker;
+	float		m_flLastAttackedTime;
+	int			m_iLastAttackedDamage;
 
 	// This lets us rate limit the commands the players can execute so they don't overflow things like reliable buffers.
 	CUtlDict<float,int>	m_RateLimitLastCommandTimes;
 
 	CNetworkVar( int,	m_iMaxArmor );
 
-	// Networked zoom variables
-	CNetworkVar( bool, m_bInAimMode );
-
 	// Let's us know when we are officially in aim mode
-	int m_iAimModeState;
-	float m_flFullZoomTime;
+	CNetworkVar(float, m_flFullZoomTime);
 
 	CNetworkHandle( CBaseCombatWeapon,	m_hActiveLeftWeapon );
 	CNetworkHandle( CBaseEntity,		m_hHat );
+
+private:
+
+	byte m_iPVS[MAX_MAP_CLUSTERS / 8];
 };
 
 CGEPlayer *ToGEPlayer( CBaseEntity *pEntity );

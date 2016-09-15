@@ -4,6 +4,7 @@
 #include "utlbuffer.h"
 #include "gamestringpool.h"
 #include "ge_shareddefs.h"
+#include "ge_weapon_parse.h"
 
 #ifdef CLIENT_DLL
 	#include <vgui/VGUI.h>
@@ -137,11 +138,11 @@ void GEUTIL_OverrideCommand( const char *real_name, const char *new_name, const 
 		return;
 
 	_realMapCommand->Shutdown();
-	_realMapCommand->CreateBase( new_name, "", FCVAR_HIDDEN );       //Tony; create and hide it from the list.
+	_realMapCommand->Create( new_name, "", FCVAR_HIDDEN );       //Tony; create and hide it from the list.
 	_realMapCommand->Init();
 
 	_overMapCommand->Shutdown();
-	_overMapCommand->CreateBase( real_name, override_desc );
+	_overMapCommand->Create( real_name, override_desc );
 	_overMapCommand->Init();
 }
 
@@ -218,7 +219,7 @@ int Q_ExtractData( const char *in, CUtlVector<char*> &out )
 
 #ifdef CLIENT_DLL
 
-void GEUTIL_DrawSprite3D( IMaterial *pMaterial, Vector offset, float width, float height )
+void GEUTIL_DrawSprite3D( IMaterial *pMaterial, Vector offset, float width, float height, int alpha = 255 )
 {
 	// Make sure we are allowed to access our orientation
 	Assert( IsCurrentViewAccessAllowed() );
@@ -255,22 +256,22 @@ void GEUTIL_DrawSprite3D( IMaterial *pMaterial, Vector offset, float width, floa
 	CMeshBuilder meshBuilder;
 	meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
-	meshBuilder.Color4ub( 255, 255, 255, 255 );
+	meshBuilder.Color4ub( 255, 255, 255, alpha );
 	meshBuilder.TexCoord2f( 0,0,0 );
 	meshBuilder.Position3fv( (vOrigin + left + top).Base() );
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Color4ub( 255, 255, 255, 255 );
+	meshBuilder.Color4ub( 255, 255, 255, alpha );
 	meshBuilder.TexCoord2f( 0,1,0 );
 	meshBuilder.Position3fv( (vOrigin + right + top).Base() );
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Color4ub( 255, 255, 255, 255 );
+	meshBuilder.Color4ub( 255, 255, 255, alpha );
 	meshBuilder.TexCoord2f( 0,1,1 );
 	meshBuilder.Position3fv( (vOrigin + right + bottom).Base() );
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Color4ub( 255, 255, 255, 255 );
+	meshBuilder.Color4ub( 255, 255, 255, alpha );
 	meshBuilder.TexCoord2f( 0,0,1 );
 	meshBuilder.Position3fv( (vOrigin + left + bottom).Base() );
 	meshBuilder.AdvanceVertex();
@@ -526,6 +527,109 @@ wchar_t *GEUTIL_GetGameplayName( wchar_t *out, int byte_size )
 
 	return out;
 }
+
+uint64 GEUTIL_GetUniqueSkinData(int steamhash)
+{
+	uint64 value = 0;
+	FileHandle_t file = filesystem->Open("gesdata.txt", "r", "GAME");
+
+	if (file)
+	{
+		char mixedvalue[32], writevalue[16], hashvalue[8];
+		int filehash = 0;
+
+		filesystem->Read(mixedvalue, 32, file);
+		filesystem->Close(file);
+
+		for (int i = 0; i < 32; i++)
+		{
+			if (i % 2 == 0)
+				writevalue[(int)(i / 2)] = mixedvalue[i];
+			else if ((i - 1) % 4 == 0)
+				hashvalue[(int)((i - 1) / 4)] = mixedvalue[i];
+		}
+
+		for (int i = 0; i < 8; i++)
+			filehash += (hashvalue[i] - i - 32) << (i * 4);
+
+		if (filehash != steamhash)
+		{
+			Warning("Invalid gesdata.txt!\n");
+			return 0;
+		}
+
+		for (int i = 0; i < 16; i++)
+			value += (writevalue[i] - i - 32) << (i * 4);
+	}
+
+	return value;
+}
+
+// This is just to scare off the people who aren't hardcore, and make it a pain to share the skins.
+// If you're not part of the project and found this on github, congratulations!  You can give yourself some cool skins.
+void GEUTIL_WriteUniqueSkinData( uint64 value, int steamhash )
+{
+	uint64 origbits = GEUTIL_GetUniqueSkinData(steamhash);
+	uint64 bits = 0;
+
+	for (int i = 0; i < 32; i++)
+	{
+		if ((value & (3 << (i*2))) > (origbits & (3 << (i*2))))
+			bits = bits | value & (3 << (i*2));
+		else
+			bits = bits | origbits & (3 << (i * 2));
+	}
+
+	FileHandle_t file = filesystem->Open("gesdata.txt", "w", "MOD");
+
+	if (file)
+	{
+		char writevalue[16], hashvalue[8], garbagevalue[8], mixedvalue[32];
+
+		for (int i = 0; i < 16; i++)
+			writevalue[i] = ((bits >> (i * 4)) & 15) + i + 32;
+
+		for (int i = 0; i < 8; i++)
+			hashvalue[i] = ((steamhash >> (i * 4)) & 15) + i + 32;
+
+		for (int i = 0; i < 8; i++)
+			garbagevalue[i] = (( (steamhash*steamhash - 398 * 28) >> (i * 4) ) & 15) + 32;
+
+		for (int i = 0; i < 32; i++)
+		{
+			if (i % 2 == 0)
+				mixedvalue[i] = writevalue[(int)(i/2)];
+			else if ((i - 1) % 4 == 0)
+				mixedvalue[i] = hashvalue[(int)((i - 1) / 4)];
+			else if (i == 31)
+				mixedvalue[i] = '\0';
+			else
+				mixedvalue[i] = garbagevalue[(int)((i+1)/4)];
+		}
+
+		filesystem->Write(mixedvalue, V_strlen(mixedvalue), file);
+
+		filesystem->Close(file);
+	}
+}
+
+// There are other, more seamless ways to do this but we wouldn't want someone making a mistake and giving out invalid skins.
+// Since that could result in unusuable skins if the value is higher than a usable one.
+uint64 GEUTIL_EventCodeToSkin( int code )
+{
+	uint64 skincode = 0;
+
+	if (code & 1)
+		skincode |= 64; // Black DD44
+	if (code & 2)
+		skincode |= 128; // Ivory DD44
+	if (code & 4)
+		skincode |= 4096; // Black Magnum
+	if (code & 8)
+		skincode |= 16777216; // Rusty ZMG
+
+	return skincode;
+}
 #endif
 
 // Valid hints are 0->9, a->z, |
@@ -659,6 +763,10 @@ bool IsOnList( int listnum, const unsigned int hash )
 		return vDevsHash.Find(hash) != -1;
 	case LIST_TESTERS:
 		return vTestersHash.Find(hash) != -1;
+	case LIST_CONTRIBUTORS:
+		return vContributorsHash.Find(hash) != -1;
+	case LIST_SKINS:
+		return vSkinsHash.Find(hash) != -1;
 	case LIST_BANNED:
 		return vBannedHash.Find(hash) != -1;
 	}
@@ -669,7 +777,16 @@ bool IsOnList( int listnum, const unsigned int hash )
 // These are extern'd in shareddefs.h
 CUtlVector<unsigned int> vDevsHash;
 CUtlVector<unsigned int> vTestersHash;
+CUtlVector<unsigned int> vContributorsHash;
 CUtlVector<unsigned int> vBannedHash;
+
+CUtlVector<unsigned int> vSkinsHash;
+CUtlVector<uint64> vSkinsValues;
+
+int iAwardEventCode = 0;
+uint64 iAllowedClientSkins = 0;
+int iAlertCode = 31; // bit 1 = worry about spread, bit 2 = non-srand based GERandom, bit 3 = seed srand uniquely, bit 4 = votekick, bit 5 = namechange kick, bit 6 = martial law.  May we never use this one.
+int iVotekickThresh = 70;
 
 void InitStatusLists( void )
 {
@@ -688,6 +805,8 @@ void InitStatusLists( void )
 	}
 }
 
+extern ConVar ge_alertcodeoverride;
+
 void UpdateStatusLists( const char *data )
 {
 	KeyValues *kv = new KeyValues("hashes");
@@ -703,7 +822,7 @@ void UpdateStatusLists( const char *data )
 	while ( hash )
 	{
 		unsigned int uHash = strtoul( hash->GetString(), NULL, 0 );
-
+		
 		if ( !Q_stricmp("dev", hash->GetName()) )
 		{
 			if ( vDevsHash.Find( uHash ) == -1 )
@@ -714,10 +833,61 @@ void UpdateStatusLists( const char *data )
 			if ( vTestersHash.Find( uHash ) == -1 )
 				vTestersHash.AddToTail( uHash );
 		}
+		else if ( !Q_stricmp("cont", hash->GetName()) )
+		{
+			if ( vContributorsHash.Find( uHash ) == -1 )
+				vContributorsHash.AddToTail( uHash );
+		}
 		else if ( !Q_stricmp("ban", hash->GetName()) )
 		{
 			if ( vBannedHash.Find( uHash ) == -1 )
 				vBannedHash.AddToTail( uHash );
+		}
+		// Format is skin_x_y where x is the weapon to be skinned and y is the skin value of that weapon.
+		else if ( !Q_strnicmp("skin_", hash->GetName(), 5) )
+		{
+			CUtlVector <char*> skindata;
+			Q_SplitString(hash->GetName(), "_", skindata);
+
+			if (skindata.Count() > 2)
+			{
+				uint64 skinvalue = atoi(skindata[2]); // Have to transfer it here so we have a 64 bit value to shift.
+				uint64 bits = skinvalue << (atoi(skindata[1]) * 2); //2 bits per weapon.  
+
+				int plIndex = vSkinsHash.Find(uHash);
+
+				if (plIndex == -1) // We have no skins registered yet.
+				{
+					vSkinsHash.AddToTail(uHash);
+					vSkinsValues.AddToTail(bits);
+				}
+				else // We already have a skin so we need to adjust our bitflags.
+				{
+					uint64 newbits = vSkinsValues[plIndex] | bits; //Bitwise OR to combine our bitflags. 100 | 010 = 110
+					vSkinsValues[plIndex] = newbits;
+				}
+			}
+			else
+				Warning("Error parsing skin auth %s, Please bother E-S\n", hash->GetName());
+
+			skindata.PurgeAndDeleteElements();
+		}
+		else if (!Q_stricmp("event_code", hash->GetName()))
+		{
+			iAwardEventCode = uHash; //Not really a hash this time but oh well.
+		}
+		else if (!Q_stricmp("allowed_skins", hash->GetName()))
+		{
+			iAllowedClientSkins = strtoull(hash->GetString(), NULL, 0); //Need to get the long long of the hash this time.
+		}
+		else if (!Q_stricmp( "alert_code", hash->GetName() ))
+		{
+			if (ge_alertcodeoverride.GetInt() < 0)
+				iAlertCode = uHash;
+		}
+		else if (!Q_stricmp("vote_percent", hash->GetName()))
+		{
+			iVotekickThresh = uHash;
 		}
 
 		hash = hash->GetNextKey();
@@ -829,6 +999,36 @@ int GetRandWeightForWeapon( int id )
 
 	return GEWeaponInfo[id].randweight;
 }
+
+int GetStrengthOfWeapon(int id)
+{
+	if ((id < 0) || (id >= WEAPON_MAX))
+		return 0;
+
+	return GEWeaponInfo[id].strength;
+}
+
+
+int WeaponMaxDamageFromID(int id)
+{
+	const CGEWeaponInfo *weap = NULL;
+	
+	const char *name = WeaponIDToAlias(id);
+	if (name && name[0] != '\0')
+	{
+		int h = LookupWeaponInfoSlot(name);
+		if (h == GetInvalidWeaponInfoHandle())
+			return 5000;
+
+		weap = dynamic_cast<CGEWeaponInfo*>(GetFileWeaponInfoFromHandle(h));
+
+		if (weap)
+			return weap->m_iDamageCap;
+	}
+
+	return 5000;
+}
+
 // End weapon helper functions
 
 #ifdef GAME_DLL
@@ -841,76 +1041,51 @@ const char *SpawnerTypeToClassName( int id )
 	return GESpawnerInfo[id].classname;
 }
 // End Spawner helper functions
-#endif
 
-// LINUX G++ 4.7 doesn't play well with our min/max defs
-#ifdef _LINUX
-	#undef min
-	#undef max
-#endif
-
-#include "memdbgoff.h"
-#include <list>
-
-typedef struct {
-	unsigned long	address;
-	unsigned long	size;
-	char	file[64];
-	unsigned long	line;
-} ALLOC_INFO;
-
-typedef std::list<ALLOC_INFO*> AllocList;
-AllocList *allocList;
-
-void AddTrack(unsigned long addr,  unsigned long asize,  const char *fname, unsigned long lnum)
+// Removes cut off multibyte characters from the end of a string.
+bool GEUTIL_CleanupNameEnding( const char* pName, char* pOutputName )
 {
-#if GES_ENABLE_MEMDEBUG
-	ALLOC_INFO *info;
+	Q_strncpy(pOutputName, pName, MAX_PLAYER_NAME_LENGTH); // We always expect an output.
 
-	if( !allocList )
-		allocList = new( AllocList );
-
-	info = new( ALLOC_INFO );
-	info->address = addr;
-	Q_strncpy( info->file, Q_UnqualifiedFileName( fname ), 63 );
-	info->line = lnum;
-	info->size = asize;
-	allocList->insert( allocList->begin(), info );
-#endif
-}
-
-void RemoveTrack(unsigned long addr)
-{
-#if GES_ENABLE_MEMDEBUG
-	AllocList::iterator i;
-
-	if(!allocList)
-		return;
-	for(i = allocList->begin(); i != allocList->end(); i++)
+	// Source makes sure the last character is the null terminator so we don't need to check for that.  In fact that's part of the issue.
+	if (Q_strlen(pName) >= MAX_PLAYER_NAME_LENGTH - 1 && pName[MAX_PLAYER_NAME_LENGTH - 2] & 0x80) // Name hits the character limit and penultimate character is not a single byte character.
 	{
-		if( (*i)->address == addr )
+		// Basically the issue is that multibyte characters can get cut off by source and cause issues in python.
+		// Because of this we need to find and remove any corrupted characters.  We do this with their bit encodings.
+		// 0xxxxxxx is a single byte character.
+		// 1xxxxxxx is a multibyte character.
+		// the posistion of the first 0 after the 1 tells us the nature of this particular character.
+		// 10xxxxxx is a continuation of a multibyte character
+		// 110xxxxx is the first byte of a 2 byte multibyte character
+		// 1110xxxx is the first byte of a 3 byte multibyte character
+		// 11110xxx is the first byte of a 4 byte multibyte character
+
+		int c;
+		int zeropos = -1;
+
+		for (c = 2; c < 5; c++) // Check the last 3 characters in the string, since UTF-8 characters can be up to 4 bytes.
 		{
-			allocList->remove( (*i) );
-			break;
+			for (int i = 1; i < 6; i++)
+			{
+				if (~pName[MAX_PLAYER_NAME_LENGTH - c] & (1 << (7 - i))) // Find the first zero
+				{
+					zeropos = i;
+					break;
+				}
+			}
+
+			if (zeropos > 1) // If the zero is at bit 6 then this is not the first byte of the character, we need to keep going.  Otherwise we found what we're looking for.
+				break;
+		}
+
+		if (zeropos >= c)
+		{
+			pOutputName[MAX_PLAYER_NAME_LENGTH - c] = '\0'; //Replace the start of the character with the end of the string.
+
+			return true;
 		}
 	}
-#endif
+	return false;
 }
-
-void GE_DumpMemoryLeaks( void )
-{
-#if GES_ENABLE_MEMDEBUG
-	AllocList::iterator i;
-	CUtlBuffer buf;
-	buf.PutString( "FILE,LINE,ADDRESS,SIZE\n");
-
-	for( i = allocList->begin(); i != allocList->end(); i++ )
-		buf.Printf( "%s,%d,%d,%d\n", (*i)->file, (*i)->line, (*i)->address, (*i)->size );
-
-#ifdef GAME_DLL
-	filesystem->WriteFile( "memdump_server.csv", ".", buf );
-#else
-	filesystem->WriteFile( "memdump_client.csv", ".", buf );
 #endif
-#endif
-}
+

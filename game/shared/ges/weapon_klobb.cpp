@@ -37,9 +37,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
-	virtual void Equip( CBaseCombatCharacter *pOwner );
-	virtual void SetViewModel();
-
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_KLOBB; }
 	
 	DECLARE_ACTTABLE();
@@ -79,6 +77,7 @@ acttable_t CWeaponKlobb::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponKlobb );
 
@@ -88,42 +87,19 @@ CWeaponKlobb::CWeaponKlobb()
 	m_fMaxRange1 = 1024;
 }
 
-void CWeaponKlobb::Equip( CBaseCombatCharacter *pOwner )
+void CWeaponKlobb::Precache(void)
 {
-	BaseClass::Equip( pOwner );
+	PrecacheModel("models/weapons/klobb/v_klobb.mdl");
+	PrecacheModel("models/weapons/klobb/w_klobb.mdl");
 
-	CGEMPPlayer *pGEPlayer = ToGEMPPlayer( pOwner );
-	if ( !pGEPlayer )
-	{
-		m_nSkin = 0;
-		return;
-	}
+	PrecacheMaterial("sprites/hud/weaponicons/kf7");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_rifle");
 
-#ifdef CLIENT_DLL
-	if ( GEPlayerRes()->GetDevStatus( pGEPlayer->entindex() ) == GE_DEVELOPER )
-		m_nSkin = 2;
-	else if ( GEPlayerRes()->GetDevStatus( pGEPlayer->entindex() ) == GE_BETATESTER )
-		m_nSkin = 1;
-#else
-	if ( pGEPlayer->GetDevStatus() == GE_DEVELOPER )
-		m_nSkin = 2;
-	else if ( pGEPlayer->GetDevStatus() == GE_BETATESTER )
-		m_nSkin = 1;
-#endif
-	else
-		m_nSkin = 0;
-}
+	PrecacheScriptSound("Weapon.Reload");
+	PrecacheScriptSound("Weapon_klobb.Single");
+	PrecacheScriptSound("Weapon_klobb.NPC_Single");
+	PrecacheScriptSound("Weapon.Special1");
+	PrecacheScriptSound("Weapon.Special2");
 
-void CWeaponKlobb::SetViewModel()
-{
-	BaseClass::SetViewModel();
-
-	CGEPlayer *pGEPlayer = ToGEPlayer( GetOwner() );
-	if ( !pGEPlayer )
-		return;
-	CBaseViewModel *vm = pGEPlayer->GetViewModel( m_nViewModelIndex );
-	if ( vm == NULL )
-		return;
-
-	vm->m_nSkin = m_nSkin;
+	BaseClass::Precache();
 }

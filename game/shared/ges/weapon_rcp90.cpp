@@ -31,6 +31,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_RCP90; }
 
 	DECLARE_ACTTABLE();
@@ -69,6 +70,7 @@ acttable_t CWeaponRCP90::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_HL2MP_GESTURE_RELOAD_AR2,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_RCP90,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_RCP90,					false },
 };
 IMPLEMENT_ACTTABLE( CWeaponRCP90 );
 
@@ -80,3 +82,17 @@ CWeaponRCP90::CWeaponRCP90( void )
 
 }
 
+void CWeaponRCP90::Precache(void)
+{
+	PrecacheModel("models/weapons/rcp90/v_rcp90.mdl");
+	PrecacheModel("models/weapons/rcp90/w_rcp90.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/phantom");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon.SMG_Reload");
+	PrecacheScriptSound("Weapon_rcp90.Single");
+	PrecacheScriptSound("Weapon_rcp90.NPC_Single");
+
+	BaseClass::Precache();
+}

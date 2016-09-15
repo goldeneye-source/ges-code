@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_utils.h
 // Description:
@@ -12,6 +12,10 @@
 
 #include "mathlib/IceKey.H"
 #include "filesystem.h"
+
+// Convience function to iterate over a CUtlDict
+#define FOR_EACH_DICT( dictName, iterName ) \
+	for ( int iterName = dictName.First(); iterName != dictName.InvalidIndex(); iterName = dictName.Next(iterName) )
 
 // Encrypt/Decrypt using ICE
 void GEUTIL_EncryptICE( unsigned char * buffer, int size, const unsigned char *key );
@@ -40,7 +44,7 @@ int Q_ExtractData( const char *in, CUtlVector<char*> &out );
 
 // Draw a sprite in 3D space
 // offset.x = forward, offset.y = right, offset.z = up
-void GEUTIL_DrawSprite3D( IMaterial *pMaterial, Vector offset, float width, float height );
+void GEUTIL_DrawSprite3D( IMaterial *pMaterial, Vector offset, float width, float height, int alpha = 255 );
 
 // Returns true on successful parsing, false if it isn't localizable or fails parsing
 void GEUTIL_ParseLocalization( wchar_t *out, int size, const char *input );
@@ -52,6 +56,11 @@ void GEUTIL_GetTextSize( const char *text, vgui::HFont font, int &wide, int &tal
 // Get the current gameplay name, appends "(MOD)" when appropriate
 wchar_t *GEUTIL_GetGameplayName( wchar_t *out, int byte_size );
 
+// Encrypt/Decrypt using some dinky method I threw together because I actually don't do any encryption stuff.
+uint64 GEUTIL_GetUniqueSkinData( int steamhash );
+void GEUTIL_WriteUniqueSkinData( uint64 value, int steamhash );
+
+uint64 GEUTIL_EventCodeToSkin( int code );
 #else
 
 #include "ge_player.h"
@@ -59,6 +68,9 @@ wchar_t *GEUTIL_GetGameplayName( wchar_t *out, int byte_size );
 void pyShowPopupHelp( CGEPlayer *pPlayer, const char *title, const char *msg, const char *img = "", float holdtime = 5.0f, bool canArchive = false );
 void pyShowPopupHelpTeam( int team, const char *title, const char *msg, const char *img = NULL, float holdtime = 5.0f, bool canArchive = false );
 
+// Removes cut off multibyte characters from the end of a name and stores the new string in pOutputName.
+// Returns true if cleanup was neccecery.
+bool GEUTIL_CleanupNameEnding(const char* pName, char* pOutputName);
 #endif
 
 // Color hints (^a, ^1, etc.)

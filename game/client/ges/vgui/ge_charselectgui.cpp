@@ -215,7 +215,7 @@ void CGECharSelect::SetSelectedCharacter( const char *ident, int skin /*=0*/ )
 
 	// Set the character's bio
 	m_pCharBio->SetText( "" );
-//	m_pCharBio->InsertCenterText( false );
+	m_pCharBio->InsertCenterText( false );
 	m_pCharBio->InsertString( pChar->szBio );
 
 	// Make sure we are on this character's page

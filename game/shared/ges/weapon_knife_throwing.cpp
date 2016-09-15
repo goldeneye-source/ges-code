@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_knife_throwing.cpp
 // Description:
@@ -50,11 +50,10 @@ public:
 	void		AddViewKick( void );
 
 	virtual void PrimaryAttack();
-	virtual void SecondaryAttack();
 
 	virtual void ThrowKnife();
-	virtual void SwitchToKnife();
 
+	virtual void Precache( void );
 	virtual void ItemPreFrame( void );
 	virtual void ItemPostFrame( void );
 
@@ -121,6 +120,7 @@ acttable_t	CWeaponKnifeThrowing::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_HL2MP_GESTURE_RELOAD_MELEE,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_TKNIFE,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_TKNIFE,					false },
 };
 IMPLEMENT_ACTTABLE(CWeaponKnifeThrowing);
 
@@ -136,6 +136,19 @@ CWeaponKnifeThrowing::CWeaponKnifeThrowing( void )
 
 	m_fMinRange1 = 24;
 	m_fMaxRange1 = 500;
+}
+
+void CWeaponKnifeThrowing::Precache(void)
+{
+	PrecacheModel("models/weapons/knife/v_tknife.mdl");
+	PrecacheModel("models/weapons/knife/w_tknife.mdl");
+
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_tknife");
+
+	PrecacheScriptSound("weapon_knife_throwing.Single");
+	PrecacheScriptSound("Weapon_Crowbar.Melee_Hit");
+
+	BaseClass::Precache();
 }
 
 //-----------------------------------------------------------------------------
@@ -176,13 +189,6 @@ void CWeaponKnifeThrowing::ItemPostFrame( void )
 	if ( pOwner == NULL )
 		return;
 
-	if( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
-	{
-		//No ammo, lets switch to the hunting knife!
-		SwitchToKnife();
-		return;
-	}
-
 	BaseClass::ItemPostFrame();
 }
 
@@ -201,31 +207,7 @@ void CWeaponKnifeThrowing::PrimaryAttack()
 
 	SendWeaponAnim( ACT_VM_MISSCENTER );
 	pOwner->SetAnimation( PLAYER_ATTACK1 );
-//	ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-}
-
-void CWeaponKnifeThrowing::SecondaryAttack()
-{
-	SwitchToKnife();
-}
-
-void CWeaponKnifeThrowing::SwitchToKnife()
-{
-	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
-	
-	if ( pOwner == NULL )
-		return;
-
-	CBaseCombatWeapon *pKnife = pOwner->Weapon_OwnsThisType("weapon_knife");
-	if( pKnife )
-	{
-		pOwner->Weapon_Switch( pKnife );
-		return;
-	}
-
-	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
-		// Otherwise switch to the next best weapon (ran out of ammo)
-		pOwner->SwitchToNextBestWeapon( this );
+	ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 }
 
 #ifdef GAME_DLL
@@ -240,6 +222,12 @@ CGETKnife *CWeaponKnifeThrowing::CreateKnife( const Vector &vecOrigin, const QAn
 
 	pKnife->SetDamage( GetGEWpnData().m_iDamage );
 	pKnife->SetOwnerEntity( pOwner );
+	pKnife->SetSourceWeapon(this);
+
+	if (pOwner->GetTeamNumber() == TEAM_JANUS)
+		pKnife->SetCollisionGroup(COLLISION_GROUP_GRENADE_JANUS);
+	else if (pOwner->GetTeamNumber() == TEAM_MI6)
+		pKnife->SetCollisionGroup(COLLISION_GROUP_GRENADE_MI6);
 
 	// Tell the owner what we threw to implement anti-spamming
 	if ( pOwner->IsPlayer() )
@@ -264,6 +252,16 @@ void CWeaponKnifeThrowing::ThrowKnife()
 	AngleVectors( pOwner->EyeAngles(), &vForward, &vRight, NULL );
 	vForward[2] += 0.1f;
 	
+	if (pOwner->IsPlayer())
+	{
+		VectorMA(vecSrc, 3.0f, vRight, vecSrc); // 3.0, 5.0
+		VectorMA(vecSrc, 2.0f, vForward, vecSrc); // 20, 19
+	}
+	else
+	{
+		VectorMA(vecSrc, 20.0, vForward, vecSrc);
+	}
+
 	Vector vecThrow;
 	pOwner->GetVelocity( &vecThrow, NULL );
 	if ( pOwner->GetWaterLevel() == 3 )

@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008 LodleNet. All rights reserved. /////////////
+///////////// Copyright © 2008 LodleNet. All rights reserved. /////////////
 //
 //   Project     : Server (GES)
 //   File        : gemp_player.cpp
@@ -44,6 +44,13 @@ LINK_ENTITY_TO_CLASS( mp_player, CGEMPPlayer );
 IMPLEMENT_SERVERCLASS_ST(CGEMPPlayer, DT_GEMP_Player)
 	SendPropFloat( SENDINFO( m_flStartJumpZ ) ),
 	SendPropFloat( SENDINFO( m_flNextJumpTime ) ),
+	SendPropFloat( SENDINFO( m_flLastJumpTime )),
+	SendPropFloat( SENDINFO( m_flJumpPenalty )),
+	SendPropFloat( SENDINFO( m_flLastLandVelocity )),
+	SendPropFloat( SENDINFO( m_flRunTime )),
+	SendPropInt( SENDINFO( m_flRunCode )),
+	SendPropInt( SENDINFO( m_iSteamIDHash )),
+	SendPropArray3( SENDINFO_ARRAY3(m_iWeaponSkinInUse), SendPropInt(SENDINFO_ARRAY(m_iWeaponSkinInUse))),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CGEMPPlayer )
@@ -79,6 +86,8 @@ CGEMPPlayer::CGEMPPlayer()
 
 	m_iSteamIDHash = 0;
 	m_iDevStatus = 0;
+	m_iSkinsCode = 0;
+	m_iClientSkinsCode = 0;
 	m_iCampingState = 0;
 
 	m_szCleanName[0] = '\0';
@@ -93,6 +102,14 @@ CGEMPPlayer::CGEMPPlayer()
 	m_bPreSpawn = true;
 	m_bFirstSpawn = true;
 	m_bSpawnFromDeath = false;
+
+	m_vLastDeath = Vector(-1, -1, -1);
+	m_vLastSpawn = Vector(-1, -1, -1);
+
+	for (int i = 0; i < WEAPON_RANDOM; i++)
+	{
+		m_iWeaponSkinInUse.Set(i, 0);
+	}
 }
 
 CGEMPPlayer::~CGEMPPlayer()
@@ -206,6 +223,17 @@ int CGEMPPlayer::GetCampingPercent()
 	return 0;
 }
 
+void CGEMPPlayer::UpdateJumpPenalty()
+{
+	// Check our penalty time decay
+	if (m_flJumpPenalty > 0 && GetGroundEntity() != NULL)
+	{
+		//dt * 2000/x
+		m_flJumpPenalty -= gpGlobals->frametime* (2000 / m_flJumpPenalty);
+		m_flJumpPenalty = max(m_flJumpPenalty, 0.0f);
+	}
+}
+
 void CGEMPPlayer::PickDefaultSpawnTeam()
 {
 	if ( GetTeamNumber() == TEAM_UNASSIGNED )
@@ -258,8 +286,8 @@ void CGEMPPlayer::InitialSpawn()
 
 	// Place the player on the spectator team until they choose a character to play with
 	ChangeTeam(TEAM_SPECTATOR);
-	SetObserverMode( OBS_MODE_FIXED );
-	GERules()->GetSpectatorSpawnSpot( this );
+	// If there are any spectator spots or no-one is playing, use a spawn point as the intro camera posistion.
+	ObserverTransistion();
 
 	SetMaxHealth( MAX_HEALTH );
 	SetMaxArmor( MAX_ARMOR );
@@ -276,13 +304,17 @@ void CGEMPPlayer::Spawn()
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
+	RemoveAllItems(true);
+	KnockOffHat(true);
+
+
 	if ( (m_bPreSpawn && IsSpawnState( SS_INITIAL )) || GetTeamNumber() == TEAM_SPECTATOR )
 	{
 		// Prespawn and spectating always observer
 		if ( !IsObserver() )
 		{
 			State_Transition( STATE_OBSERVER_MODE );
-			GERules()->GetSpectatorSpawnSpot( this );
+			ObserverTransistion(); // Do this to generate valid spectator view settings.
 		}
 	}
 	else if ( !GERules()->FPlayerCanRespawn(this) )
@@ -290,9 +322,8 @@ void CGEMPPlayer::Spawn()
 		if ( !IsObserver() )
 		{
 			State_Transition( STATE_OBSERVER_MODE );
-			GERules()->GetSpectatorSpawnSpot( this );
+			ObserverTransistion();
 		}
-
 		// Gameplay said NO SPAWN FOR YOU! Try again every second.
 		SetSpawnState( SS_BLOCKED_GAMEPLAY );
 		m_flNextSpawnTry = gpGlobals->curtime + 1.0f;
@@ -319,7 +350,6 @@ void CGEMPPlayer::Spawn()
 			if ( !IsSpawnState( SS_BLOCKED_NO_SPOT) )
 			{
 				// First time waiting, issue a message and find a spectator spawn spot
-				KnockOffHat( true );
 				GERules()->GetSpectatorSpawnSpot( this );
 				m_flNextSpawnWaitNotice = gpGlobals->curtime;
 			}
@@ -351,12 +381,64 @@ void CGEMPPlayer::Spawn()
 			return;
 		}
 
+		int noSkins = atoi(engine->GetClientConVarValue(entindex(), "cl_ge_nowepskins"));
+
+		// Create a dummy skin list, fill it out, and then transmit anything that changed.
+		int iDummySkinList[WEAPON_RANDOM] = { 0 };
+
+		// First decypher their skins code, if they have one.
+		if (m_iClientSkinsCode && !noSkins)
+		{
+			DevMsg( "Parsing client skin code of %d for %s\n", m_iClientSkinsCode );
+
+			for (int i = 0; i < WEAPON_RANDOM; i++)
+			{
+				iDummySkinList[i] = (m_iClientSkinsCode >> (i * 2)) & 3;
+			}
+		}
+
+		// Then look at the server authenticated skin code, this overwrites the client skins.
+		if (m_iSkinsCode && noSkins <= 1)
+		{
+			DevMsg( "Parsing server skin code of %d\n", m_iSkinsCode );
+			uint64 shiftvalue = 0;
+
+			for ( int i = 0; i < WEAPON_RANDOM; i++ )
+			{
+				shiftvalue = (m_iSkinsCode >> (i * 2)) & 3;
+				if (shiftvalue != 0)
+				{
+					iDummySkinList[i] = shiftvalue;
+				}
+			}
+		}
+
+		if (noSkins <= 2)
+		{
+			if (GetDevStatus() == GE_DEVELOPER)
+				iDummySkinList[WEAPON_KLOBB] = 3;
+			else if (GetDevStatus() == GE_BETATESTER)
+				iDummySkinList[WEAPON_KLOBB] = 2;
+			else if (GetDevStatus() == GE_CONTRIBUTOR)
+				iDummySkinList[WEAPON_KLOBB] = 1;
+
+			// If it's luchador, give him the watermelon KF7.  Love u 4evr luch.
+			if (m_iSteamIDHash == 3135237817u)
+				iDummySkinList[WEAPON_KF7] = 1;
+		}
+
+		for (int i = 0; i < WEAPON_RANDOM; i++)
+		{
+			if (iDummySkinList[i] != m_iWeaponSkinInUse.Get(i))
+				m_iWeaponSkinInUse.Set(i, iDummySkinList[i]);
+		}
+
 		RemoveAllItems(true);
 		GiveDefaultItems();
 		GiveHat();
 
 		// Create our second view model for dualies
-		//CreateViewModel( GE_LEFT_HAND );
+		// CreateViewModel( GE_LEFT_HAND );
 
 		SetHealth( GetMaxHealth() );
 		
@@ -372,9 +454,11 @@ void CGEMPPlayer::Spawn()
 		// Add spawn time for Awards calculations
 		m_flSpawnTime = gpGlobals->curtime;
 
+		// Spawn system variables
+		m_vLastSpawn = GetAbsOrigin();
+
 		// Reset invuln variables
-		m_pLastAttacker = m_pCurrAttacker = NULL;
-		m_iPrevDmgTaken = 99999;
+		m_pLastAttacker = NULL;
 		m_iViewPunchScale = 0;
 
 		// Camping calcs
@@ -384,15 +468,24 @@ void CGEMPPlayer::Spawn()
 		m_flLastMoveTime = gpGlobals->curtime;
 		m_flNextCampCheck = gpGlobals->curtime;
 
-		// Give use two seconds of invuln time
-		StartInvul( 2.0f );
-		m_bInSpawnInvul = true;
+		// Give us the invuln time defined by the gameplay, but only if it's not our first spawn since we don't want everyone invisible on the radar at the start of the round.
 
-		SetMaxSpeed(GE_NORM_SPEED);
+		if (GetRoundDeaths() > 0)
+			StartInvul(GEMPRules()->GetSpawnInvulnInterval());
+		else
+			StopInvul();
+
+		SetMaxSpeed( GE_NORM_SPEED * GEMPRules()->GetSpeedMultiplier(this) );
 		m_Local.m_bDucked = false;
 		SetPlayerUnderwater(false);
 		m_flStartJumpZ = 0.0f;
-		m_flNextJumpTime = 0.0f;
+		m_flNextJumpTime = 1.0f;
+		m_flLastJumpTime = 0.0f;
+		m_flJumpPenalty = 0.0f;
+		m_flLastLandVelocity = 0.0f;
+
+		m_flRunTime = 0;
+		m_flRunCode = 0;
 
 		pl.deadflag = false;
 		RemoveSolidFlags( FSOLID_NOT_SOLID );
@@ -640,7 +733,7 @@ void CGEMPPlayer::ChangeTeam( int iTeam, bool bWasForced /* = false */ )
 	if ( GERules()->IsTeamplay() )
 	{
 		// Only suicide the player if they are switching teams and not observing and not forced to switch
-		if ( GetTeamNumber() != TEAM_UNASSIGNED && !IsObserver() && !bWasForced )
+		if (GetTeamNumber() != TEAM_UNASSIGNED && !IsObserver() && !bWasForced)
 			bKill = true;
 
 		// The player is trying to Auto Join a team so set them up!
@@ -656,7 +749,9 @@ void CGEMPPlayer::ChangeTeam( int iTeam, bool bWasForced /* = false */ )
 				iTeam = random->RandomInt( TEAM_MI6, TEAM_JANUS );
 		}
 	}
-
+	else if ( GetTeamNumber() == TEAM_UNASSIGNED && !m_bPreSpawn && IsAlive() && !bWasForced ) //Use alternate rules for non-teamplay.
+		bKill = true;
+	
 	// Coming on spectator we end pre spawn, but going from spectator
 	// to another team we initiate pre spawn
 	if ( iTeam == TEAM_SPECTATOR )
@@ -669,8 +764,12 @@ void CGEMPPlayer::ChangeTeam( int iTeam, bool bWasForced /* = false */ )
 		return;
 
 	// Let the gameplay have a say (Warnings left up to GamePlay)
-	if ( !GEGameplay()->GetScenario()->CanPlayerChangeTeam( this, GetTeamNumber(), iTeam ) )
+	if ( !GEGameplay()->GetScenario()->CanPlayerChangeTeam( this, GetTeamNumber(), iTeam, bWasForced ))
 		return;
+
+	// If we didn't just join the server, we're alive, and this was by choice, force a suicide.
+	if ( iTeam == TEAM_SPECTATOR && bKill )
+		CommitSuicide(false, true);
 
 	BaseClass::ChangeTeam( iTeam );
 
@@ -683,7 +782,7 @@ void CGEMPPlayer::ChangeTeam( int iTeam, bool bWasForced /* = false */ )
 		BaseClass::SetPlayerModel();
 
 	// We are changing teams, drop any tokens we might have
-	DropAllTokens();
+	DropAllTokens(); // Mostly just a failsafe against force switches at this point since we usually force suicide.
 
 	if ( iTeam == TEAM_SPECTATOR )
 	{
@@ -753,12 +852,30 @@ CBaseEntity* CGEMPPlayer::EntSelectSpawnPoint()
 	int iSpawnerType = GEMPRules()->GetSpawnPointType( this );
 	CGEPlayerSpawn *pSpot = NULL;
 
-	if( iSpawnerType == SPAWN_PLAYER_SPECTATOR || IsObserver() )
+	if (iSpawnerType == SPAWN_PLAYER_SPECTATOR || IsObserver())
 	{
-		// Find us the next spectator spawn, skip the theatrics below
-		pSpot = (CGEPlayerSpawn*) EntFindSpawnPoint( m_iLastSpecSpawn, iSpawnerType, m_iLastSpecSpawn );
-		if ( pSpot )
+		if (GEMPRules()->GetSpawnersOfType(SPAWN_PLAYER_SPECTATOR)->Count()) // Find us the next spectator spawn, skip the theatrics below
+		{
+			// Find one that isn't disabled, unless all of them are in which case use the first.
+			for (int i = 0; i <= GEMPRules()->GetSpawnersOfType(SPAWN_PLAYER_SPECTATOR)->Count(); i++)
+			{
+				pSpot = (CGEPlayerSpawn*)EntFindSpawnPoint(m_iLastSpecSpawn, iSpawnerType, m_iLastSpecSpawn);
+
+				if (pSpot && pSpot->IsEnabled())
+					break;
+			}
+		}
+		else  // Didn't find one but we don't want to see the inside of dr.dean's head anymore so let's just grab the first deathmatch one.
+		{
+			DevMsg("Looking for DM Spawn!\n");
+			pSpot = (CGEPlayerSpawn*)GERules()->GetSpawnersOfType(SPAWN_PLAYER)->Element(0).Get();
+		}
+
+		if (pSpot)
+		{
+			DevMsg("Returning spectator spawn point!\n");
 			return pSpot;
+		}
 	}
 
 	if ( ge_debug_playerspawns.GetBool() )
@@ -769,6 +886,23 @@ CBaseEntity* CGEMPPlayer::EntSelectSpawnPoint()
 	CUtlVector<CGEPlayerSpawn*> vLeftovers;
 	CUtlVector<float> vWeights;
 
+	// Figure out the spawn with the highest weight
+
+	int bestweight = 2;
+
+	for (int i = 0; i < vSpots->Count(); i++)
+	{
+		CGEPlayerSpawn *pSpawn = (CGEPlayerSpawn*)vSpots->Element(i).Get();
+		if (GERules()->IsSpawnPointValid(pSpawn, this))
+		{
+			int weight = pSpawn->GetDesirability(this);
+			if (weight > bestweight)
+				bestweight = weight;
+		}
+	}
+
+	bestweight *= 0.5; //establish a threshold for spawns that are within a certain value of bestweight.
+
 	// Build a list of player spawns
 	for ( int i=0; i < vSpots->Count(); i++ )
 	{
@@ -776,8 +910,12 @@ CBaseEntity* CGEMPPlayer::EntSelectSpawnPoint()
 		if ( GERules()->IsSpawnPointValid( pSpawn, this ) )
 		{
 			int weight = pSpawn->GetDesirability( this );
-			if ( weight > 0 )
+			if ( weight > bestweight )
 			{
+				//Shifts the weights down into the 1/8-1/2 range from the 1/2 - 1 range. 
+				//Spawns at the bottom are 1 / 4th as likely to be picked as spawns at the top.
+				weight -= bestweight * 0.75;
+
 				vSpawners.AddToTail( pSpawn );
 				vWeights.AddToTail( weight );
 
@@ -839,11 +977,13 @@ CBaseEntity *CGEMPPlayer::EntFindSpawnPoint( int iStart, int iType, int &iReturn
 	int iRand = bRandomize ? (GERandom<int>(5) + 1) : 1;
 	int iNext = iStart + iRand;
 
-	if ( iNext >= vSpawns->Count() && bAllowWrap )
-		iNext = max( 0, vSpawns->Count() - iNext );
-	else if ( iNext >= vSpawns->Count() && !bAllowWrap )
-		iNext = -1;
-
+	if (iNext >= vSpawns->Count())
+	{
+		if ( bAllowWrap )
+			iNext = max(0, iNext % vSpawns->Count());
+		else
+			iNext = -1;
+	}
 	iReturn = iNext;
 	return iNext >= 0 ? (*vSpawns)[iNext].Get() : NULL;
 }
@@ -903,29 +1043,24 @@ void CGEMPPlayer::GiveDefaultItems()
 	const CGELoadout *loadout = GEMPRules()->GetLoadoutManager()->CurrLoadout();
 	if ( loadout )
 	{
-		if ( ge_startarmed.GetInt() >= 1 )
-			pGivenWeapon =  GiveNamedItem( "weapon_knife" );
-
 		// Give the weakest weapon in our set if more conditions are met
-		if ( ge_startarmed.GetInt() >= 2 )
+		if ( ge_startarmed.GetInt() >= 1 )
 		{
 			int wID = loadout->GetFirstWeapon();
 			int aID = GetAmmoDef()->Index( GetAmmoForWeapon(wID) );
 
 			// Give the player a slice of ammo for the lowest ranked weapon in the set
-			CBasePlayer::GiveAmmo( GetAmmoDef()->CrateAmount(aID), aID );
-			pGivenWeapon = GiveNamedItem( WeaponIDToAlias(wID) );
+			if (wID)
+			{
+				CBasePlayer::GiveAmmo(GetAmmoDef()->CrateAmount(aID), aID);
+				pGivenWeapon = GiveNamedItem(WeaponIDToAlias(wID));
+			}
 		}
 	} 
-	else
-	{
-		// No loadout? Give them a knife so they can still have fun
-		pGivenWeapon = GiveNamedItem( "weapon_knife" );
-	}
 
 	// Switch to the best given weapon
-	if ( pGivenWeapon )
-		Weapon_Switch( (CBaseCombatWeapon*) pGivenWeapon );
+	if (pGivenWeapon)
+		Weapon_Switch((CBaseCombatWeapon*)pGivenWeapon);
 }
 
 void CGEMPPlayer::SetPlayerName( const char *name )
@@ -946,6 +1081,10 @@ void CGEMPPlayer::SetPlayerName( const char *name )
 	{
 		BaseClass::SetPlayerName( name );
 	}
+
+	// Store python safe versions of our name.
+	GEUTIL_CleanupNameEnding(m_szCleanName, m_szSafeName);
+	GEUTIL_CleanupNameEnding(name, m_szSafeCleanName);
 }
 
 bool CGEMPPlayer::ClientCommand( const CCommand &args )
@@ -1028,6 +1167,30 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 
 		return true;
 	}
+	else if (Q_stricmp(cmd, "skin_unlock_code") == 0)
+	{
+		if (args.ArgC() < 1)
+			Warning("Player sent bad unlock code!\n");
+
+		DevMsg("Got skin unlock code of %s\n", args[1]);
+
+		uint64 unlockcode = atoll( args[1] );
+		uint64 sendbits = 0;
+
+		// We now want to check with the server and make sure that the client is allowed to confirm these skins.  Let's face it any encryption method we use is going to get broken.
+		// If someone wants to put in the effort I have no objection to them giving themselves the promotional skins, but we have to protect the rare ones so they're actually worth something.
+		// Not a perfect filter, but should suit our purposes since if a client authed skin is level 3 there are probably level 1 and 2 skins as well.
+		sendbits = unlockcode & iAllowedClientSkins;
+
+		DevMsg("Filtered it to be %llu\n", sendbits);
+
+		if (sendbits != unlockcode)
+			Warning("%s requested skins they aren't allowed to have using code %llu!\n", GetPlayerName(), unlockcode);
+
+		m_iClientSkinsCode = sendbits;
+
+		return true;
+	}
 	else if ( Q_stricmp( cmd, "spec_mode" ) == 0 ) // new observer mode
 	{
 		int mode;
@@ -1069,6 +1232,8 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 			{
 				// Find us a place to reside
 				m_hObserverTarget.Set( 0 );
+				SetViewOffset(0);
+				ClearFlags();
 				GERules()->GetSpectatorSpawnSpot( this );
 			}
 		}
@@ -1095,6 +1260,9 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 		else if ( GetObserverMode() == OBS_MODE_FIXED )
 		{
 			// Find us a place to reside
+			m_hObserverTarget.Set(0);
+			SetViewOffset(0);
+			ClearFlags();
 			GERules()->GetSpectatorSpawnSpot( this );
 		}
 		
@@ -1114,6 +1282,9 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 		else if ( GetObserverMode() == OBS_MODE_FIXED )
 		{
 			// Find us a place to reside
+			m_hObserverTarget.Set(0);
+			SetViewOffset(0);
+			ClearFlags();
 			GERules()->GetSpectatorSpawnSpot( this );
 		}
 		
@@ -1147,13 +1318,25 @@ void CGEMPPlayer::PreThink()
 					DevMsg( "BT STATUS: %s (%s)\n", GetPlayerName(), steamID );
 					m_iDevStatus = GE_BETATESTER;
 				}
+				else if (IsOnList(LIST_CONTRIBUTORS, m_iSteamIDHash))
+				{
+					DevMsg("CC STATUS: %s (%s)\n", GetPlayerName(), steamID);
+					m_iDevStatus = GE_CONTRIBUTOR;
+				}
 				else if ( IsOnList( LIST_BANNED, m_iSteamIDHash) )
 				{
 					char command[255];
-					Q_snprintf(command, 255, "banid 0 %s kick\n", steamID);
-					Msg("Hardcode Banned %s [%s]\n", steamID, command);
+					Q_snprintf(command, 255, "kick %d\n", GetUserID());
+					Msg("%s is GE:S Auth Server Banned [%s]\n", steamID, command);
 					engine->ServerCommand(command);
-					engine->ServerCommand("writeid\n");
+				}
+
+				if (IsOnList(LIST_SKINS, m_iSteamIDHash))
+				{
+					DevMsg("OWNS AUTHED SKIN: %s (%s)\n", GetPlayerName(), steamID);
+
+					int skinIndex = vSkinsHash.Find(m_iSteamIDHash);
+					m_iSkinsCode = vSkinsValues[skinIndex];
 				}
 			}
 		}
@@ -1171,6 +1354,9 @@ void CGEMPPlayer::PreThink()
 			event->SetString( "achieved", m_szAchList );
 			gameeventmanager->FireEvent( event, true );
 		}
+
+		if (atoi(engine->GetClientConVarValue(entindex(), "cl_ge_hidetags")))
+			m_iDevStatus = 0; // Maybe we don't want anyone to know we have all the acheivements.
 	}
 
 	// If we are waiting to spawn and have passed our wait time, try again!
@@ -1190,6 +1376,8 @@ void CGEMPPlayer::PreThink()
 		Hints()->Update();
 	}
 
+	//UpdateJumpPenalty();
+
 	BaseClass::PreThink();
 }
 
@@ -1204,23 +1392,9 @@ void CGEMPPlayer::PostThink()
 void CGEMPPlayer::Event_Killed( const CTakeDamageInfo &info )
 {
 	m_bSpawnFromDeath = true;
+	m_vLastDeath = GetAbsOrigin();
 
 	NotifyOnDeath();
-
-	bool killedByTrigger = !Q_stricmp("trigger_hurt", info.GetAttacker()->GetClassname());
-	CBaseCombatWeapon *pWeapon;
-	
-	// Check if we were killed by a trigger and our active weapon is a token
-	// if so remove it from the world so we don't just drop it
-	if ( killedByTrigger )
-	{
-		pWeapon = GetActiveWeapon();
-		if ( GEMPRules()->GetTokenManager()->IsValidToken( pWeapon->GetClassname() ) )
-		{
-			Weapon_Detach( pWeapon );
-			UTIL_Remove( pWeapon );
-		}
-	}
 
 	BaseClass::Event_Killed( info );
 
@@ -1274,6 +1448,32 @@ bool CGEMPPlayer::HandleCommand_JoinTeam( int team )
 	ChangeTeam( team );
 
 	return true;
+}
+
+void CGEMPPlayer::ObserverTransistion()
+{
+	char specmode[16];
+	if (GEMPRules()->GetSpawnersOfType(SPAWN_PLAYER_SPECTATOR)->Count() || GEMPRules()->GetNumActivePlayers() < 1)
+	{
+		Q_snprintf(specmode, 16, "spec_mode %i", OBS_MODE_FIXED);
+		engine->ClientCommand(edict(), specmode);
+		SetObserverTarget(NULL);
+		SetObserverMode(OBS_MODE_FIXED);
+		GERules()->GetSpectatorSpawnSpot(this);
+		SetViewOffset(0);
+		ClearFlags();
+	}
+	else // Otherwise follow someone around.
+	{
+		Q_snprintf(specmode, 16, "spec_mode %i", OBS_MODE_CHASE);
+		engine->ClientCommand(edict(), specmode);
+		CGEMPPlayer *pPlayer = ToGEMPPlayer(FindNextObserverTarget(false));
+		if (IsValidObserverTarget(pPlayer))
+		{
+			SetObserverMode(OBS_MODE_CHASE);
+			SetObserverTarget(pPlayer);
+		}
+	}
 }
 
 bool CGEMPPlayer::StartObserverMode( int mode )
@@ -1428,20 +1628,34 @@ bool CGEMPPlayer::BumpWeapon( CBaseCombatWeapon *pWeapon )
 	if ( !pGEWeapon->CanEquip(this) || !GEGameplay()->GetScenario()->CanPlayerHaveItem(this, pGEWeapon) )
 		return false;
 
+	bool forcepickup = GERules()->ShouldForcePickup(this, pWeapon);
+
+	// We have to do this before we actually fire the weapon pickup code so the skin data is overwritten before it starts getting read.
+	if (GetUsedWeaponSkin(pGEWeapon->GetWeaponID()) < pWeapon->m_nSkin && pGEWeapon->GetWeaponID() < WEAPON_RANDOM)
+	{
+		SetUsedWeaponSkin(pGEWeapon->GetWeaponID(), pWeapon->m_nSkin);
+		forcepickup = true;  //If we got a new skin, pick up the weapon no matter what.
+	}
+
 	bool ret = BaseClass::BumpWeapon(pWeapon);
-	if ( !ret && (GERules()->ShouldForcePickup(this, pWeapon) || pGEWeapon->GetWeaponID() == WEAPON_MOONRAKER) )
+	if (!ret && (forcepickup || ((pGEWeapon->GetWeaponID() == WEAPON_MOONRAKER || pGEWeapon->GetWeaponID() == WEAPON_KNIFE) && IsAllowedToPickupWeapons())))
 	{
 		// If we didn't pick it up and the game rules say we should have anyway remove it from the world
 		pWeapon->SetOwner( NULL );
 		pWeapon->SetOwnerEntity( NULL );
 		UTIL_Remove(pWeapon);
+		EmitSound("BaseCombatCharacter.AmmoPickup");
 	}
 	else if ( ret )
 	{
 		// Tell plugins what we picked up
 		NotifyPickup( pWeapon->GetClassname(), 0 );
-	}
 
+		// Kill radar invisibility if this weapon is too powerful.
+		if (GetStrengthOfWeapon(pGEWeapon->GetWeaponID()) > 4 && GEMPRules()->GetSpawnInvulnCanBreak())
+			StopInvul();
+	}
+	
 	return ret;
 }
 
@@ -1518,7 +1732,7 @@ void CGEMPPlayer::FinishClientPutInServer()
 	// Add ourselves to the radar resource (we will never be removed unless we disconnect)
 	Color col(0,0,0,0);
 	g_pRadarResource->AddRadarContact( this, RADAR_TYPE_PLAYER, false, "", col );
-
+	
 	// notify other clients of player joining the game
 	UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
 

@@ -107,10 +107,7 @@ void CGELevelLoadingPanel::FireGameEvent( IGameEvent *event )
 
 const char *CGELevelLoadingPanel::GetDefaultImage()
 {
-	if ( IsWidescreen() )
-		return "loadingscreens/_default_widescreen";
-	else
-		return "loadingscreens/_default";
+	return "loadingscreens/_default_widescreen";
 }
 
 void CGELevelLoadingPanel::SetMapImage( const char *levelname )
@@ -132,11 +129,7 @@ void CGELevelLoadingPanel::SetMapImage( const char *levelname )
 
 	char imgFile[256];
 
-	// Check for widescreen or not and load appropriately
-	if ( IsWidescreen() )
-		Q_snprintf( imgFile, 256, "vgui/loadingscreens/%s_widescreen", levelname );
-	else
-		Q_snprintf( imgFile, 256, "vgui/loadingscreens/%s", levelname );
+	Q_snprintf( imgFile, 256, "vgui/loadingscreens/%s_widescreen", levelname );
 
 	// Check the existance of our material
 	if ( IsErrorMaterial( materials->FindMaterial( imgFile, TEXTURE_GROUP_VGUI, false) ) )
@@ -149,6 +142,12 @@ void CGELevelLoadingPanel::SetMapImage( const char *levelname )
 		// Set the image, note that we chop off the "vgui/" since this is appended internally
 		m_pImagePanel->SetImage( imgFile+5 );
 		m_bMapImageSet = true;
+	}
+
+	if (!IsWidescreen())
+	{
+		m_pImagePanel->SetSize(ScreenHeight()*1.778, ScreenHeight());
+		m_pImagePanel->SetPos((ScreenWidth() - ScreenHeight()*1.778)*0.5, 0);
 	}
 
 	// Setup our music manager
@@ -167,14 +166,19 @@ const char *CGELevelLoadingPanel::GetCurrentImage()
 void CGELevelLoadingPanel::DisplayTip( void )
 {
 	const GameplayTip *tip = GetClientModeGENormal()->GetRandomTip();
-	if ( tip )
+
+	if (!Q_strcmp(GetCurrentImage(), GetDefaultImage()))
+	{
+		m_pTipContainer->SetText(""); // No tips on the default loading screen.
+	}
+	else if ( tip )
 	{
 		wchar_t tmp[128];
 		g_pVGuiLocalize->ConstructString( tmp, sizeof(tmp), g_pVGuiLocalize->Find("#GE_TIP_TITLE"), 1, tip->name );
 
 		m_pTipContainer->SetFgColor( Color(0,0,0,255) );
 		m_pTipContainer->SetText( "" );
-//		m_pTipContainer->InsertCenterText( false );
+		m_pTipContainer->InsertCenterText( false );
 		m_pTipContainer->InsertString( tmp );
 		
 		GEUTIL_ParseLocalization( tmp, 128, tip->line1 );
@@ -195,7 +199,7 @@ void CGELevelLoadingPanel::DisplayTip( void )
 			m_pTipContainer->InsertString( tmp );
 		}
 
-//		m_pTipContainer->ForceRecalculateLineBreaks();
+		m_pTipContainer->ForceRecalculateLineBreaks();
 	}
 
 	// Setup our next tip time

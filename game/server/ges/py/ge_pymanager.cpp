@@ -71,8 +71,11 @@ PyAPI_DATA(int) Py_NoSiteFlag;
 void CPythonManager::InitDll()
 {
 	// Only init once!
-	if ( m_bInit )
+	if (m_bInit)
+	{
+		Warning("[GESPy] Attempted to initialize python more than once!\n");
 		return;
+	}
 
 	try
 	{
@@ -86,10 +89,10 @@ void CPythonManager::InitDll()
 		V_strtowcs( base_path, sizeof(base_path), m_szAbsBasePath, sizeof(m_szAbsBasePath) );
 		
 		wchar_t py_path[1024];
-#ifdef POSIX
-		V_snwprintf( py_path, 1024, L"%ls:%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
+#if defined(POSIX) || defined(_LINUX)
+		swprintf( py_path, 1024, L"%ls:%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
 #else
-		V_snwprintf( py_path, 1024, L"%ls;%ls/lib", m_szAbsBasePath, m_szAbsBasePath );
+		_snwprintf_s( py_path, 1024, L"%ls;%ls\\lib", m_szAbsBasePath, m_szAbsBasePath );
 #endif
 		Py_SetPath( py_path );
 
@@ -116,20 +119,6 @@ void CPythonManager::InitDll()
 
 		const char *errors = NULL;
 		PyObject* pyValue = PyUnicode_AsEncodedString(PyObject_Repr(pvalue), "utf-8", errors);
-        
-//         PyThreadState *tstate = PyThreadState_GET();
-//         if (NULL != tstate && NULL != tstate->frame) {
-//             PyFrameObject *frame = tstate->frame;
-// 
-//             Warning("Python stack trace:\n");
-//             while (NULL != frame) {
-//                 int line = frame->f_lineno;
-//                 const char *filename = PyString_AsString(frame->f_code->co_filename);
-//                 const char *funcname = PyString_AsString(frame->f_code->co_name);
-//                 Warning("    %s(%d): %s\n", filename, line, funcname);
-//                 frame = frame->f_back;
-//             }
-//         }
 
 		Warning( "\nFailed to load python with error: %s\n", PyBytes_AS_STRING(pyValue) );
 		AssertFatalMsg( false, "Failed to load python" );
@@ -149,8 +138,11 @@ void CPythonManager::InitDll()
 void CPythonManager::ShutdownDll()
 {
 	// We can't shutdown if we didn't init
-	if ( !m_bInit )
+	if (m_bInit)
+	{
+		Warning("[GESPy] Attempted to shutdown python before initialization!\n");
 		return;
+	}
 
 	// Let everyone know we are going down
 	NotifyShutdown();

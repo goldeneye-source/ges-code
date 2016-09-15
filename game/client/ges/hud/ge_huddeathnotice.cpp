@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "cbase.h"
-#include <hud_basechat.h>
+#include "hud_basechat.h"
 #include "hud_macros.h"
 #include "ihudlcd.h"
 #include "vgui/ILocalize.h"
@@ -24,6 +24,9 @@
 #include "tier0/memdbgon.h"
 
 using namespace vgui;
+
+ConVar cl_ge_killfeed_readskins("cl_ge_killfeed_readskins", "1", FCVAR_ARCHIVE | FCVAR_USERINFO, "Use unique names for special weapon skins.");
+ConVar cl_ge_drawkillfeed("cl_ge_drawkillfeed", "1", FCVAR_ARCHIVE | FCVAR_USERINFO, "Draw the killfeed.");
 
 enum InfoColor
 {
@@ -93,6 +96,7 @@ public:
 	virtual void CreateChatInputLine( void );
 	virtual void CreateChatLines( void );
 	virtual void Init( void );
+	virtual bool ShouldDraw();
 	virtual void Reset( void );
 	virtual void ApplySchemeSettings(vgui::IScheme *pScheme);
 
@@ -122,6 +126,13 @@ CGEHudDeathNotice::CGEHudDeathNotice( const char *pElementName )
 
 	ListenForGameEvent( "player_death" );
 	ListenForGameEvent( "death_message" );
+}
+bool CGEHudDeathNotice::ShouldDraw(void)
+{
+	if (!cl_ge_drawkillfeed.GetBool())
+		return false;
+
+	return true;
 }
 //This pointer is used in base class, so it must be created even though it isn't used.
 void CGEHudDeathNotice::CreateChatInputLine( void )
@@ -184,7 +195,10 @@ void CGEHudDeathNotice::FireGameEvent( IGameEvent * event )
 	// the event should be "player_death"
 	int killer = engine->GetPlayerForUserID( event->GetInt("attacker") );
 	int victim = engine->GetPlayerForUserID( event->GetInt("userid") );
+	int killedwithid = event->GetInt("weaponid");
+	int damagetype = event->GetInt("dmgtype");
 	const char *killedwith = event->GetString("weapon");
+	int killedwithskinID = event->GetInt("weaponskin");
 	bool headshot = event->GetBool("headshot");
 
 	// Get the names of the players
@@ -206,7 +220,19 @@ void CGEHudDeathNotice::FireGameEvent( IGameEvent * event )
 	m_DeathMsgInfo.bSuicide = ( !killer || killer == victim );
 
 	// Localize the weapon name!
-	wchar_t *wszKilledWith = g_pVGuiLocalize->Find( killedwith );
+	char killedwithskin[32];
+
+
+	// If our weapon has a skin try and find a unique name for it if we want one.
+	if (killedwithskinID && cl_ge_killfeed_readskins.GetBool())
+		Q_snprintf(killedwithskin, sizeof(killedwithskin), "%s%d", killedwith, killedwithskinID);
+	else
+		Q_strncpy(killedwithskin, killedwith, MAX_PLAYER_NAME_LENGTH);
+
+	
+
+	wchar_t *wszKilledWith = g_pVGuiLocalize->Find(killedwithskin);
+
 	if ( wszKilledWith )
 		g_pVGuiLocalize->ConvertUnicodeToANSI( wszKilledWith, m_DeathMsgInfo.killedWith, sizeof( m_DeathMsgInfo.killedWith ) );
 	else
@@ -216,30 +242,132 @@ void CGEHudDeathNotice::FireGameEvent( IGameEvent * event )
 	// Record the death notice in the console and record what localization string we should use
 	if ( m_DeathMsgInfo.bSuicide )
 	{
-		if ( !strcmp( killedwith, "world" ) )
+		if (Q_strncmp(killedwith, "-TD-", 4) == 0) //Check custom death messages first
 		{
-			Q_snprintf( szConMsg, sizeof(szConMsg), "%s died.", m_DeathMsgInfo.Victim.szName );
-			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find( "#GES_Death_Suicide_World" );
+			char szTriggerMessage[64];
+
+			// Cut off the -TD- flag.  This is seriously the best and only way I found that works.
+			Q_StrRight(killedwith, -4, szTriggerMessage, 64); // Copies over the rightmost part of the string, starting 4 places from the leftmost part of it.
+
+			if (Q_strncmp(szTriggerMessage, "#", 1) == 0) //If the string starts with a pound sign it's probably localized.
+			{
+				if (!strcmp(szTriggerMessage, "#GES_Pit_Death")) //Just a quick addition for easy generic death pit messages.
+					Q_snprintf( szTriggerMessage, sizeof(szTriggerMessage), "%s%d", szTriggerMessage, GERandom<int>(6) );
+
+				m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find(szTriggerMessage); //So look for it
+				Q_snprintf(szConMsg, sizeof(szConMsg), "%s died to a trap.", m_DeathMsgInfo.Victim.szName);
+			}
+			else //The string should be displayed as-is.  If only this were easy.
+			{
+				//First print the console message because that part is straightforward at least.
+				Q_snprintf(szConMsg, sizeof(szConMsg), "%s %s", m_DeathMsgInfo.Victim.szName, szTriggerMessage);
+				
+				char szDeathMsgUnf[128]; //ANSI version of the string
+				char szStrPlc[4] = "%s"; //Placeholder string so we can replace the second %s without replacing the first.
+				wchar_t szDeathMessageW[128]; //Temporary place to store the result so we can = to it instead of directly overwriting m_DeathMsgInfo.wszFormat because this crashes the game for some reason.
+
+				Q_snprintf(szDeathMsgUnf, sizeof(szDeathMsgUnf), "^6%s1 %s", szStrPlc, szTriggerMessage); //Format the death message so the system knows how to parse it.
+				g_pVGuiLocalize->ConvertANSIToUnicode(szDeathMsgUnf, szDeathMessageW, sizeof(szDeathMessageW)); //Store it in the placeholder string.
+
+				m_DeathMsgInfo.wszFormat = szDeathMessageW; //Transfer it over to the actual death message.
+				// Seriously, if someone knows a better way to do this please tell me.  I can't find any documentation on this stuff at all.
+			}
 		}
-		else
+		else if (!strcmp(m_DeathMsgInfo.killedWith, "self")) // killbinds and a few other things can cause this and should be checked for first since the damagetype is often blast.
 		{
-			Q_snprintf( szConMsg, sizeof(szConMsg), "%s committed suicide.", m_DeathMsgInfo.Victim.szName );
-			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find( "#GES_Death_Suicide" );
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s committed suicide.", m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Suicide");
+		}
+		else if (damagetype & DMG_BLAST) // Try to get specific damagetype death messages, starting with explosives
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s blew up.", m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Suicide_Explosive");
+		}
+		else if (damagetype & DMG_FALL) // Fall damage related deaths are also common
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s fell to their death.", m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Suicide_Fall");
+		}
+		else // Otherwise use a generic message
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s died.", m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Suicide_World");
+		}
+	}
+	else if (killedwithid == WEAPON_NONE) // There is a killer, but they are only getting credit for a suicide.
+	{
+		if (!strcmp(m_DeathMsgInfo.killedWith, "self")) // First check for killbinds because they can use a few different damage types.
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s drove %s to suicide", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Killed_Suicide");
+		}
+		else if(damagetype & DMG_BLAST) // Then try to get specific damagetype death messages first, starting with explosives since they are the most common.
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s got %s to blow themselves up", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Killed_Explosive");
+		}
+		else if (damagetype & DMG_FALL) // Fall damage related deaths are also common
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s pushed %s to their death", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Killed_Fall");
+		}
+		else // Everything else
+		{
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s helped %s find death.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName);
+			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Killed_World");
 		}
 	}
 	else
 	{
-		GetEnglishArticle( m_DeathMsgInfo.killedWith, m_DeathMsgInfo.article );
+		if (killedwithid != WEAPON_TRAP) // Traps don't get articles on standard kill messages.
+			GetEnglishArticle( m_DeathMsgInfo.killedWith, m_DeathMsgInfo.article );
+		else
+			Q_strncpy(m_DeathMsgInfo.article, "", MAX_PLAYER_NAME_LENGTH);
 
-		if ( headshot )
+		// Check for custom trap kill message first.  These can also display when someone pushes someone else into a pit.
+		if (Q_strncmp(killedwith, "-TD-", 4) == 0)
 		{
-			Q_snprintf( szConMsg, sizeof(szConMsg), "%s killed %s with %s%s Headshot.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName, m_DeathMsgInfo.article, m_DeathMsgInfo.killedWith );
-			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find( "#GES_Death_Headshot" );
+			char szTriggerMessage[64];
+
+			// Cut off the -TD- flag.  This is seriously the best and only way I found that works.
+			Q_StrRight(killedwith, -4, szTriggerMessage, 64); // Copies over the rightmost part of the string, starting 4 places from the leftmost part of it.
+			
+			if (Q_strncmp(szTriggerMessage, "#", 1) == 0) //If the string starts with a pound sign it's probably localized.
+			{
+				if (!strcmp(szTriggerMessage, "#GES_Pit_Kill")) //Just a quick addition for easy generic death pit messages.
+					Q_snprintf(szTriggerMessage, sizeof(szTriggerMessage), "%s%d", szTriggerMessage, GERandom<int>(6));
+				
+				m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find(szTriggerMessage); //So look for it
+			}
+			else //The string should be displayed as-is.  If only this were easy.
+			{
+				char szDeathMsgUnf[128]; //ANSI version of the string
+				char szTriggerMessageFix[64]; //Place to hold the substituted string.
+				char szStrPlc[4] = "%s"; //Placeholder string so we can replace the second %s without replacing the first.
+				wchar_t szDeathMessageW[128]; //Temporary place to store the result so we can = to it instead of directly overwriting m_DeathMsgInfo.wszFormat because this crashes the game for some reason.
+		
+				Q_StrSubst(szTriggerMessage, "player2", "^8%s2^1", szTriggerMessageFix, sizeof(szTriggerMessageFix), true); //Replace player2 with %s so we can actually add in their name.
+
+				Q_snprintf(szDeathMsgUnf, sizeof(szDeathMsgUnf), "^7%s1^1 %s", szStrPlc, szTriggerMessageFix); //Format the death message so the system knows how to parse it.
+				g_pVGuiLocalize->ConvertANSIToUnicode(szDeathMsgUnf, szDeathMessageW, sizeof(szDeathMessageW)); //Store it in the placeholder string.
+
+				m_DeathMsgInfo.wszFormat = szDeathMessageW; //Transfer it over to the actual death message.
+				// Seriously, if someone knows a better way to do this please tell me.  I can't find any documentation on this stuff at all.
+			}
+			Q_snprintf(szConMsg, sizeof(szConMsg), "%s killed %s with a trap.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName);
 		}
-		else if ( strcmp(m_DeathMsgInfo.killedWith, "world") == 0)
+		else if ( headshot )
 		{
-			Q_snprintf( szConMsg, sizeof(szConMsg), "%s killed %s.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName );
-			m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find( "#GES_Death_Killed_World" );
+			if (killedwithid == WEAPON_ROCKET_LAUNCHER || killedwithid == WEAPON_GRENADE_LAUNCHER)
+			{
+				Q_snprintf(szConMsg, sizeof(szConMsg), "%s killed %s with %s%s Direct Hit.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName, m_DeathMsgInfo.article, m_DeathMsgInfo.killedWith);
+				m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Direct");
+			}
+			else
+			{
+				Q_snprintf(szConMsg, sizeof(szConMsg), "%s killed %s with %s%s Headshot.", m_DeathMsgInfo.Killer.szName, m_DeathMsgInfo.Victim.szName, m_DeathMsgInfo.article, m_DeathMsgInfo.killedWith);
+				m_DeathMsgInfo.wszFormat = g_pVGuiLocalize->Find("#GES_Death_Headshot");
+			}
 		}
 		else
 		{

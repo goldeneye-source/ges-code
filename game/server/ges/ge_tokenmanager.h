@@ -184,6 +184,7 @@ private:
 	};
 
 	float m_flNextEnforcement;
+	float m_flNextCapSpawn;
 
 	// Lists of tokens, global ammo, and capture areas
 	CUtlDict<CGETokenDef*, int>			m_vTokenTypes;

@@ -36,6 +36,7 @@ void CGEShell::Spawn( void )
 	m_takedamage	= DAMAGE_YES;
 	m_iHealth		= 1;
 	m_iBounceCount	= 0;
+	m_bHitPlayer	= false;
 
 	// Default Damages they should be modified by the thrower
 	SetDamage( 320 );
@@ -54,7 +55,7 @@ void CGEShell::Spawn( void )
 
 	// Detonate after a set amount of time
 	SetThink( &CGEShell::ExplodeThink );
-	SetNextThink( gpGlobals->curtime + GE_SHELL_FUSETIME );
+	SetNextThink( gpGlobals->curtime + GE_SHELL_FUSETIME / max(phys_timescale.GetFloat(), 0.01) );
 
 	// Instantly Explode when we hit a player
 	SetTouch( &CGEShell::PlayerTouch );
@@ -117,7 +118,7 @@ void CGEShell::CreateSmokeTrail( void )
 
 bool CGEShell::CanExplode()
 {
-	return m_iBounceCount > 0 || m_flFloorTimeout < gpGlobals->curtime;
+	return m_flFloorTimeout < gpGlobals->curtime;
 }
 
 void CGEShell::ExplodeThink() 
@@ -142,9 +143,24 @@ void CGEShell::PlayerTouch( CBaseEntity *pOther )
 	if ( myteam >= FIRST_GAME_TEAM && pOther->GetTeamNumber() == myteam && !friendlyfire.GetBool() )
 		return;
 
-	// Always explode immediately upon hitting another player
+	// Always explode immediately upon hitting another player, and kill them instantly.
 	if ( pOther->IsPlayer() || pOther->IsNPC() )
+	{
 		SetNextThink( gpGlobals->curtime );
+
+		if (!m_bHitPlayer) // Only do this if we haven't already done it.  We don't want to get 2 directs with one grenade.
+		{
+			Vector playercenter = pOther->GetAbsOrigin() + Vector(0, 0, 38);
+			Vector impactforce = playercenter - GetAbsOrigin();
+			VectorNormalize(impactforce);
+
+			impactforce *= 1000;
+
+			m_bHitPlayer = true;
+			CTakeDamageInfo shellinfo(this, GetThrower(), impactforce, GetAbsOrigin(), 398.0f, DMG_BLAST);
+			pOther->TakeDamage(shellinfo);
+		}
+	}
 }
 
 // This function is in replacement of "Touch" since we are using the VPhysics
@@ -223,10 +239,12 @@ void CGEShell::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 #endif
 
 	// Set our final velocity based on the calcs above
-	PhysCallbackSetVelocity( pEvent->pObjects[index], vecCalcVelocity );
+	//PhysCallbackSetVelocity( pEvent->pObjects[index], vecCalcVelocity );
 	
 	// Update our bounce count
 	++m_iBounceCount;
+
+	m_flFloorTimeout = min(m_flFloorTimeout, gpGlobals->curtime + 0.2f);
 }
 
 int CGEShell::OnTakeDamage( const CTakeDamageInfo &inputInfo )
@@ -237,12 +255,25 @@ int CGEShell::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	// Manually apply vphysics because BaseCombatCharacter takedamage doesn't call back to CBaseEntity OnTakeDamage
 	VPhysicsTakeDamage( inputInfo );
 
-	// Grenades only suffer blast damage.
-	if( inputInfo.GetDamageType() & DMG_BLAST )
+	// Grenades only suffer blast damage, but are somewhat robust and can pass around the edges of explosions.
+	if (inputInfo.GetDamageType() & DMG_BLAST && inputInfo.GetDamage() > 120)
 	{
 		m_iHealth -= inputInfo.GetDamage();
 		if ( m_iHealth <= 0 )
+		{
+			if (inputInfo.GetAttacker()->IsPlayer())
+			{
+				SetThrower(inputInfo.GetAttacker()->MyCombatCharacterPointer());
+			}
+			else if (inputInfo.GetAttacker()->IsNPC())
+			{
+				CNPC_GEBase *npc = (CNPC_GEBase*)inputInfo.GetAttacker();
+				if (npc->GetBotPlayer())
+					SetThrower(npc->GetBotPlayer());
+			}
+
 			ExplodeThink();
+		}
 
 		return inputInfo.GetDamage();
 	}

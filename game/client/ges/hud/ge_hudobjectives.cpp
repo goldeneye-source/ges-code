@@ -10,9 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "cbase.h"
 #include "hud.h"
-#include <vgui_controls/Panel.h>
-#include <vgui/ISurface.h>
-#include <vgui/ILocalize.h>
+#include "vgui_controls/Panel.h"
+#include "vgui/ISurface.h"
+#include "vgui/ILocalize.h"
 #include "hudelement.h"
 #include "iclientmode.h"
 #include "ge_shareddefs.h"

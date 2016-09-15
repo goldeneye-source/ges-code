@@ -21,7 +21,7 @@ class CGEWeapon;
 #include "GameEventListener.h"
 #include "ge_weapon.h"
 
-class C_GEPlayer : public C_HL2MP_Player
+class C_GEPlayer : public C_HL2MP_Player, public CGameEventListener
 {
 public:
 	DECLARE_CLASS( C_GEPlayer, C_HL2MP_Player );
@@ -53,12 +53,18 @@ public:
 
 	virtual void ItemPreFrame();
 	virtual void ClientThink();
+	virtual void PreThink();
 	virtual void PostDataUpdate( DataUpdateType_t updateType );
 
 	void ResetAimMode( bool forced=false );
 	bool IsInAimMode();
+	bool StartedAimMode()					{ return (m_flFullZoomTime > 0); }
+	float GetFullyZoomedTime()				{ return m_flFullZoomTime; }
+	void SetDesiredZoomOffset(float newoffset)				{ m_iNewZoomOffset = newoffset; }
 	void CheckAimMode();
-	int GetAimModeState() { return m_iAimModeState; }
+	int GetAimModeState();
+
+	virtual void	RemoveAmmo(int iCount, int iAmmoIndex);
 
 	void SetZoom( int zoom, bool forced=false ); 
 	int GetZoomEnd();
@@ -77,7 +83,6 @@ public:
 
 	C_BaseEntity *GetHat()		{ return m_hHat.Get(); };
 
-	virtual void		DoMuzzleFlash();
 	virtual void		FireBullets( const FireBulletsInfo_t &info );
 	virtual bool		Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = GE_RIGHT_HAND );
 
@@ -95,16 +100,18 @@ private:
 	EHANDLE m_hActiveWeaponCache;
 
 	// Local state tracking
-	int  m_iAimModeState;
+	float m_flFullZoomTime;
 
 	// Networked aiming variables
-	bool m_bInAimMode;
+	int m_iNewZoomOffset;
 	
 	bool m_bInSpecialMusic;
 	float m_flEndSpecialMusic;
 	int m_ArmorValue;
 	int m_iMaxArmor;
 	int m_iMaxHealth;
+
+	bool m_bSentUnlockCode;
 };
 
 C_GEPlayer *ToGEPlayer( CBaseEntity *pEntity );

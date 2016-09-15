@@ -32,6 +32,7 @@ public:
 
 	void NotifyOnDeath( float dist );
 	void NotifyOnUse();
+	void SetUseFadeTime(float usetime);
 
 	// Returns desirability weighting (high weight, high desirability)
 	int GetDesirability( CGEPlayer *pRequestor );
@@ -50,15 +51,19 @@ protected:
 	bool CheckInPVS( CGEPlayer *player );
 
 private:
+	int m_iBaseDesirability;
+
 	// Tracking variables
 	float m_fLastUseTime;
-	float m_fLastDeathNotice;
-	float m_fLastDeathCalc;
-	float m_fNearbyDeathMetric;
+	float m_fUseFadeTime;
+	float m_fDeathFadeTime;
+	float m_fMaxSpawnDist;
 
 	int m_iLastEnemyWeight;
 	int m_iLastDeathWeight;
 	int m_iLastUseWeight;
+	int m_iUniLastDeathWeight;
+	int m_iUniLastUseWeight;
 
 	// PVS Checks
 	byte m_iPVS[ MAX_MAP_CLUSTERS/8 ];
@@ -66,6 +71,7 @@ private:
 
 	// KeyValues
 	int   m_iTeam;
+	float m_flDesirabilityMultiplier;
 };
 
 #endif

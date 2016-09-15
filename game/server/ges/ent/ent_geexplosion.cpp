@@ -16,6 +16,7 @@
 #include "engine/IEngineSound.h"
 #include "soundent.h"
 #include "steamjet.h"
+#include "ge_gamerules.h"
 #include "ge_shareddefs.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -153,12 +154,27 @@ void CGE_Explosion::Activate()
 // Create a HL2 Generic Blast to start off the fireworks. This does NO DAMAGE and doesn't display smoke.
 void CGE_Explosion::CreateInitialBlast( void )
 {
-	trace_t		tr;
+	trace_t		tr, tr2;
 	Vector vecAbsOrigin = GetAbsOrigin();
 	int contents = UTIL_PointContents ( vecAbsOrigin );
+	Vector dirs[5] = { Vector(0, 0, 48), Vector(0, 48, 0), Vector(0, -48, 0), Vector(48, 0, 0), Vector(-48, 0, 0) };
+
 
 	// Don't hit anything that isn't the world
-	UTIL_TraceLine( vecAbsOrigin, vecAbsOrigin + Vector ( 0, 0, -64 ), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+
+	// Start with a straight down trace, only colliding with the world.  Slightly longer so that the floor is favored when explosions hit corners.
+	UTIL_TraceLine(vecAbsOrigin, vecAbsOrigin + Vector(0, 0, -64), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr);
+
+	// Run through each direction comparing each trace length to the current longest in order to find the shortest one.
+	// Then use that one for the rest of the code.
+
+	for (int i = 0; i < 5; i++)
+	{
+		UTIL_TraceLine(vecAbsOrigin, vecAbsOrigin + dirs[i], MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr2);
+
+		if (tr2.fraction < tr.fraction)
+			tr = tr2;
+	}
 
 	if ( tr.fraction != 1.0 )
 	{
@@ -169,10 +185,10 @@ void CGE_Explosion::CreateInitialBlast( void )
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin,
 			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-			m_flDamageRadius * 0.03f, 
+			min(m_flDamageRadius, 500) * 0.03f, 
 			25,
 			TE_EXPLFLAG_NOFIREBALLSMOKE | TE_EXPLFLAG_NOSOUND,
-			m_flDamageRadius * 0.8f,
+			min(m_flDamageRadius, 500) * 0.8f,
 			0.0f,
 			&vecNormal,
 			(char) pdata->game.material );
@@ -183,14 +199,14 @@ void CGE_Explosion::CreateInitialBlast( void )
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin, 
 			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-			m_flDamageRadius * 0.03f, 
+			min(m_flDamageRadius, 500) * 0.03f,
 			25,
 			TE_EXPLFLAG_NOFIREBALLSMOKE | TE_EXPLFLAG_NOSOUND,
-			m_flDamageRadius * 0.8f,
+			min(m_flDamageRadius, 500) * 0.8f,
 			0.0f );
 	}
 
-	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), m_flDamageRadius*1.5f, GE_EXP_DMG_TIME, this );
+	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), min(m_flDamageRadius, 500)*1.5f, GE_EXP_DMG_TIME, this );
 
 	//Wreak paintball havok if paintball mode is on
 	//otherwise just place a scorch mark down
@@ -227,18 +243,10 @@ void CGE_Explosion::CreateInitialBlast( void )
 	else
 		UTIL_DecalTrace( &tr, "Scorch" );
 
-	// Create a dynamic light that lasts the length of the fire part of the explosion
-	const CBaseEntity *host = te->GetSuppressHost();
-	te->SetSuppressHost( NULL );
-
-	CPASFilter filter( GetAbsOrigin() );
-	te->DynamicLight( filter, 0.0, &GetAbsOrigin(), 255, 156, 9, 1, m_flDamageRadius*2.5f, GE_EXP_DMG_TIME-0.5f, 40.0f );
-
-	te->SetSuppressHost( (CBaseEntity*)host );
-
 	// Generate the heat effects
 	CreateHeatWave();
 }
+
 
 void CGE_Explosion::Think()
 {
@@ -253,13 +261,12 @@ void CGE_Explosion::Think()
 		if ( m_hActivator.Get() && m_hOwner.Get() && m_flDamageRadius > 0 && m_flDamage > 0 )
 		{
 			CTakeDamageInfo info( m_hActivator.Get(), m_hOwner.Get(), vec3_origin, GetAbsOrigin(), m_flDamage, DMG_BLAST );
-			info.SetDamageForce( Vector( 600,0,0 ) );
 			g_pGameRules->RadiusDamage( info, GetAbsOrigin(), m_flDamageRadius, CLASS_NONE, NULL );
 		}
 
 		if ( gpGlobals->curtime > m_flShakeTime && gpGlobals->curtime < m_flDieTime + 1.0f )
 		{
-			float radius = (m_flDamageRadius > 0) ? (m_flDamageRadius * (IsSmallExp() ? 0.75f : 2.0f)) : 45.0f;
+			float radius = (m_flDamageRadius > 0) ? ( min(m_flDamageRadius, 300) * (IsSmallExp() ? 0.75f : 1.0f)) : 45.0f;
 			float freq = IsSmallExp() ? 50.0f : 100.0f;
 			float amp = IsSmallExp() ? 3.0 : 7.0;
 			
@@ -268,7 +275,7 @@ void CGE_Explosion::Think()
 		}
 
 		// Apply another round of damage in 1/3 of a second
-		SetNextThink( gpGlobals->curtime + 0.25f );
+		SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 	else
 	{
@@ -277,8 +284,11 @@ void CGE_Explosion::Think()
 	}
 }
 
+
 void CGE_Explosion::CreateHeatWave( void )
 {
+	return; // We can't afford to have this effect anymore, we're pushing things as it is.
+
 	static Vector offset( -40.0f, 0, 70.0f );
 
 	float scale = 1.0f;
@@ -305,6 +315,8 @@ void CGE_Explosion::CreateHeatWave( void )
 
 void CGE_Explosion::DestroyHeatWave( void )
 {
+	return; // Can't destroy what we don't have.
+
 	if ( m_hHeatWave.Get() )
 	{
 		m_hHeatWave->Remove();

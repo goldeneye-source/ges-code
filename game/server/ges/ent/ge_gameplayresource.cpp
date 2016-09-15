@@ -62,10 +62,17 @@ void CGEGameplayResource::OnGameplayEvent( GPEvent event )
 
 		Q_strncpy( m_GameplayIdent.GetForModify(), pScenario->GetIdent(),	  32 );
 		Q_strncpy( m_GameplayName.GetForModify(),  pScenario->GetPrintName(), 64 );
-		m_GameplayHelp = pScenario->GetHelpString();
 		m_GameplayOfficial = pScenario->IsOfficial();
 		m_GameplayIntermission = true;
 		m_GameplayRoundNum = 0;
+	}
+	else if ( event == SCENARIO_POST_INIT )
+	{
+		CGEBaseScenario *pScenario = GEGameplay()->GetScenario();
+		if (!pScenario)
+			return;
+
+		m_GameplayHelp = pScenario->GetHelpString();
 	}
 	else if ( event == ROUND_START )
 	{

@@ -10,7 +10,7 @@
 #include "cbase.h"
 
 // To grab our window handle
-#if defined(_WIN32) && !defined(_X360) 
+#if !defined(_X360) && defined(_WIN32)
 #pragma warning(disable:4005)
 #include <windows.h>
 #endif
@@ -33,19 +33,17 @@ using namespace FMOD;
 // Extern definitions
 // -----------------------
 CGEMusicManager *g_pGEMusicManager = NULL;
-CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
+inline CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
 
-HWND gWindowHandle = 0;
+HWND gWindowHandle;
 
 void StartGEMusicManager()
 {
 	if ( g_pGEMusicManager )
 		StopGEMusicManager();
 
-#if defined(_WIN32) && !defined(_X360)
 	// Find our window handle
 	gWindowHandle = FindWindow("Valve001", NULL);
-#endif
 
 	new CGEMusicManager();
 }
@@ -291,42 +289,41 @@ void CGEMusicManager::InternalLoadPlaylist( void )
 			// If we fail to load the level music, try the default mix
 			Q_snprintf( sz, sizeof(sz), "scripts/music/level_music_%s", GE_MUSIC_DEFAULT );
 			pKV = ReadEncryptedKVFile( filesystem, sz, NULL );
-
-			// If we fail the default, don't play anything...
-			if ( !pKV )
-				return;
 		}
 
-		// Always add the default soundscape entry
-		m_Playlists.Insert( GE_MUSIC_DEFAULTSCAPE, new CUtlVector<char*>() );
-
-		// Start the file parse
-		KeyValues *pKey = pKV->GetFirstSubKey();
-		while( pKey )
+		if ( pKV )
 		{
-			if ( !Q_stricmp( pKey->GetName(), "file" ) && !pKey->GetFirstSubKey() )
-			{
-				// A bare "file" key means add it to the default list
-				AddSong( pKey->GetString(), GE_MUSIC_DEFAULTSCAPE );
-			}
-			else if ( pKey->GetFirstSubKey() )
-			{
-				// We encountered a soundscape entry
-				const char *soundscape = pKey->GetName();
+			// If we fail the default, don't play anything...
+			m_Playlists.Insert( GE_MUSIC_DEFAULTSCAPE, new CUtlVector<char*>() );
 
-				KeyValues *pFile = pKey->GetFirstSubKey();
-				while ( pFile )
+			// Start the file parse
+			KeyValues *pKey = pKV->GetFirstSubKey();
+			while( pKey )
+			{
+				if ( !Q_stricmp( pKey->GetName(), "file" ) && !pKey->GetFirstSubKey() )
 				{
-					if ( !Q_stricmp( pFile->GetName(), "file" ) )
-						AddSong( pFile->GetString(), soundscape );
-					pFile = pFile->GetNextKey();
+					// A bare "file" key means add it to the default list
+					AddSong( pKey->GetString(), GE_MUSIC_DEFAULTSCAPE );
 				}
+				else if ( pKey->GetFirstSubKey() )
+				{
+					// We encountered a soundscape entry
+					const char *soundscape = pKey->GetName();
+
+					KeyValues *pFile = pKey->GetFirstSubKey();
+					while ( pFile )
+					{
+						if ( !Q_stricmp( pFile->GetName(), "file" ) )
+							AddSong( pFile->GetString(), soundscape );
+						pFile = pFile->GetNextKey();
+					}
+				}
+
+				pKey = pKey->GetNextKey();
 			}
 
-			pKey = pKey->GetNextKey();
+			DevMsg( 2, "[FMOD] Loaded playlist %s\n", sz );
 		}
-
-		DevMsg( 2, "[FMOD] Loaded playlist %s\n", sz );
 	}
 
 	m_fNextSongTime = 0;
@@ -451,7 +448,7 @@ void CGEMusicManager::CheckWindowFocus( void )
 	static bool sbInFocus = true;
 
 	// If we are on windows (why wouldn't we be?) check if we are the active window
-#if defined(_WIN32) && !defined(_X360)
+#ifdef _WIN32
 	if ( m_pMasterChannel )
 	{
 		HWND active = GetForegroundWindow();
@@ -613,12 +610,13 @@ void CGEMusicManager::DEBUG_NextSong()
 	m_fNextSongTime = 0;
 }
 
-#ifdef _DEBUG
-CON_COMMAND( fmod_nextsong, "Next song" )
+// This could actually be useful for players/musicians testing their tracks.
+CON_COMMAND( ge_nextsong, "Skips current track" )
 {
 	GEMusicManager()->DEBUG_NextSong();
 }
 
+#ifdef _DEBUG
 CON_COMMAND( fmod_playlist, "Playlist change" )
 {
 	if ( args.ArgC() > 1 )

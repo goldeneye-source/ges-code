@@ -264,7 +264,7 @@ void CREBreakable::Die( void )
 	// Make ourselfs invisible
 	AddEffects( EF_NODRAW );
 	VPhysicsDestroyObject();
-	SetMoveType( MOVETYPE_NONE );
+	SetMoveType( MOVETYPE_PUSH ); //Still allow it to be moved, so that it respawns with parent
 	AddSolidFlags( FSOLID_NOT_SOLID );
 
 	SetTouch( NULL );
@@ -294,8 +294,8 @@ void CREBreakable::Die( void )
 	}
 
 	// Place us back where we were
-	UTIL_SetOrigin( this, m_RespawnOrigin );
-	SetAbsAngles( m_RespawnAngles );
+	//UTIL_SetOrigin( this, m_RespawnOrigin );
+	//SetAbsAngles( m_RespawnAngles );
 }
 
 void CREBreakable::RespawnThink( void )
@@ -309,7 +309,7 @@ void CREBreakable::RespawnThink( void )
 	for ( CEntitySphereQuery sphere( GetAbsOrigin(), max.NormalizeInPlace() ); (pEntity = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
 	{
 		// Prevent respawn if we are blocked by anything and try again in 1 second
-		if ( pEntity == this || pEntity->GetSolid() == SOLID_BSP || pEntity->GetSolidFlags() & FSOLID_NOT_SOLID )
+		if (pEntity == this || pEntity->GetSolid() == SOLID_NONE || pEntity->GetSolid() == SOLID_BSP || pEntity->GetSolidFlags() & FSOLID_NOT_SOLID || pEntity == this->GetParent())
 			continue;
 
 		if ( Intersects(pEntity) )

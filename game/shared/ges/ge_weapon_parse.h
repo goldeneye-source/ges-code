@@ -31,17 +31,23 @@ public:
 	virtual void Parse( ::KeyValues *pKeyValuesData, const char *szWeaponName );
 
 	int		m_iDamage;
+	int		m_iDamageCap;
 	int		m_iAmmoIcon;
 	float	m_flFireDelay;
 	float	m_flDamageRadius;
 	float	m_flRateOfFire;
 	float	m_flClickRateOfFire;
+	float	m_flAccurateRateOfFire;
+	int		m_flAccurateShots;
 	Vector	m_vecSpread;
-	Vector	m_vecSpreadSighted;
+	Vector	m_vecMaxSpread;
 	int		m_iZoomOffset;
-	float	m_flRecoil;
 	float	m_flMaxPenetration;
 	int		m_iTracerFreq;
+	int		m_flGaussFactor;
+	int		m_flGaussPenalty;
+	float	m_flAimBonus;
+	float	m_flJumpPenalty;
 
 	float	m_flMinNPCRange;
 	float	m_flMaxNPCRange;
@@ -89,7 +95,7 @@ public:
 	} Kick;
 
 	char m_szAnimExtension[16];		// string used to generate player animations with this weapon
-
+	char m_szSpecialAttributes[32];		// string used to store special attributes for the help
 };
 
 

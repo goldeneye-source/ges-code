@@ -10,6 +10,7 @@
 
 #include "ge_gamerules.h"
 #include "gemp_gamerules.h"
+#include "ge_mapmanager.h"
 #include "gemp_player.h"
 #include "ge_spawner.h"
 #include "ge_gameplayresource.h"
@@ -26,7 +27,9 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define RANDOM_LOADOUT	"random_loadout"
+#define RANDOM_LOADOUT "random_loadout"
+
+ConVar ge_loadouts_loadoutbuffercount("ge_loadouts_loadoutbuffercount", "12", FCVAR_GAMEDLL, "How often weaponsets are allowed to repeat without weight penalty.  Any that have been played within (this value)/2 rounds cannot be picked randomly.");
 
 void GEWeaponSet_Callback( IConVar *var, const char *pOldString, float flOldValue )
 {
@@ -88,6 +91,7 @@ protected:
 				pLoadout->SetIdent( szName );
 				pLoadout->SetPrintName( pKVLoadout->GetString("print_name", pLoadout->GetIdent()) );
 				pLoadout->SetWeight( pKVLoadout->GetInt("weight", 0) );
+				pLoadout->SetGroup( pKVLoadout->GetInt("group", -1) );
 				pLoadout->LoadWeapons( pKVLoadout->FindKey("weapons") );
 			
 				m_pMgr->AddLoadout( pLoadout );
@@ -132,6 +136,9 @@ void CGELoadoutManager::ParseLoadouts( void )
 
 	// Load gameplay affinity last to ensure we can make links to loadouts
 	ParseGameplayAffinity();
+
+	// Load our past loadouts so we don't end up picking the same ones over and over.
+	ParseLogData();
 }
 
 void CGELoadoutManager::ParseGameplayAffinity( void )
@@ -187,6 +194,11 @@ void CGELoadoutManager::ParseGameplayAffinity( void )
 							pGameplaySet->weights.AddToTail( atoi(data[1]) );
 						else
 							pGameplaySet->weights.AddToTail( 500 );
+
+						if (data.Count() > 2)
+							pGameplaySet->groups.AddToTail(atoi(data[2]));
+						else
+							pGameplaySet->groups.AddToTail(0);
 					}
 				}
 
@@ -213,6 +225,60 @@ void CGELoadoutManager::ParseGameplayAffinity( void )
 	filesystem->FindClose( finder );
 }
 
+void CGELoadoutManager::ParseLogData()
+{
+	char *contents = (char*)UTIL_LoadFileForMe("gamesetuprecord.txt", NULL);
+
+	if (!contents)
+	{
+		Msg("No rotation log!\n");
+		return;
+	}
+
+	CUtlVector<char*> lines;
+	char linebuffer[64];
+	Q_SplitString(contents, "\n", lines);
+
+	bool readingweps = false;
+
+	for (int i = 0; i < lines.Count(); i++)
+	{
+		// Ignore comments
+		if (!Q_strncmp(lines[i], "//", 2))
+			continue;
+
+		if (readingweps)
+		{
+			if (!Q_strncmp(lines[i], "-", 1)) // Our symbol for the end of a block.
+				break;
+
+			Q_StrLeft(lines[i], -1, linebuffer, 64); // Take off the newline character.
+
+			if (IsLoadout(linebuffer))
+				m_pRecentLoadouts.AddToTail(GetLoadout(linebuffer));
+		}
+
+		if (!Q_strncmp(lines[i], "Weps:", 5))
+			readingweps = true;
+	}
+
+	// NOTE: We do not purge the data!
+	ClearStringVector(lines);
+	delete[] contents;
+}
+
+void CGELoadoutManager::GetRecentLoadouts(CUtlVector<CGELoadout*> &loadouts)
+{
+	loadouts.RemoveAll();
+
+	int buffercount = min(ge_loadouts_loadoutbuffercount.GetInt(), m_pRecentLoadouts.Count());
+
+	for (int i = 0; i < buffercount; i++)
+	{
+		loadouts.AddToTail(m_pRecentLoadouts[i]);
+	}
+}
+
 void CGELoadoutManager::AddLoadout( CGELoadout *pNew )
 {
 	int idx = m_Loadouts.Find( pNew->GetIdent() );
@@ -233,6 +299,9 @@ void CGELoadoutManager::AddLoadout( CGELoadout *pNew )
 void CGELoadoutManager::ClearLoadouts( void )
 {
 	m_pCurrentLoadout = NULL;
+	m_iCurrentGroup[0] = -1;
+	m_iCurrentGroup[1] = -1;
+	m_iCurrentGroup[2] = -1;
 	m_Loadouts.PurgeAndDeleteElements();
 
 	// Clear out the gameplay set loading
@@ -274,6 +343,7 @@ bool CGELoadoutManager::SpawnWeapons( void )
 	}
 
 	CGELoadout *pNewLoadout = NULL;
+	int iNewGroup = -1;
 
 	if ( m_pCurrentLoadout != NULL && m_bKeepCurrLoadout )
 	{
@@ -296,25 +366,177 @@ bool CGELoadoutManager::SpawnWeapons( void )
 		{
 			// We have a set, go through and find a random loadout from the set
 			const GameplaySet *set = m_GameplaySets[idx];
-			do {
-				char* const choice = GERandomWeighted<char* const,int>( set->loadouts.Base(), set->weights.Base(), set->loadouts.Count() );
-				pNewLoadout = GetLoadout( choice );
-			} while ( set->loadouts.Count() > 1 && pNewLoadout == m_pCurrentLoadout );
+			CUtlVector<int> weights, groups, weightoverrides;
+			CUtlVector<char*> names, blacklist;
+			CUtlVector<CGELoadout*> recentsets;
+
+			names = set->loadouts;
+			weights = set->weights;
+			groups = set->groups;
+
+			GEMPRules()->GetMapManager()->GetSetBlacklist(blacklist, weightoverrides);
+
+			// This is a straight override where all the rest are multipliers, so do this first.
+			if (blacklist.Count())
+			{
+				for (int b = 0; b < blacklist.Count(); b++)
+				{
+					for (int l = 0; l < names.Count(); l++)
+					{
+						if (!Q_strcmp(names[l], blacklist[b]))
+						{
+							weights[l] = weightoverrides[b];
+							break;
+						}
+					}
+				}
+			}
+
+			GetRecentLoadouts(recentsets);
+
+			// Need to grab this again, because even though it gets factored into GetRecentMaps we may not have as many recent maps 
+			// as the buffer allows, meaning the r/buffercount-0.5 calculation could let us play a map again way too soon if we were
+			// to use validmapcount for it.
+			int buffercount = ge_loadouts_loadoutbuffercount.GetInt();
+
+			if (recentsets.Count())
+			{
+				int recentsetcount = min(recentsets.Count(), names.Count() - 3);
+
+				for (int b = 0; b < recentsetcount; b++)
+				{
+					for (int l = 0; l < names.Count(); l++)
+					{
+						if (!Q_strcmp(names[l], recentsets[b]->GetIdent()))
+						{
+							weights[l] *= 2.0f * (float)b / (float)buffercount - 1;
+
+							if (weights[l] <= 0)
+							{
+								names.FastRemove(l);
+								weights.FastRemove(l);
+								groups.FastRemove(l);
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			if (AdjustWeights(groups, weights)) //Adjust the weights based on recently used groups, if no other groups use old method.
+			{
+				char* const choice = GERandomWeighted<char* const, int>(names.Base(), weights.Base(), names.Count());
+				pNewLoadout = GetLoadout(choice);
+
+				for (int i = 0; i < names.Count(); i++)
+				{
+					if (choice == names[i])
+					{
+						iNewGroup = set->groups[i];
+						break;
+					}
+				}
+			}
+			else
+			{
+				do {
+					char* const choice = GERandomWeighted<char* const, int>(names.Base(), set->weights.Base(), names.Count());
+					pNewLoadout = GetLoadout(choice);
+				} while (names.Count() > 1 && pNewLoadout == m_pCurrentLoadout);
+
+				iNewGroup = m_iCurrentGroup[0]; //Make sure we know in the future that there are no groups besides this one.
+			}
 		}
 		else
 		{
 			// No set, choose from the global pool (weight != 0)
-			CUtlVector<CGELoadout*> loadouts;
-			CUtlVector<int> weights;
+			CUtlVector<CGELoadout*> loadouts, recentsets;
+			CUtlVector<int> weights, groups, weightoverrides;
+			CUtlVector<char*> blacklist;
 
 			GetLoadouts( loadouts );
 
-			for ( int i=0; i < loadouts.Count(); i++ )
-				weights.AddToTail( loadouts[i]->GetWeight() );
+			for (int i = 0; i < loadouts.Count(); i++)
+				weights.AddToTail(loadouts[i]->GetWeight());
 
-			do {
-				pNewLoadout = GERandomWeighted<CGELoadout*>( loadouts.Base(), weights.Base(), loadouts.Count() );
-			} while ( m_Loadouts.Count() > 1 && pNewLoadout == m_pCurrentLoadout );
+			for (int i = 0; i < loadouts.Count(); i++)
+				groups.AddToTail(loadouts[i]->GetGroup());
+
+			// This is done twice in two very similar ways, because loadouts[]->GetIdent() returns const char* and sets->loadouts just returns char*
+			// Setting up a function to take both would probably take more resources than just sticking them both in directly.
+
+			GEMPRules()->GetMapManager()->GetSetBlacklist(blacklist, weightoverrides);
+
+			if (blacklist.Count())
+			{
+				for (int b = 0; b < blacklist.Count(); b++)
+				{
+					for (int l = 0; l < loadouts.Count(); l++)
+					{
+						if (!Q_strcmp(loadouts[l]->GetIdent(), blacklist[b]))
+						{
+							weights[l] = weightoverrides[b];
+							break;
+						}
+					}
+				}
+			}
+
+			// Clean out any sets we don't need to worry about anymore so our counts are accurate.
+			for (int i = loadouts.Count() - 1; i >= 0; i--)
+			{
+				if (weights[i] <= 0)
+				{
+					loadouts.FastRemove(i);
+					weights.FastRemove(i);
+					groups.FastRemove(i);
+				}
+			}
+
+			GetRecentLoadouts(recentsets);
+
+			// Need to grab this again, because even though it gets factored into GetRecentMaps we may not have as many recent maps 
+			// as the buffer allows, meaning the r/buffercount-0.5 calculation could let us play a map again way too soon if we were
+			// to use validmapcount for it.
+			int buffercount = ge_loadouts_loadoutbuffercount.GetInt();
+
+			if (recentsets.Count())
+			{
+				int recentsetcount = min(recentsets.Count(), loadouts.Count() - 3);
+
+				for (int b = 0; b < recentsetcount; b++)
+				{
+					for (int l = 0; l < loadouts.Count(); l++)
+					{
+						if (loadouts[l] == recentsets[b])
+						{
+							weights[l] *= 2.0f * (float)b / (float)buffercount - 1;
+
+							if (weights[l] <= 0)
+							{
+								loadouts.FastRemove(l);
+								weights.FastRemove(l);
+								groups.FastRemove(l);
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			if (AdjustWeights(groups, weights)) //Adjust the weights based on recently used groups, if only one group then use old method.
+			{
+				pNewLoadout = GERandomWeighted<CGELoadout*>(loadouts.Base(), weights.Base(), loadouts.Count()); //Groups cannot repeat so no need to filter out redundant weapon sets.
+				iNewGroup = pNewLoadout->GetGroup();
+			}
+			else
+			{
+				do {
+					pNewLoadout = GERandomWeighted<CGELoadout*>(loadouts.Base(), weights.Base(), loadouts.Count());
+				} while (m_Loadouts.Count() > 1 && pNewLoadout == m_pCurrentLoadout);
+
+				iNewGroup = m_iCurrentGroup[0];
+			}
 		}
 	}
 	else
@@ -341,6 +563,18 @@ bool CGELoadoutManager::SpawnWeapons( void )
 
 	// Make it official
 	m_pCurrentLoadout = pNewLoadout;
+
+	// Shift group list over
+	for (int i = 2; i > 0; i--)
+	{
+			m_iCurrentGroup[i] = m_iCurrentGroup[i - 1];
+	}
+
+	m_iCurrentGroup[0] = iNewGroup;
+	DevMsg("%d is the new group\n", iNewGroup);
+
+	// Record it in our recent loadouts stack.
+	m_pRecentLoadouts.AddToHead(m_pCurrentLoadout);
 
 	// Remove excess weapons
 	RemoveWeapons();
@@ -480,6 +714,32 @@ void CGELoadoutManager::GetWeaponLists( CUtlVector<int> &vWeaponIds, CUtlVector<
 
 	vWeaponIds.CopyArray( sWeaponList.Base(), sWeaponList.Count() );
 	vWeaponWeights.CopyArray( sWeaponWeights.Base(), sWeaponWeights.Count() );
+}
+
+bool CGELoadoutManager::AdjustWeights(CUtlVector<int> &groups, CUtlVector<int> &weights)
+{
+	// Check to make sure there's more than one group
+	for (int i = 0; i < groups.Count(); i++)
+	{
+		if (groups[i] != m_iCurrentGroup[0])
+		{
+			break;
+		}
+
+		if (i == groups.Count() - 1) //Hit the last loadout without finding a match. there's only one group so don't weight anything.
+			return false;
+	}
+
+
+	for (int i = 0; i < groups.Count(); i++)
+	{
+		if (groups[i] == m_iCurrentGroup[0])
+			weights[i] *= 0; // Sets in the previously used group have no chance of getting picked at all.
+		else if (groups[i] == m_iCurrentGroup[1])
+			weights[i] *= 0.4; // Sets in the group used two sets ago have 40 percent chance of getting picked.
+	}
+
+	return true; //Weight adjustment successful, let everyone know so they can celebrate
 }
 
 CON_COMMAND( ge_weaponset_reload, "Reloads the weaponset script files" )

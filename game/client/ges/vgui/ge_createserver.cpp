@@ -75,7 +75,7 @@ protected:
 		for ( KeyValues *pKVLoadout = pKeyValuesData->GetFirstSubKey(); pKVLoadout; pKVLoadout = pKVLoadout->GetNextKey() )
 		{
 			const char *szName = pKVLoadout->GetName();
-			if ( !Q_strstr(szName," ") && !Q_strstr(szName,",") )
+			if (!Q_strstr(szName, " ") && !Q_strstr(szName, ","))
 				g_GECreateServer->AddWeaponSet( group, pKVLoadout );
 		}
 	};
@@ -184,6 +184,16 @@ void CGECreateServer::OnCommand( const char *command )
 						int idx = GERandom<int>( panel->GetItemCount()-1 ) + 1;
 						idx = panel->GetItemIDFromRow( idx );
 						cmd_value = panel->GetItemUserData( idx )->GetName();
+
+						// If we picked "random gameplay" be sure we pick random gameplays from then on.
+						if (!Q_strcmp(kv->GetString("cmd"), "ge_gameplay"))
+							commands.AddToTail("ge_gameplay_mode \"1\""); // Random gameplay selection
+					}
+					else
+					{
+						// If we didn't pick "random gameplay" be sure we stick with our original one.
+						if (!Q_strcmp(kv->GetString("cmd"), "ge_gameplay"))
+							commands.AddToTail("ge_gameplay_mode \"0\""); // Random gameplay selection
 					}
 
 					Q_snprintf( cmd, 128, "%s \"%s\"", kv->GetString("cmd"), cmd_value );
@@ -261,9 +271,12 @@ void CGECreateServer::PopulateControls( void )
 		const char *pFilename = filesystem->FindFirstEx( "maps\\*.bsp", "MOD", &findHandle );
 		while ( pFilename )
 		{
-			// Add the map to the list
-			Q_FileBase( pFilename, file, 32 );
-			maplist->AddItem( file, new KeyValues(file) );
+			if ( stricmp(pFilename, "ge_transition.bsp") ) //They don't need to pick our dinky crash avoidance map.
+			{
+				// Add the map to the list
+				Q_FileBase(pFilename, file, 32);
+				maplist->AddItem(file, new KeyValues(file));
+			}
 
 			pFilename = filesystem->FindNext( findHandle );
 		}
@@ -294,8 +307,28 @@ void CGECreateServer::PopulateControls( void )
 		// Random loadout
 		weaponlist->AddItem( "#SERVER_RANDOM_SET", new KeyValues("random_loadout") );
 	
+		// Default sets should appear first.
+		int didx = m_WeaponSets.Find("Default Sets");
+
+		if (didx != -1)
+		{
+			int id = weaponlist->AddItem(m_WeaponSets.GetElementName(didx), NULL);
+			weaponlist->GetMenu()->SetItemEnabled(id, false);
+
+			for (int k = m_WeaponSets[didx]->First(); k != m_WeaponSets[didx]->InvalidIndex(); k = m_WeaponSets[didx]->Next(k))
+				weaponlist->AddItem(m_WeaponSets[didx]->Element(k), new KeyValues(m_WeaponSets[didx]->GetElementName(k)));
+		}
+		else
+			Warning("Could not find default sets!\n");
+	
 		FOR_EACH_DICT( m_WeaponSets, idx )
 		{
+			if (Q_strstr(m_WeaponSets.GetElementName(idx), "_mhide")) // We don't want to see it.
+				continue;
+
+			if (!Q_strcmp(m_WeaponSets.GetElementName(idx), "Default Sets")) // Already added this!
+				continue;
+
 			int id = weaponlist->AddItem( m_WeaponSets.GetElementName(idx), NULL );
 			weaponlist->GetMenu()->SetItemEnabled( id, false );
 
@@ -324,7 +357,7 @@ void CGECreateServer::PopulateControls( void )
 		while ( pFilename )
 		{
 			// Add the scenario to the list if not __init__
-			if ( !Q_stristr( pFilename, "__init__") )
+			if ( !Q_stristr(pFilename, "__init__") && !Q_stristr(pFilename, "tournamentdm") )
 			{
 				Q_FileBase( pFilename, file, 32 );
 				scenariolist->AddItem( file, new KeyValues(file) );

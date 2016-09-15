@@ -382,11 +382,7 @@ void GECreditsText::Paint()
 		// If we asked to center this text (line by line)
 		else if ( isLineCentered )
 		{
-			if ( m_LineBreaksLength.Count() > 0 )
-				renderState.x = wide/2 - (m_LineBreaksLength[lineBreakIndexIndex] / 2);
-			else
-				renderState.x = wide/2;
-
+			renderState.x = wide/2 - (m_LineBreaksLength[lineBreakIndexIndex] / 2);
 			renderState.x += DrawString(i, iLast, renderState, renderState.textFont);
 			i = iLast + 1;
 		}

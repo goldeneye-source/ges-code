@@ -26,7 +26,7 @@
 
 using namespace vgui;
 
-ConVar cl_ge_show_matchtime( "cl_ge_show_matchtime", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Show the match time when rounds are disabled instead of --:--" );
+ConVar cl_ge_show_timer( "cl_ge_show_timer", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Show the round time at the bottom of the screen." );
 
 class CGEHudRoundTimer : public CHudNumericDisplay, public CHudElement
 {
@@ -48,6 +48,7 @@ public:
 private:
 	float m_flNextAnim;
 	float m_flNextThink;
+	float m_iPrevValue;
 };
 
 DECLARE_HUDELEMENT( CGEHudRoundTimer );
@@ -61,6 +62,7 @@ CGEHudRoundTimer::CGEHudRoundTimer( const char *pElementName ) :
 	SetIsTime(true);
 	m_flNextAnim = 0;
 	m_flNextThink = 0;
+	m_iPrevValue = 0;
 }
 
 void CGEHudRoundTimer::Reset()
@@ -71,10 +73,28 @@ void CGEHudRoundTimer::Reset()
 bool CGEHudRoundTimer::ShouldDraw()
 {
 	// Don't show if we are in intermission time!
+	if ( !cl_ge_show_timer.GetBool() )
+		return false;
+
+	// Don't show if we are in intermission time!
 	if ( GEMPRules() && GEMPRules()->IsIntermission() )
 	{
 		m_flNextAnim = 0;
 		return false;
+	}
+
+	// Protect against timer flashes due to hiding it for more than 5 seconds.  Think is not called in the escape menu for some reason.
+	if (GEMPRules() && gpGlobals->curtime >= m_flNextThink + 3)
+	{
+		float timeleft = 0;
+
+		if (GEMPRules()->IsRoundTimeRunning())
+			timeleft = GEMPRules()->GetRoundTimeRemaining();
+		else if (GEMPRules()->IsMatchTimeRunning())
+			timeleft = GEMPRules()->GetMatchTimeRemaining();
+
+		m_iPrevValue = timeleft;
+		m_flNextThink = gpGlobals->curtime + 0.1f;
 	}
 
 	return CHudElement::ShouldDraw();
@@ -89,11 +109,9 @@ void CGEHudRoundTimer::Think()
 	float timeleft = 0;
 
 	// Extract a time to use, clamp to the minimum between the match and round timers
-	if ( GEMPRules()->IsRoundTimeRunning() && GEMPRules()->IsMatchTimeRunning() )
-		timeleft = min( GEMPRules()->GetRoundTimeRemaining(), GEMPRules()->GetMatchTimeRemaining() );
-	else if ( GEMPRules()->IsRoundTimeRunning() )
-		timeleft = GEMPRules()->GetRoundTimeRemaining();
-	else if ( cl_ge_show_matchtime.GetBool() && GEMPRules()->IsMatchTimeRunning() )
+	if (GEMPRules()->IsRoundTimeRunning())
+		timeleft = GEMPRules()->GetRoundTimeRemaining(); //Rounds always finish even when match time runs out.
+	else if (GEMPRules()->IsMatchTimeRunning() && GEMPRules()->IsRoundTimeEnabled()) // If round time isn't enabled then we're controling rounds some other way.
 		timeleft = GEMPRules()->GetMatchTimeRemaining();
 
 	// Check if we have time to display
@@ -118,6 +136,7 @@ void CGEHudRoundTimer::Think()
 		SetDisplayValue( timeleft );
 
 		// Check if we need to add some special coloring / animations
+
 		if ( timeleft <= 10.0f && m_flNextAnim < gpGlobals->curtime )
 		{
 			// If we only have 10 seconds left start going beserk! (every second)
@@ -130,12 +149,23 @@ void CGEHudRoundTimer::Think()
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("RoundTimeExpiring");
 			m_flNextAnim = gpGlobals->curtime + 5.0f;
 		}
-		else if ( m_flNextAnim == 0 )
+		else if ( timeleft - m_iPrevValue >= 5.0f )
+		{
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("RoundTimeIncreased");
+			m_flNextAnim = gpGlobals->curtime + g_pClientMode->GetViewportAnimationController()->GetAnimationSequenceLength("RoundTimeIncreased");
+		}
+		else if ( timeleft - m_iPrevValue <= -5.0f )
+		{
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("RoundTimeDecreased");
+			m_flNextAnim = gpGlobals->curtime + g_pClientMode->GetViewportAnimationController()->GetAnimationSequenceLength("RoundTimeDecreased");
+		}
+		else if (m_flNextAnim < gpGlobals->curtime)
 		{	
 			// Reset the color since we have no animation time
 			ResetColor();
 		}
 
+		m_iPrevValue = timeleft;
 		m_flNextThink = gpGlobals->curtime + 0.1f;
 	}
 

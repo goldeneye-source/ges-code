@@ -15,33 +15,43 @@
 #include "tier0/memdbgon.h"
 
 #define SPAWNER_THINK_INTERVAL		0.5f
-#define SPAWNER_MAX_MOVE_DIST		(float)(40*40)
+#define SPAWNER_MAX_MOVE_DIST		4096.0f	//This value is 64 squared.
 #define SPAWNER_MOVE_CHECK_INTERVAL 5.0f
 
 BEGIN_DATADESC( CGESpawner )
 	DEFINE_KEYFIELD( m_iSlot, FIELD_INTEGER, "slot" ),
-	DEFINE_KEYFIELD( m_bDisabled, FIELD_BOOLEAN, "StartDisabled" ),
+	DEFINE_KEYFIELD( m_bOrigDisableState, FIELD_BOOLEAN, "StartDisabled"),
+	DEFINE_KEYFIELD( m_bResetOnNewRound, FIELD_BOOLEAN, "ResetOnNewRound"),
 	// Think
 	DEFINE_THINKFUNC( Think ),
 	// Inputs
 	DEFINE_INPUTFUNC(FIELD_VOID, "Enable", InputEnable),
 	DEFINE_INPUTFUNC(FIELD_VOID, "Disable", InputDisable),
 	DEFINE_INPUTFUNC(FIELD_VOID, "Toggle", InputToggle),
+
+	DEFINE_INPUTFUNC(FIELD_VOID, "EnableResetting", InputEnableResetting),
+	DEFINE_INPUTFUNC(FIELD_VOID, "DisableResetting", InputDisableResetting),
+	// Outputs
+	DEFINE_OUTPUT( m_OnPickedUp, "OnPickedUp" ),
+	DEFINE_OUTPUT( m_OnRespawn, "OnRespawn" ),
 END_DATADESC();
 
 // Generic spawners, basically used as point entities
 LINK_ENTITY_TO_CLASS( ge_tokenspawner, CGESpawner );
 LINK_ENTITY_TO_CLASS( ge_tokenspawner_mi6, CGESpawner );
 LINK_ENTITY_TO_CLASS( ge_tokenspawner_janus, CGESpawner );
-LINK_ENTITY_TO_CLASS( ge_capturearea_spawn, CPointEntity );
-LINK_ENTITY_TO_CLASS( ge_capturearea_spawn_mi6, CPointEntity );
-LINK_ENTITY_TO_CLASS( ge_capturearea_spawn_janus, CPointEntity );
+LINK_ENTITY_TO_CLASS( ge_capturearea_spawn, CGESpawner );
+LINK_ENTITY_TO_CLASS( ge_capturearea_spawn_mi6, CGESpawner );
+LINK_ENTITY_TO_CLASS( ge_capturearea_spawn_janus, CGESpawner );
 
 ConVar ge_debug_itemspawns( "ge_debug_itemspawns", "0", FCVAR_CHEAT | FCVAR_GAMEDLL, "Visualize spawners and show their slot information" );
 
 CGESpawner::CGESpawner( void )
 {
 	m_iSlot = -1;
+	m_bOrigDisableState = false;
+	m_bDisabled = false;
+	m_bResetOnNewRound = true;
 	m_szBaseEntity[0] = m_szOverrideEntity[0] = '\0';
 }
 
@@ -52,6 +62,8 @@ void CGESpawner::Spawn( void )
 	// Move us up 10 units to curtail things getting stuck
 	SetAbsOrigin( GetAbsOrigin() + Vector(0,0,10) );
 
+	m_bDisabled = m_bOrigDisableState;
+
 	SetThink( &CGESpawner::Think );
 	SetNextThink( gpGlobals->curtime );
 }
@@ -60,6 +72,9 @@ void CGESpawner::Init( void )
 {
 	OnInit();
 	m_fNextSpawnTime = gpGlobals->curtime;
+
+	if (m_bResetOnNewRound)
+		m_bDisabled = m_bOrigDisableState;
 }
 
 void CGESpawner::Think( void )
@@ -74,9 +89,12 @@ void CGESpawner::Think( void )
 		pCurrEnt = NULL;
 	}
 
+	int spawnstate = ShouldRespawn();
+
 	// This may call into a higher class if it's overridden
-	if ( !pCurrEnt && ShouldRespawn() )
-		SpawnEnt();
+	if ( spawnstate > 1 || (!pCurrEnt && spawnstate) )
+		SpawnEnt( spawnstate );
+
 
 	if ( pCurrEnt && gpGlobals->curtime >= m_fNextMoveCheck )
 	{
@@ -142,26 +160,23 @@ void CGESpawner::Think( void )
 	SetNextThink( gpGlobals->curtime + SPAWNER_THINK_INTERVAL );
 }
 
-bool CGESpawner::ShouldRespawn( void )
+int CGESpawner::ShouldRespawn( void )
 {
 	// Always deny if we are disabled
 	if ( m_bDisabled )
-		return false;
+		return 0;
 
-	if ( IsOverridden() )
-	{
-		// Overrides defer to the token manager
-		if ( GEMPRules()->GetTokenManager()->ShouldSpawnToken( m_szOverrideEntity, this ) )
-			return true;
-	}
+	// Overrides defer to the token manager
+	if ( IsOverridden() && GEMPRules()->GetTokenManager()->ShouldSpawnToken(m_szOverrideEntity, this) )
+		return 2;
 	else if ( IsValid() && !m_hCurrentEntity.Get() && gpGlobals->curtime >= m_fNextSpawnTime )
 	{
 		// If we are not overridden, don't spawn a registered token type
 		if ( !GEMPRules()->GetTokenManager()->IsValidToken( m_szBaseEntity ) )
-			return true;
+			return 1;
 	}
 
-	return false;
+	return 0;
 }
 
 float CGESpawner::GetRespawnInterval( void )
@@ -215,27 +230,36 @@ void CGESpawner::SetBaseEnt( const char *szClassname )
 	}
 }
 
-void CGESpawner::SpawnEnt( void )
+void CGESpawner::SpawnEnt( int spawnstate )
 {
 	// Just in case
 	RemoveEnt();
+	m_OnRespawn.FireOutput(this, this);
 
-	if ( IsOverridden() )
+	if ( spawnstate == 2 )
 	{
+		if (!IsOverridden())
+			return;
+
 		if ( CanCreateEntityClass( m_szOverrideEntity ) )
 		{
 			m_hCurrentEntity = CBaseEntity::Create( m_szOverrideEntity, GetAbsOrigin(), GetAbsAngles(), this );
 			OnEntSpawned( m_szOverrideEntity );
+			EmitSound("Item.Materialize");
 		}
 		// Don't try again even if we fail
 		m_fNextSpawnTime = 0;
 	}
-	else if ( IsValid() )
+	else if ( spawnstate == 1 )
 	{
+		if ( !IsValid() )
+			return;
+
 		if ( CanCreateEntityClass( m_szBaseEntity ) )
 		{
 			m_hCurrentEntity = CBaseEntity::Create( m_szBaseEntity, GetAbsOrigin(), GetAbsAngles(), this );	
 			OnEntSpawned( m_szBaseEntity );
+			EmitSound("Item.Materialize");
 		}
 		// Don't try again even if we fail
 		m_fNextSpawnTime = 0;
@@ -249,7 +273,9 @@ void CGESpawner::SpawnEnt( void )
 void CGESpawner::RemoveEnt( void )
 {
 	if ( m_hCurrentEntity.Get() )
+	{
 		m_hCurrentEntity->Remove();
+	}
 	m_hCurrentEntity = NULL;
 }
 
@@ -257,6 +283,8 @@ void CGESpawner::OnEntPicked( void )
 {
 	m_hCurrentEntity = NULL;
 	m_fNextSpawnTime = gpGlobals->curtime + GetRespawnInterval();
+
+	m_OnPickedUp.FireOutput(this, this);
 }
 
 void CGESpawner::OnEnabled( void )
@@ -292,6 +320,16 @@ void CGESpawner::InputDisable( inputdata_t &inputdata )
 {
 	m_bDisabled = true;
 	OnDisabled();
+}
+
+void CGESpawner::InputEnableResetting(inputdata_t &inputdata)
+{
+	m_bResetOnNewRound = true;
+}
+
+void CGESpawner::InputDisableResetting(inputdata_t &inputdata)
+{
+	m_bResetOnNewRound = false;
 }
 
 void CGESpawner::InputToggle( inputdata_t &inputdata )

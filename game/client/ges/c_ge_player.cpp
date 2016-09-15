@@ -11,6 +11,9 @@
 #include "cbase.h"
 #include "vcollide_parse.h"
 #include "c_ge_player.h"
+#include "c_gemp_player.h"
+#include "ge_utils.h"
+#include "gemp_gamerules.h"
 #include "view.h"
 #include "takedamageinfo.h"
 #include "ge_gamerules.h"
@@ -41,14 +44,14 @@ IMPLEMENT_CLIENTCLASS_DT(C_GEPlayer, DT_GE_Player, CGEPlayer)
 	RecvPropInt( RECVINFO( m_iMaxArmor ) ),
 	RecvPropInt( RECVINFO( m_iMaxHealth ) ),
 
-	RecvPropBool( RECVINFO( m_bInAimMode ) ),
+	RecvPropFloat( RECVINFO( m_flFullZoomTime ) ),
 
 	RecvPropEHandle( RECVINFO( m_hHat ) ),
 	RecvPropInt( RECVINFO( m_takedamage ) ),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_GEPlayer )
-	DEFINE_PRED_FIELD( m_bInAimMode, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+DEFINE_PRED_FIELD( m_flFullZoomTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
 extern ConVar v_viewmodel_fov;
@@ -56,17 +59,22 @@ extern ConVar v_viewmodel_fov;
 static ConVar ge_fp_ragdoll ( "ge_fp_ragdoll", "1", FCVAR_ARCHIVE, "Allow first person ragdolls" );
 static ConVar ge_fp_ragdoll_auto ( "ge_fp_ragdoll_auto", "1", FCVAR_ARCHIVE, "Autoswitch to ragdoll thirdperson-view when necessary" );
 ConVar cl_ge_nohitothersound( "cl_ge_nohitsound", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Disable the sound that plays when you damage another player" );
+ConVar cl_ge_nokillothersound( "cl_ge_nokillsound", "1", FCVAR_ARCHIVE | FCVAR_USERINFO, "Disable the sound that plays when you kill another player" );
+ConVar cl_ge_nowepskins("cl_ge_nowepskins", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Disables alternative weapon appearances.");
+ConVar cl_ge_hidetags("cl_ge_hidetags", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Disables BT/Dev/CC tags.");
 
 C_GEPlayer::C_GEPlayer()
 {
 	ListenForGameEvent( "specialmusic_setup" );
+	ListenForGameEvent( "round_end" );
 
 	m_bInSpecialMusic = false;
 	m_flEndSpecialMusic = 0.0f;
 	m_iMaxArmor = MAX_ARMOR;
 	m_iMaxHealth = MAX_HEALTH;
 
-	m_iAimModeState = AIM_NONE;
+	m_iNewZoomOffset = 0;
+	m_bSentUnlockCode = false;
 
 	// Load our voice overhead icons if not done yet
 	if ( m_pDM_VoiceHeadMaterial == NULL )
@@ -135,6 +143,18 @@ int C_GEPlayer::GetZoomEnd()
 	return m_flZoomEnd;
 }
 
+int C_GEPlayer::GetAimModeState()
+{
+	if (m_flFullZoomTime > 0)
+	{
+		if (m_flFullZoomTime < gpGlobals->curtime)
+			return AIM_ZOOMED;
+		else
+			return AIM_ZOOM_IN;
+	}
+	return AIM_NONE;
+}
+
 void C_GEPlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov )
 {
 	// if we're dead, we want to deal with first or third person ragdolls.
@@ -165,7 +185,7 @@ void C_GEPlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, f
 		}
 	}
 
-	BaseClass::CalcView( eyeOrigin, eyeAngles, zNear, zFar, fov );
+	BaseClass::CalcView( eyeOrigin, eyeAngles, zNear, zFar, fov);
 }
 
 bool C_GEPlayer::CanSetSoundMixer( void )
@@ -174,6 +194,13 @@ bool C_GEPlayer::CanSetSoundMixer( void )
 		return false;
 
 	return BaseClass::CanSetSoundMixer();
+}
+
+void C_GEPlayer::PreThink(void)
+{
+	CheckAimMode();
+
+	BaseClass::PreThink();
 }
 
 void C_GEPlayer::FireGameEvent( IGameEvent *event )
@@ -202,6 +229,10 @@ void C_GEPlayer::FireGameEvent( IGameEvent *event )
 			// Kick it off!
 			SetupSpecialMusic( duration );
 		}
+	}
+	else if (!Q_stricmp(name, "round_end"))
+	{
+		m_iNewZoomOffset = 0;  // When the round ends, unzoom.
 	}
 }
 
@@ -285,22 +316,71 @@ void C_GEPlayer::ClientThink( void )
 	if ( IsLocalPlayer() )
 	{
 		// See if we need to zoom in/out based on our aim mode
-		CheckAimMode();
+
+		// We have to do this here rather than in aimmode land so gpGlobals->curtime reads off the correct value.
+		// But we have to check aimmode status in preframe because it needs to be called in the same function as on the server
+		// and the server has no ClientThink.
+
+		if (IsObserver())
+		{
+			C_GEPlayer *pGEObsTarget = ToGEPlayer(GetObserverTarget());
+
+			if ( GetObserverMode() == OBS_MODE_IN_EYE && pGEObsTarget )
+			{
+				CGEWeapon *pGEWeapon = ToGEWeapon(pGEObsTarget->GetActiveWeapon());
+
+				if ( pGEWeapon && pGEObsTarget->StartedAimMode() )
+					m_iNewZoomOffset = pGEWeapon->GetZoomOffset();
+				else
+					m_iNewZoomOffset = 0;
+
+				if ( m_iNewZoomOffset != GetZoomEnd() )
+				{
+					SetZoom( m_iNewZoomOffset );
+					Warning("Set zoom to %d!\n", m_iNewZoomOffset);
+				}
+			}
+			else
+			{
+				m_iNewZoomOffset = 0;
+				SetZoom(0, true);
+			}
+		}
+		else if (!IsAlive()) //Force reset our zoom if we died right away, otherwise we wrap around to the next frame and can't reset zoom since we're already fully dead.
+		{
+			m_iNewZoomOffset = 0;
+			SetZoom(0, true);
+		}
+		else if (GetActiveWeapon() && m_iNewZoomOffset != 0 && m_iNewZoomOffset != ToGEWeapon(GetActiveWeapon())->GetZoomOffset()) // Dinky fix because dangit I give up.  Sometimes the reset zoom conditions just flat out fail and the client stays zoomed.
+		{
+			m_iNewZoomOffset = StartedAimMode() ? ToGEWeapon(GetActiveWeapon())->GetZoomOffset() : 0;
+			SetZoom(m_iNewZoomOffset);
+		}
+		else if (m_iNewZoomOffset != m_flZoomEnd)
+			SetZoom(m_iNewZoomOffset);
 
 		// Check if we should draw our hat
 		if ( m_hHat.Get() )
 		{
-			if ( IsAlive() )
+			if ( !ShouldDrawLocalPlayer() ) //IsAlive()
 				m_hHat.Get()->AddEffects( EF_NODRAW );
 			else
 				m_hHat.Get()->RemoveEffects( EF_NODRAW );
 		}
 		
 		// Adjust the weapon's FOV based on our own FOV
-		if ( GetFOV() <= 35.0f )
-			v_viewmodel_fov.SetValue( 70.0f );
-		else if ( v_viewmodel_fov.GetFloat() != 54.0 )
-			v_viewmodel_fov.SetValue( 54.0f );
+		// This is basically a dinky fix for weapon FOV calculations sticking the FOV out of bounds and placing the weapon
+		// in the upper left corner of the screen.
+
+		C_BaseViewModel *vm = GetViewModel();
+
+		if ( vm )
+		{
+			if (54.0f + GetZoom() <= 0)
+				v_viewmodel_fov.SetValue(GetZoom() * -1 + 5);
+			else if (v_viewmodel_fov.GetFloat() != 54.0)
+				v_viewmodel_fov.SetValue(54.0f);
+		}
 	}
 
 	BaseClass::ClientThink();
@@ -309,7 +389,7 @@ void C_GEPlayer::ClientThink( void )
 void C_GEPlayer::PostDataUpdate( DataUpdateType_t updateType )
 {
 	// Looks like we spawned, cancel any sound modifiers that are active
-	if ( m_iSpawnInterpCounter != m_iSpawnInterpCounterCache )
+	if ( m_bSpawnInterpCounter != m_bSpawnInterpCounterCache )
 	{
 		if ( IsLocalPlayer() )
 		{
@@ -317,6 +397,7 @@ void C_GEPlayer::PostDataUpdate( DataUpdateType_t updateType )
 				m_flEndSpecialMusic = gpGlobals->curtime;
 
 			GEViewEffects()->ResetBreath();
+			m_iNewZoomOffset = 0;
 		}
 	}
 
@@ -333,11 +414,23 @@ void C_GEPlayer::PostDataUpdate( DataUpdateType_t updateType )
 	}
 
 	// Check if we changed weapons to reset zoom
+	if ( !m_bSentUnlockCode && IsLocalPlayer() && ToGEMPPlayer(this)->GetSteamHash())
+	{
+		if ( GEMPRules()->GetSpecialEventCode() )
+			GEUTIL_WriteUniqueSkinData(GEUTIL_EventCodeToSkin(GEMPRules()->GetSpecialEventCode()), ToGEMPPlayer(this)->GetSteamHash());
+
+		char cmd[128];
+		Q_snprintf(cmd, sizeof(cmd), "skin_unlock_code %llu", GEUTIL_GetUniqueSkinData(ToGEMPPlayer(this)->GetSteamHash()));
+		engine->ClientCmd_Unrestricted(cmd);
+		DevMsg("Sent skin unlock code of %s", cmd);
+		m_bSentUnlockCode = true;
+	}
+
+	// Check if we changed weapons to reset zoom
 	// This catches cases when WeaponSwitch is only called on the server
 	if ( GetActiveWeapon() != m_hActiveWeaponCache )
 	{
 		m_hActiveWeaponCache = GetActiveWeapon();
-		ResetAimMode();
 	}
 }
 

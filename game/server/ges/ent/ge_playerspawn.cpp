@@ -12,6 +12,10 @@
 #include "cbase.h"
 #include "ge_playerspawn.h"
 #include "gemp_gamerules.h"
+#include "gemp_player.h"
+#include "ai_network.h"
+#include "ge_ai.h"
+#include "ai_node.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -19,17 +23,19 @@
 // Efficiency of our desirability calcs
 #define SPAWNER_CALC_EFFICIENCY		1.0f
 // Rate decrease of nearby death memory (in points / sec)
-#define SPAWNER_DEATHFORGET_RATE	0.2f
+#define SPAWNER_USEFADE_LIMIT		40.0f
 // Last use limit in secs
-#define SPAWNER_LASTUSE_LIMIT		10.0f
+#define SPAWNER_DEATHFADE_LIMIT		60.0f
 // Default weight for calcs, raising this will decrease the effect of negative weight
-#define SPAWNER_DEFAULT_WEIGHT		500
+#define SPAWNER_DEATHBOOST_BASE		20.0f
 
-#define SPAWNER_MAX_ENEMY_WEIGHT	600
-#define SPAWNER_MAX_DEATH_WEIGHT	100
-#define SPAWNER_MAX_USE_WEIGHT		300
+#define SPAWNER_DEFAULT_WEIGHT		1000
 
-#define SPAWNER_MAX_ENEMY_DIST		1500.0f
+#define SPAWNER_MAX_ENEMY_WEIGHT	1200
+#define SPAWNER_MAX_DEATH_WEIGHT	800
+#define SPAWNER_MAX_USE_WEIGHT		800
+#define SPAWNER_MAX_ENEMY_DIST		1600.0f
+#define SPAWNER_MAX_DEATH_DIST		800.0f
 
 // Spawnflag to disallow bots to use this point
 #define SF_NO_BOTS 0x1
@@ -40,6 +46,7 @@ LINK_ENTITY_TO_CLASS( info_player_janus, CGEPlayerSpawn );
 LINK_ENTITY_TO_CLASS( info_player_mi6, CGEPlayerSpawn );
 
 BEGIN_DATADESC( CGEPlayerSpawn )
+	DEFINE_KEYFIELD( m_flDesirabilityMultiplier, FIELD_FLOAT, "desirability" ),
 	// Think
 	DEFINE_THINKFUNC( Think ),
 END_DATADESC()
@@ -51,6 +58,11 @@ CGEPlayerSpawn::CGEPlayerSpawn( void )
 { 
 	memset( m_iPVS, 0, sizeof(m_iPVS) );
 	m_bFoundPVS = false;
+	m_fLastUseTime = 0;
+	m_fUseFadeTime = 0;
+	m_fDeathFadeTime = 0;
+	m_fMaxSpawnDist = 0;
+	m_flDesirabilityMultiplier = 1;
 }
 
 void CGEPlayerSpawn::Spawn( void )
@@ -72,6 +84,9 @@ void CGEPlayerSpawn::Spawn( void )
 	else if ( !Q_stricmp(GetClassname(), "info_player_mi6") )
 		m_iTeam = TEAM_MI6;
 
+	// Multiply the default weight by the hammer modifer
+	m_iBaseDesirability = SPAWNER_DEFAULT_WEIGHT * m_flDesirabilityMultiplier;
+
 	SetThink( &CGEPlayerSpawn::Think );
 	SetNextThink( gpGlobals->curtime );
 }
@@ -90,70 +105,161 @@ void CGEPlayerSpawn::Think( void )
 		DEBUG_ShowOverlay( SPAWNER_CALC_EFFICIENCY );
 }
 
-int CGEPlayerSpawn::GetDesirability( CGEPlayer *pRequestor )
+
+int CGEPlayerSpawn::GetDesirability(CGEPlayer *pRequestor)
 {
 	// We should never be picked if we are not enabled
-	if ( !IsEnabled() )
+	//Proximity is based on the most threatening player in range.  This is calculated mostly on proximity but has many modifiers on top of it.
+	//Use is just based on the last usetime of the spawn and the spawns near it.  Should help destribute spawns more evenly.
+	//Deaths is a slowly ticking modifier that's meant to add up over time and prevent spawns that are the site of frequent deaths.
+	//The death modifier still has a lot of kinks to work out.
+
+	// We should never be picked if we are not enabled
+	if (!IsEnabled())
 		return 0;
 
 	int myTeam = m_iTeam;
 
 	// Spectators have no loyalty or cares in the world!
-	if ( myTeam == TEAM_SPECTATOR )
-		return SPAWNER_DEFAULT_WEIGHT;
+	if (myTeam == TEAM_SPECTATOR)
+		return m_iBaseDesirability;
 
 	// Adjust for team spawn swaps
-	if ( GEMPRules()->IsTeamplay() && GEMPRules()->IsTeamSpawnSwapped() && m_iTeam >= FIRST_GAME_TEAM )
+	if (GEMPRules()->IsTeamplay() && GEMPRules()->IsTeamSpawnSwapped() && m_iTeam >= FIRST_GAME_TEAM)
 		myTeam = (myTeam == TEAM_JANUS) ? TEAM_MI6 : TEAM_JANUS;
 
 	m_iLastEnemyWeight = m_iLastUseWeight = m_iLastDeathWeight = 0;
 
 	// Knock us down for nearby enemies
-	FOR_EACH_PLAYER( pPlayer )
+	FOR_EACH_PLAYER(pPlayer)
 	{
-		if ( pPlayer->IsObserver() || pPlayer->IsDead() )
-			continue;
-
-		if ( !CheckInPVS( pPlayer ) )
+		if (pPlayer->IsObserver() || pPlayer->IsDead())
 			continue;
 
 		// Check team affiliation
 		bool onMyTeam = false;
-		if ( GEMPRules()->IsTeamplay() && (pPlayer->GetTeamNumber() == myTeam ||
-			(myTeam == TEAM_UNASSIGNED && pPlayer->GetTeamNumber() == pRequestor->GetTeamNumber()) ) )
+		if (GEMPRules()->IsTeamplay() && (pPlayer->GetTeamNumber() == myTeam ||
+			(myTeam == TEAM_UNASSIGNED && pPlayer->GetTeamNumber() == pRequestor->GetTeamNumber())))
 			onMyTeam = true;
 
 		Vector diff = pPlayer->GetAbsOrigin() - GetAbsOrigin();
 		float dist = diff.Length2D();
+		float life = pPlayer->ArmorValue() + pPlayer->GetHealth();
 
 		// Check if this player is "near" me
-		if ( abs(diff.z) <= 100.0f && dist <= SPAWNER_MAX_ENEMY_DIST )
-		{
-			int weight = min( SPAWNER_MAX_ENEMY_WEIGHT, 
-							  (int)( SPAWNER_MAX_ENEMY_DIST * (1.0f - Bias( dist / SPAWNER_MAX_ENEMY_DIST, 0.8 )) ) );
+		// avoid having to do the fancy math on people across the map.
+		if (dist > SPAWNER_MAX_ENEMY_DIST)
+			continue;
 
+		// Now check for players on lower levels and pay them slightly less mind since
+		// even if it is possible dropping down is often a hassle and not always worth 
+		// it for a spawn kill.  If they are higher consider them further than that because going up
+		// is even harder.  Hopefully this doesn't cause too many problems around stairs.
+		float floorheight = GEMPRules()->GetMapFloorHeight();
+
+		if (diff.z > floorheight)
+			dist += 200;
+		else if (diff.z < floorheight * -1)
+			dist += 300;
+
+		// If player is not in the PVS, check to see how we should treat them.
+		if (!CheckInPVS(pPlayer))
+		{
 			// If I am a DM spawn in teamplay, add a boost for player's near me on my team
-			if ( onMyTeam )
-				m_iLastEnemyWeight -= weight;
-			else
-				m_iLastEnemyWeight += weight;
+			if (abs(diff.z) > floorheight)
+				continue;
+			// If they are then still apply massive penalties for being outside PVS.
+			dist *= 2.00;
+			dist += 300;
 		}
+		else
+		{
+			trace_t		tr;
+			UTIL_TraceLine(GetAbsOrigin() + Vector(0, 0, 32), pPlayer->EyePosition(), MASK_OPAQUE, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+			if (tr.fraction == 1.0f)
+			{
+				if (dist > SPAWNER_MAX_ENEMY_DIST / 2)
+					dist -= SPAWNER_MAX_ENEMY_DIST / 2;
+				else
+					dist = 0;
+			}
+		}
+
+		// Scale threat by health level of player.  Players with very low health are
+		// treated as just as dangerous as players with high health so new players
+		// players don't spawn right on top of nearly dead players and ruin their day
+
+		int adjlife = 160 - life;
+
+		dist /= min(2.0, adjlife*adjlife / 51200.00f + 1); // 51200 is 160*160*2, to get 1.5 as the typical max value
+
+		// Check if this player is still close enough after modifiers.
+		if (dist > SPAWNER_MAX_ENEMY_DIST)
+			continue;
+
+		//Adjusted square root curve so far away players aren't considered as much.
+		int threat = (1 - sqrt(dist / SPAWNER_MAX_ENEMY_DIST + 0.05) + 0.025) * 125;
+
+
+		// If I am a DM spawn in teamplay, make spawn more desirable for teammates
+
+		if (onMyTeam)
+			threat *= -0.4;
+
+
+		// Finally, compare the calculated threat level to the highest one on record and
+		// replace it if higher.
+		if (abs(threat) > abs(m_iLastEnemyWeight))
+			m_iLastEnemyWeight = min(100, threat);
+
 	}
 	END_OF_PLAYER_LOOP()
 
 	// Clean up nearby deaths and scale our metric
-	float timeDiff = gpGlobals->curtime - m_fLastDeathCalc;
-	m_fLastDeathCalc = gpGlobals->curtime;
-	m_fNearbyDeathMetric = max( 0, m_fNearbyDeathMetric - (timeDiff * SPAWNER_DEATHFORGET_RATE) );
+	m_iLastEnemyWeight = RemapValClamped(m_iLastEnemyWeight, 0, 100, 0, SPAWNER_MAX_ENEMY_WEIGHT);
 
-	m_iLastDeathWeight = min( SPAWNER_MAX_DEATH_WEIGHT, SPAWNER_MAX_DEATH_WEIGHT*m_fNearbyDeathMetric );
+	// Spit out percentage of death time
+	float timeDiff = m_fDeathFadeTime - gpGlobals->curtime;
+	m_iLastDeathWeight = RemapValClamped(timeDiff, 0, SPAWNER_DEATHFADE_LIMIT, 0, SPAWNER_MAX_DEATH_WEIGHT);
 
 	// Spit out percentage wait from last use
-	timeDiff = gpGlobals->curtime - m_fLastUseTime;
-	m_iLastUseWeight = RemapValClamped( timeDiff, 0, SPAWNER_LASTUSE_LIMIT, SPAWNER_MAX_USE_WEIGHT, 0 );
+	timeDiff = m_fUseFadeTime - gpGlobals->curtime;
+	m_iLastUseWeight = RemapValClamped(timeDiff, 0, SPAWNER_USEFADE_LIMIT, 0, SPAWNER_MAX_USE_WEIGHT);
 
 	// Return a sum of our weight factors against the default
-	return max( SPAWNER_DEFAULT_WEIGHT - m_iLastEnemyWeight - m_iLastDeathWeight - m_iLastUseWeight, 0 );
+	// PERSONAL MODIFIERS
+	//-------------------
+
+
+	CGEMPPlayer *pUniquePlayer = ToGEMPPlayer(pRequestor);
+
+	// Zero out these penalties because they might not get calculated again.
+	m_iUniLastDeathWeight = m_iUniLastUseWeight = 0;
+
+	// They haven't had their first death yet, so don't bother with this nonsense.
+	if (pUniquePlayer->GetLastDeath() == Vector(-1, -1, -1))
+		return clamp(m_iBaseDesirability - m_iLastEnemyWeight - m_iLastUseWeight - m_iLastDeathWeight, 0, SPAWNER_DEFAULT_WEIGHT);
+	
+	// Calculate penalty based on where requesting player last died.
+	float dist = (pUniquePlayer->GetLastDeath() - GetAbsOrigin()).Length2D();
+
+	if (dist < SPAWNER_MAX_ENEMY_DIST)
+		m_iUniLastDeathWeight = (1 - dist / SPAWNER_MAX_ENEMY_DIST) * 0.75 * SPAWNER_MAX_DEATH_WEIGHT;
+
+	// If player spawned within 40 seconds, also calculate penalty based on where they last spawned.  If not double death multiplier.
+	if (pUniquePlayer->GetLastSpawnTime() > gpGlobals->curtime - 40)
+	{
+		dist = (pUniquePlayer->GetLastSpawn() - GetAbsOrigin()).Length2D();
+
+		if (dist < SPAWNER_MAX_ENEMY_DIST)
+			m_iUniLastUseWeight = (1 - dist / SPAWNER_MAX_ENEMY_DIST) * 0.75 * SPAWNER_MAX_USE_WEIGHT;
+	}
+	else
+		m_iUniLastDeathWeight *= 2;
+
+	// Return a sum of our weight factors
+	return clamp(m_iBaseDesirability - m_iLastEnemyWeight - m_iLastUseWeight - m_iLastDeathWeight - m_iUniLastDeathWeight - m_iUniLastUseWeight, 0, SPAWNER_DEFAULT_WEIGHT);
 }
 
 bool CGEPlayerSpawn::IsOccupied( void )
@@ -183,19 +289,61 @@ bool CGEPlayerSpawn::IsBotFriendly( void )
 
 void CGEPlayerSpawn::NotifyOnDeath( float dist )
 {
-	if ( dist < SPAWNER_MAX_ENEMY_DIST )
-	{
-		// Give a boost for rapid deaths
-		float timeScale = RemapValClamped( gpGlobals->curtime - m_fLastDeathNotice, 0, 5.0f, 3.0f, 1.0f );
-		m_fNearbyDeathMetric += Bias( RemapValClamped( dist, SPAWNER_MAX_ENEMY_DIST, 0, 0, 1.0f ), 0.8 ) * timeScale;
-		m_fLastDeathNotice = m_fLastDeathCalc = gpGlobals->curtime;
-	}
+	if (dist > SPAWNER_MAX_DEATH_DIST)
+		return;
+
+	float boost = (1 - dist / SPAWNER_MAX_DEATH_DIST) * SPAWNER_DEATHBOOST_BASE;
+
+	if (gpGlobals->curtime > m_fDeathFadeTime)
+		m_fDeathFadeTime = gpGlobals->curtime + boost;
+	else
+		m_fDeathFadeTime = min(m_fDeathFadeTime + boost, gpGlobals->curtime + SPAWNER_DEATHFADE_LIMIT);
 }
 
 void CGEPlayerSpawn::NotifyOnUse( void )
 {
+	const CUtlVector<EHANDLE> *vSpawns = GERules()->GetSpawnersOfType(SPAWN_PLAYER);
+
 	m_fLastUseTime = gpGlobals->curtime;
+
+	// Find the spawn furthest from this one to get an idea of how far to spread the word when it gets used.
+	if (m_fMaxSpawnDist == 0)
+	{
+		float maxdist = 0.00;
+		for (int i = (vSpawns->Count() - 1); i >= 0; i--)
+		{
+			CGEPlayerSpawn *pSpawn = (CGEPlayerSpawn*)vSpawns->Element(i).Get();
+			Vector diff = pSpawn->GetAbsOrigin() - GetAbsOrigin();
+			float dist = diff.Length2DSqr();
+
+			if (dist > maxdist)
+				maxdist = dist;
+		}
+
+		m_fMaxSpawnDist = sqrt(maxdist)*0.6; //rooting maxdist to correct Length2DSqr and multiplying by 3/5 to limit range.
+	}
+
+	Vector myPos = GetAbsOrigin();
+
+	for (int i = (vSpawns->Count() - 1); i >= 0; i--)
+	{
+		CGEPlayerSpawn *pSpawn = (CGEPlayerSpawn*)vSpawns->Element(i).Get();
+		Vector diff = pSpawn->GetAbsOrigin() - GetAbsOrigin();
+		float dist = diff.Length2D();
+		if (abs(diff.z) < 128)
+			pSpawn->SetUseFadeTime((1 - dist / m_fMaxSpawnDist) * 15);
+	}
 }
+
+void CGEPlayerSpawn::SetUseFadeTime(float usetime)
+{
+	if (gpGlobals->curtime > m_fUseFadeTime)
+		m_fUseFadeTime = gpGlobals->curtime + usetime;
+	else
+		m_fUseFadeTime = min(m_fUseFadeTime + usetime, gpGlobals->curtime + SPAWNER_USEFADE_LIMIT);
+}
+
+
 
 void CGEPlayerSpawn::OnEnabled( void )
 {
@@ -210,10 +358,9 @@ void CGEPlayerSpawn::OnDisabled( void )
 void CGEPlayerSpawn::ResetTrackers( void )
 {
 	// Reset static counters
-	m_fLastDeathNotice	 = 0;
-	m_fLastDeathCalc	 = 0;
-	m_fNearbyDeathMetric = 0;
 	m_fLastUseTime		 = 0;
+	m_fUseFadeTime		 = 0;
+	m_fDeathFadeTime	 = 0;
 
 	// Reset Weights
 	m_iLastDeathWeight = m_iLastUseWeight = m_iLastEnemyWeight = 0;
@@ -289,7 +436,7 @@ void CGEPlayerSpawn::DEBUG_ShowOverlay( float duration )
 	if ( IsDisabled() )
 	{
 		// We are disabled
-		Q_snprintf( tempstr, 64, "DISABLED" );
+		Q_snprintf( tempstr, 64, "DISABLED", d );
 		EntityText( ++line, tempstr, duration );
 	}
 	else
@@ -297,6 +444,9 @@ void CGEPlayerSpawn::DEBUG_ShowOverlay( float duration )
 		// We are enabled, show our desirability and stats
 		Q_snprintf( tempstr, 64, "Desirability: %i", d );
 		EntityText( ++line, tempstr, duration );
+
+		Q_snprintf(tempstr, 64, "Base Desirability: %i", m_iBaseDesirability);
+		EntityText(++line, tempstr, duration);
 
 		if ( IsOccupied() )
 		{
@@ -318,6 +468,16 @@ void CGEPlayerSpawn::DEBUG_ShowOverlay( float duration )
 			{
 				Q_snprintf( tempstr, 64, "Use Weight: -%i", m_iLastUseWeight );
 				EntityText( ++line, tempstr, duration );
+			}
+			if (m_iUniLastDeathWeight > 0)
+			{
+				Q_snprintf(tempstr, 64, "Unique Death Weight: -%i", m_iUniLastDeathWeight);
+				EntityText(++line, tempstr, duration);
+			}
+			if (m_iUniLastUseWeight > 0)
+			{
+				Q_snprintf(tempstr, 64, "Unique Use Weight: -%i", m_iUniLastUseWeight);
+				EntityText(++line, tempstr, duration);
 			}
 		}
 	}
@@ -373,9 +533,13 @@ CON_COMMAND_F( ge_debug_checkplayerspawns, "Check player spawns against several 
 
 		// Check for height above the ground
 		UTIL_TraceLine( origin + Vector(0,0,1), origin + Vector(0,0,-100), MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
-		if ( trace.fraction > 0.1f )
-			Warning( "[%0.2f, %0.2f, %0.2f] Spawn %s is too high off the ground (%0.1f units)!\n", origin.x, origin.y, origin.z, spawn->GetClassname(), trace.fraction*100.0f );
-
+		if (trace.fraction > 0.1f)
+		{
+			if (trace.fraction < 0.24f)
+				Msg("[%0.2f, %0.2f, %0.2f] Spawn %s is somewhat high off the ground (%0.1f units)!\n", origin.x, origin.y, origin.z, spawn->GetClassname(), trace.fraction*100.0f);
+			else
+				Warning("[%0.2f, %0.2f, %0.2f] Spawn %s is too high off the ground (%0.1f units)!\n", origin.x, origin.y, origin.z, spawn->GetClassname(), trace.fraction*100.0f);
+		}
 		// Check for overlapping spawn points
 		CBaseEntity *ents[128];
 		Vector mins, maxs;
@@ -383,14 +547,42 @@ CON_COMMAND_F( ge_debug_checkplayerspawns, "Check player spawns against several 
 		spawn->CollisionProp()->WorldSpaceAABB( &mins, &maxs );
 		int count = UTIL_EntitiesInBox( ents, ARRAYSIZE(ents), mins, maxs, 0 );
 		
-		for ( int k = 0; i < count; i++ )
+		for ( int k = 0; k < count; k++ )
 		{
 			// Check if we collide with a spawn of the same type (ignore spectator spawns)
-			if ( Q_strcmp( ents[k]->GetClassname(), "info_player_spectator" ) && !Q_strcmp( ents[k]->GetClassname(), spawn->GetClassname() ) )
+			if ( Q_strcmp(ents[k]->GetClassname(), "info_player_spectator") && !Q_strcmp(ents[k]->GetClassname(), spawn->GetClassname()) && ents[k] != spawn )
 			{
-				Warning( "[%0.2f, %0.2f, %0.2f] Spawn %s collides with another spawn of the same type!\n", origin.x, origin.y, origin.z, spawn->GetClassname() );
+				Msg( "[%0.2f, %0.2f, %0.2f] Spawn %s collides with another spawn of the same type!\n", origin.x, origin.y, origin.z, spawn->GetClassname() );
 				break;
 			}
+		}
+
+
+		// Now check and see if bots can find their way to the node network from here.
+		if (g_pBigAINet->NumNodes() >= 10 && !(spawn->GetSpawnFlags() & 1)) // We don't have enough nodes, or the spawn doesn't allow bots, so don't bug the mapper with this.
+		{
+			count = g_pBigAINet->NumNodes();
+			bool hitsomething = false;
+
+			for (int k = 0; k < count; k++)
+			{
+				CAI_Node *testnode = g_pBigAINet->GetNode(k);
+
+				if (!testnode)
+					continue;
+
+				UTIL_TraceEntity(pPlayer, pPlayer->GetAbsOrigin(), testnode->GetOrigin() + Vector(0, 0, 1), MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &trace);
+
+				// Check if we can reach the node, and if we did then we found at least one node from here and can get to the network.
+				if (trace.endpos == testnode->GetOrigin() + Vector(0, 0, 1))
+				{
+					hitsomething = true;
+					break;
+				}
+			}
+
+			if (!hitsomething)
+				Warning("[%0.2f, %0.2f, %0.2f] Spawn %s might trap bots!  Disable bot spawns or add a node it can see.\n", origin.x, origin.y, origin.z, spawn->GetClassname());
 		}
 	}
 

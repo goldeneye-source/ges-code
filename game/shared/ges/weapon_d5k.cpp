@@ -33,7 +33,8 @@ public:
 	DECLARE_PREDICTABLE();
 
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_D5K; }
-	
+	virtual void Precache( void );
+
 	DECLARE_ACTTABLE();
 
 private:
@@ -70,9 +71,26 @@ acttable_t CWeaponD5K::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PHANTOM,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PHANTOM,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PHANTOM,					false },
 };
 IMPLEMENT_ACTTABLE( CWeaponD5K );
 
+
+void CWeaponD5K::Precache(void)
+{
+	PrecacheModel("models/weapons/d5k/v_d5k.mdl");
+	PrecacheModel("models/weapons/d5k/w_d5k.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/d5k");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon.SMG_Reload");
+	PrecacheScriptSound("Weapon.Empty");
+	PrecacheScriptSound("Weapon_d5k.Single");
+	PrecacheScriptSound("Weapon_d5k.NPC_Single");
+
+	BaseClass::Precache();
+}
 
 
 //-----------------------------------------------------------------------------
@@ -91,6 +109,7 @@ public:
 
 	virtual GEWeaponID	GetWeaponID( void ) const { return WEAPON_D5K_SILENCED; }
 	virtual bool		CanBeSilenced( void ) { return true; }
+	virtual void		Precache( void );
 
 	DECLARE_ACTTABLE();
 
@@ -128,10 +147,26 @@ acttable_t CWeaponD5KSilenced::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PHANTOM,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PHANTOM,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PHANTOM,					false },
 };
 IMPLEMENT_ACTTABLE( CWeaponD5KSilenced );
 
 CWeaponD5KSilenced::CWeaponD5KSilenced( void )
 {
 	ToggleSilencer( false );
+}
+
+void CWeaponD5KSilenced::Precache(void)
+{
+	PrecacheModel("models/weapons/d5k/v_d5k_silenced.mdl");
+	PrecacheModel("models/weapons/d5k/w_d5k_silenced.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/d5k");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon.SMG_Reload");
+	PrecacheScriptSound("Weapon_d5k.AltSingle");
+	PrecacheScriptSound("Weapon_d5k.NPC_AltSingle");
+
+	BaseClass::Precache();
 }

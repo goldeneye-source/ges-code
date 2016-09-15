@@ -25,13 +25,14 @@ public:
 
 	CGEWeaponSpawner();
 
-	virtual bool IsSpecial( void ) { return (m_bAllowSpecial || BaseClass::IsSpecial()); };
+	virtual bool IsSpecial(void) { return ( m_bAllowSpecial || BaseClass::IsSpecial() ); };
+	virtual bool IsVerySpecial() { return m_bAllowSpecial; } // Spawns we've marked are very special and will be used over ones that aren't marked.
 	virtual bool KeyValue( const char *szKeyName, const char *szValue );
 
 protected:
 	virtual void OnInit( void );
 
-	virtual bool  ShouldRespawn( void );
+	virtual int  ShouldRespawn( void );
 	virtual float GetRespawnInterval( void );
 
 private:
@@ -69,19 +70,21 @@ void CGEWeaponSpawner::OnInit( void )
 		SetBaseEnt( WeaponIDToAlias( weapid ) );
 }
 
-bool CGEWeaponSpawner::ShouldRespawn( void )
+int CGEWeaponSpawner::ShouldRespawn( void )
 {
-	if ( IsOverridden() )
-		return BaseClass::ShouldRespawn();
+	int basestate = BaseClass::ShouldRespawn();
+
+	if ( IsOverridden() && basestate > 1 )
+		return 2;
 
 	// Obey our game rules
-	if ( !GEMPRules()->WeaponShouldRespawn( GetEntClass() ) )
-		return false;
+	if ( !GEMPRules()->WeaponShouldRespawn(GetBaseClass()) )
+		return 0;
 
-	return BaseClass::ShouldRespawn();
+	return basestate;
 }
 
 float CGEWeaponSpawner::GetRespawnInterval( void )
 { 
-	return IsOverridden() ? 0 : GEMPRules()->FlWeaponRespawnTime(NULL);
+	return 10;
 }

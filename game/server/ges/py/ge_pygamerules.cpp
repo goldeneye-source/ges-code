@@ -18,7 +18,9 @@
 #include "ge_loadoutmanager.h"
 #include "ge_tokenmanager.h"
 #include "ge_spawner.h"
+#include "ge_armorvest.h"
 #include "gemp_gamerules.h"
+#include "ge_mapmanager.h"
 #include "gemp_player.h"
 #include "ge_gameplayresource.h"
 #include "team.h"
@@ -36,6 +38,16 @@ float pyGetMatchTimeLeft()
 float pyGetRoundTimeLeft()
 {
 	return GEMPRules()->GetRoundTimeRemaining();
+}
+
+void pySetRoundTimeLeft( int newtime, bool announce )
+{
+	return GEMPRules()->SetRoundTimer(newtime, announce);
+}
+
+void pyAddToRoundTimeLeft( int newtime, bool announce )
+{
+	return GEMPRules()->AddToRoundTimer( newtime, announce );
 }
 
 bool pyIsIntermission()
@@ -96,6 +108,12 @@ void pyToggleRoundTimer( bool state )
 	GEMPRules()->SetRoundTimerEnabled( state );
 }
 
+void pySetSpawnInvulnTime(float duration, bool canbreak)
+{
+	GEMPRules()->SetSpawnInvulnCanBreak(canbreak);
+	GEMPRules()->SetSpawnInvulnInterval(duration);
+}
+
 
 CTeam* pyGetTeam(int index)
 {
@@ -149,6 +167,47 @@ void pyDisableArmorSpawns()
 		pArmor->Respawn();
 		pArmor = gEntList.FindEntityByClassname( pArmor, "item_armorvest*" );
 	}
+}
+
+void pyEnableArmorSpawns()
+{
+	// Disable armor spawns in the gamerules
+	GEMPRules()->SetArmorSpawnState(true);
+
+	CBaseEntity *pArmor = gEntList.FindEntityByClassname(NULL, "item_armorvest*");
+	while (pArmor)
+	{
+		// Respawn the armors
+		pArmor->Respawn();
+		((CGEArmorVest*)pArmor)->Materialize();
+		pArmor = gEntList.FindEntityByClassname(pArmor, "item_armorvest*");
+	}
+}
+
+void pyStagnateArmorSpawns()
+{
+	// Disable armor spawns in the gamerules, but keep the armor already on the ground.
+	GEMPRules()->SetArmorSpawnState(false);
+}
+
+void pyEnableInfiniteAmmo()
+{
+	GEMPRules()->SetGamemodeInfAmmoState(true);
+}
+
+void pyDisableInfiniteAmmo()
+{
+	GEMPRules()->SetGamemodeInfAmmoState(false);
+}
+
+void pyEnableSuperfluousAreas()
+{
+	GEMPRules()->SetSuperfluousAreasState(true);
+}
+
+void pyDisableSuperfluousAreas()
+{
+	GEMPRules()->SetSuperfluousAreasState(false);
 }
 
 int pyGetWeaponInSlot( int iSlot )
@@ -209,6 +268,16 @@ void pyResetAllTeamsScores()
 	GEMPRules()->ResetTeamScores();
 }
 
+void pyEnableStandardScoring()
+{
+	GEMPRules()->SetScoreboardMode(0);
+}
+
+void pyEnableTimeBasedScoring()
+{
+	GEMPRules()->SetScoreboardMode(1);
+}
+
 void pySetPlayerWinner(CGEMPPlayer *player)
 {
 	if (!player)
@@ -235,6 +304,40 @@ int pyGetNumActivePlayers()
 int pyGetNumInRoundPlayers()
 {
 	return GEMPRules()->GetNumInRoundPlayers();
+}
+
+int pyGetMapMaxPlayers()
+{
+	if (!GEMPRules()->GetMapManager())
+	{
+		Warning("Tried to call map manager before it existed!");
+		return -1;
+	}
+
+
+	MapSelectionData *curMapData = GEMPRules()->GetMapManager()->GetCurrentMapSelectionData();
+
+	if (curMapData)
+		return curMapData->maxplayers;
+	else
+		return -1;
+}
+
+int pyGetMapMinPlayers()
+{
+	if (!GEMPRules()->GetMapManager())
+	{
+		Warning("Tried to call map manager before it existed!");
+		return -1;
+	}
+
+
+	MapSelectionData *curMapData = GEMPRules()->GetMapManager()->GetCurrentMapSelectionData();
+
+	if (curMapData)
+		return curMapData->minplayers;
+	else
+		return -1;
 }
 
 int pyGetNumActiveTeamPlayers( bp::object team_obj )
@@ -403,9 +506,22 @@ BOOST_PYTHON_MODULE(GEMPGameRules)
 	def("IsRoundLocked", pyIsRoundLocked);
 	def("AllowRoundTimer", pyToggleRoundTimer);
 
+	def("SetSpawnInvulnTime", pySetSpawnInvulnTime);
+
 	def("DisableWeaponSpawns", pyDisableWeaponSpawns);
 	def("DisableAmmoSpawns", pyDisableAmmoSpawns);
 	def("DisableArmorSpawns", pyDisableArmorSpawns);
+	def("EnableArmorSpawns", pyEnableArmorSpawns);
+	def("StagnateArmorSpawns", pyStagnateArmorSpawns);
+
+	def("EnableInfiniteAmmo", pyEnableInfiniteAmmo);
+	def("DisableInfiniteAmmo", pyDisableInfiniteAmmo);
+
+	def("GetMapMaxPlayers", pyGetMapMaxPlayers);
+	def("GetMapMinPlayers", pyGetMapMinPlayers);
+
+	def("EnableSuperfluousAreas", pyEnableSuperfluousAreas);
+	def("DisableSuperfluousAreas", pyDisableSuperfluousAreas);
 
 	def("GetWeaponInSlot", pyGetWeaponInSlot);
 	def("GetWeaponLoadout", pyGetWeaponLoadout, pyGetWeaponLoadout_overloads());
@@ -413,9 +529,14 @@ BOOST_PYTHON_MODULE(GEMPGameRules)
 	def("SetPlayerWinner", pySetPlayerWinner);
 	def("SetTeamWinner", pySetTeamWinner);
 
+	def("EnableTimeBasedScoring", pyEnableTimeBasedScoring);
+	def("EnableStandardScoring", pyEnableStandardScoring);
+
 	def("GetMapTimeLeft", pyGetMatchTimeLeft); // DEPRECATED
 	def("GetMatchTimeLeft", pyGetMatchTimeLeft);
 	def("GetRoundTimeLeft", pyGetRoundTimeLeft);
+	def("SetRoundTimeLeft", pySetRoundTimeLeft, ("newtime", arg("announce") = false));
+	def("AddToRoundTimeLeft", pyAddToRoundTimeLeft, ("newtime", arg("announce") = false));
 	def("IsIntermission", pyIsIntermission);
 	def("IsGameOver", pyIsGameOver);
 	def("IsTeamplay", pyIsTeamplay);

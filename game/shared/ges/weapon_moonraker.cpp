@@ -100,6 +100,7 @@ acttable_t CWeaponMoonraker::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponMoonraker );
 
@@ -112,6 +113,15 @@ CWeaponMoonraker::CWeaponMoonraker( void )
 
 void CWeaponMoonraker::Precache( void )
 {
+	PrecacheModel("models/weapons/moonraker/v_moonraker.mdl");
+	PrecacheModel("models/weapons/moonraker/w_moonraker.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/moonraker");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_moonraker");
+
+	PrecacheScriptSound("Weapon_moonraker.Single");
+	PrecacheScriptSound("Weapon_moonraker.NPC_Single");
+
 	BaseClass::Precache();
 	PrecacheParticleSystem( "tracer_laser" );
 }
@@ -179,6 +189,7 @@ void CWeaponMoonraker::ProcessMuzzleFlashEvent()
 		dl->origin = vAttachment;
 		dl->radius = random->RandomInt( 64, 80 ); 
 		dl->decay = el->radius / 0.05f;
+		dl->flags |= DLIGHT_NO_MODEL_ILLUMINATION;
 		dl->die = gpGlobals->curtime + 0.05f;
 		dl->color.r = 83;
 		dl->color.g = 169;

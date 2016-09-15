@@ -142,7 +142,7 @@ public:
 	virtual int  GetWorldModelIndex( void );
 #endif
 
-	CNetworkVar( int, m_iWatchModelIndex );
+//	CNetworkVar( int, m_iWatchModelIndex );
 
 private:
 	CWeaponRemoteMine( const CWeaponRemoteMine & );
@@ -168,6 +168,7 @@ public:
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_PROXIMITYMINE; }
 
 	CWeaponProximityMine( void ) { };
+	virtual void Precache(void);
 	virtual void Spawn( void );
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 
@@ -195,6 +196,7 @@ public:
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_TIMEDMINE; }
 
 	CWeaponTimedMine( void ) { };
+	virtual void Precache(void);
 	virtual void Spawn( void );
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 

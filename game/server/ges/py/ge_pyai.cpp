@@ -275,6 +275,11 @@ public:
 		TRYFUNC( this->get_override("OnListened")() );
 	}
 
+	void OnPickupItem( void )
+	{
+		PY_CALLHOOKS( FUNC_AI_PICKUPITEM, bp::make_tuple() );
+	}
+
 	bool IsValidEnemy( CBaseEntity *pEnemy )
 	{
 		TRYFUNCRET( this->get_override("IsValidEnemy")(bp::ptr(pEnemy)), true );

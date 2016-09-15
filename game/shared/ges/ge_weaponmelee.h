@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2006, Scott Loyd. All rights reserved. /////////////
+///////////// Copyright © 2006, Scott Loyd. All rights reserved. /////////////
 // 
 // File: weapon_gebasemelee.h
 // Description:
@@ -30,7 +30,7 @@ public:
 	
 	//Attack functions
 	virtual	void	PrimaryAttack( void );
-	virtual	void	SecondaryAttack( void );
+//	virtual	void	SecondaryAttack( void );
 	
 	virtual void	ItemPostFrame( void );
 
@@ -48,6 +48,7 @@ public:
 
 	virtual float	GetRange( void )								{ return 32.0f; }
 	virtual	float	GetDamageForActivity( Activity hitActivity )	{ return GetGEWpnData().m_iDamage; }
+	virtual bool	DamageWorld()									{ return true; }
 
 protected:
 	virtual	void	ImpactEffect( trace_t &trace );

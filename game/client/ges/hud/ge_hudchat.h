@@ -5,7 +5,7 @@
 //      HUD Chat
 //
 // Created On: 08 Nov 08
-// Created By: Jonathan White <killermonkey> 
+// Created By: Jonathan White "killermonkey" 
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef GE_HUD_CHAT_H
@@ -14,7 +14,7 @@
 #pragma once
 #endif
 
-#include <hud_basechat.h>
+#include "hud_basechat.h"
 #include "ge_hudgameplay.h"
 
 class CHudChatLine : public CBaseHudChatLine
@@ -53,6 +53,8 @@ public:
 	virtual void	OnTick( void );
 	virtual void	Init( void );
 	virtual void	Reset( void );
+
+	virtual bool	ShouldDraw(void);
 
 	virtual void	ApplySchemeSettings( vgui::IScheme *pScheme );
 

@@ -26,12 +26,13 @@ public:
 	void Init();
 	void Think();
 
-	void SpawnEnt();
+	void SpawnEnt(int spawnstate);
 	void RemoveEnt();
 	
 	// Handle overrides to the base entity
 	void		SetOverride( const char *szClassname, float secToSpawn = 0 );
-	const char *GetEntClass()	{ return IsOverridden() ? m_szOverrideEntity : m_szBaseEntity; }
+	const char *GetBaseClass()	{ return m_szBaseEntity; }
+	const char *GetOverrideClass()	{ return m_szOverrideEntity; }
 
 	bool		IsOverridden()	{ return m_szOverrideEntity[0] != 0; }
 	bool		IsValid()		{ return m_szBaseEntity[0] != 0; }
@@ -41,6 +42,7 @@ public:
 	bool		IsDisabled()	{ return m_bDisabled; }
 
 	virtual bool IsSpecial()	{ return m_iSlot == (MAX_WEAPON_SPAWN_SLOTS-1); }
+	virtual bool IsVerySpecial()	{ return false; }
 	const int	 GetSlot()		{ return m_iSlot; }
 
 	void SetEnabled( bool state );
@@ -49,9 +51,12 @@ public:
 	void InputDisable( inputdata_t &inputdata );
 	void InputToggle( inputdata_t &inputdata );
 
+	void InputEnableResetting(inputdata_t &inputdata);
+	void InputDisableResetting(inputdata_t &inputdata);
+
 protected:
 	// Should we respawn now?
-	virtual bool  ShouldRespawn();
+	virtual int ShouldRespawn();
 	virtual float GetRespawnInterval();
 
 	// Overridable "callbacks"
@@ -66,11 +71,16 @@ protected:
 	void SetBaseEnt( const char *szClassname );
 	CBaseEntity *GetEnt() { return m_hCurrentEntity; }
 
+	COutputEvent m_OnPickedUp;
+	COutputEvent m_OnRespawn;
+
 private:
 	// KeyValues
 	// Slot determines which weapon/ammo we will spawn (default:-1)
 	int  m_iSlot;
 	bool m_bDisabled;
+	bool m_bOrigDisableState;
+	bool m_bResetOnNewRound;
 
 	char m_szBaseEntity[MAX_ENTITY_NAME];
 	char m_szOverrideEntity[MAX_ENTITY_NAME];

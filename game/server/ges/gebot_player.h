@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008 LodleNet. All rights reserved. /////////////
+///////////// Copyright © 2008 LodleNet. All rights reserved. /////////////
 //
 //   Project     : Server (GES)
 //   File        : gebot_player.h
@@ -57,7 +57,7 @@ public:
 	virtual void FireBullets( const FireBulletsInfo_t &info );
 	virtual int  OnTakeDamage( const CTakeDamageInfo &info );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
-	virtual void Event_Dying( const CTakeDamageInfo &info );
+	virtual void Event_Dying();
 	virtual void DropAllTokens();
 	virtual void PlayerDeathThink();
 	virtual void CreateRagdollEntity( void );
@@ -66,6 +66,7 @@ public:
 	virtual void PostThink();
 
 	virtual void GiveHat();
+	virtual void SpawnHat(const char* hatModel, bool canBeRemoved = true);
 	virtual void KnockOffHat( bool bRemove = false, const CTakeDamageInfo *dmg = NULL );
 
 	// Bots don't need help!

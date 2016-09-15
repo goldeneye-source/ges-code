@@ -118,7 +118,8 @@ void CGEUpdateChecker::processUpdate( const char* data )
 
 	vgui::IScheme *pScheme = vgui::scheme()->GetIScheme( GetScheme() );
 
-	if ( version.Count() >= 3 && (atoi(version[0]) != ges_major_version || atoi(version[1]) > ges_minor_version || atoi(version[2]) > ges_client_version) )
+	// We only need to update if we are behind in the major version, behind in a minor version but equal to the major version, or our client version is behind.
+	if (version.Count() >= 3 && (atoi(version[0]) > ges_major_version || (atoi(version[0]) == ges_major_version && atoi(version[1]) > ges_minor_version) || atoi(version[2]) > ges_client_version))
 	{
 		// We have differing version strings, notify the client
 		// Setup the version labels

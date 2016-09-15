@@ -16,11 +16,14 @@
 #ifdef CLIENT_DLL
 	#define CGEMPRules			C_GEMPRules
 	#define CGEMPGameRulesProxy C_GEMPGameRulesProxy
+	#include "c_gemp_player.h"
 #else
 	#include "ge_gameplay.h"
+	#include "gemp_player.h"
 
 	class CGETokenManager;
 	class CGELoadoutManager;
+	class CGEMapManager;
 #endif
 
 class CGEGameTimer;
@@ -77,11 +80,21 @@ public:
 
 	void SetRoundTimerEnabled( bool state );
 	void StartRoundTimer( float time_sec=-1 );
-	void ChangeRoundTimer( float new_time_sec );
+	// Change total length of round timer, increase current time by difference between the new value and the old one.
+	void ChangeRoundTimer( float new_time_sec, bool announce = true );
+	// Set current and total value of round timer.
+	void SetRoundTimer(float new_time_sec, bool announce = true);
+	// Add time to current value of round timer.
+	void AddToRoundTimer(float new_time_sec, bool announce = true );
 	void SetRoundTimerPaused( bool state );
 	void StopRoundTimer();
 	
-	float FlArmorRespawnTime( CItem *pItem );
+	void SetSpawnInvulnInterval(float duration);
+	void SetSpawnInvulnCanBreak(bool canbreak);
+	float GetSpawnInvulnInterval();
+	bool GetSpawnInvulnCanBreak();
+
+	void AddTrapToList(CBaseEntity* pEnt) { m_vTrapList.AddToTail(pEnt); }
 
 	bool AmmoShouldRespawn();
 	bool ArmorShouldRespawn();
@@ -90,6 +103,7 @@ public:
 
 	CGELoadoutManager *GetLoadoutManager()  { return m_pLoadoutManager; }
 	CGETokenManager   *GetTokenManager()	{ return m_pTokenManager;	}
+	CGEMapManager	  *GetMapManager()		{ return m_pMapManager; }
 
 	int	  GetSpawnPointType( CGEPlayer *pPlayer );
 	float GetSpeedMultiplier( CGEPlayer *pPlayer );
@@ -103,6 +117,8 @@ public:
 	void SetRoundWinner( int winner )		{ m_iPlayerWinner = winner; }
 	void SetRoundTeamWinner( int winner )	{ m_iTeamWinner = winner; }
 
+	void GetRankSortedPlayers(CUtlVector<CGEMPPlayer*> &sortedplayers, bool matchRank = false);
+
 	void ResetPlayerScores( bool resetmatch = false );
 	void ResetTeamScores( bool resetmatch = false );
 
@@ -114,6 +130,9 @@ public:
 	void SetWeaponSpawnState( bool state )	{ m_bEnableWeaponSpawns = state; }
 	void SetAmmoSpawnState( bool state )	{ m_bEnableAmmoSpawns = state; }
 	void SetArmorSpawnState( bool state )	{ m_bEnableArmorSpawns = state; }
+
+	void SetSuperfluousAreasState(bool state)	{ m_bAllowSuperfluousAreas = state; }
+	bool SuperfluousAreasEnabled()				{ return m_bAllowSuperfluousAreas; }
 
 	// These accessors control the use of team spawns (if available and team play enabled)
 	bool IsTeamSpawn()				{ return m_bUseTeamSpawns; }
@@ -148,9 +167,24 @@ public:
 
 	int   GetTeamplayMode() { return m_iTeamplayMode; }
 
+	void  SetGlobalInfAmmoState( bool newstate )  { m_bGlobalInfAmmo = newstate; };
+	void  SetGamemodeInfAmmoState( bool newstate )  { m_bGamemodeInfAmmo = newstate; };
+	bool  InfAmmoEnabled()  { return m_bGlobalInfAmmo || m_bGamemodeInfAmmo; };
+
+	int  GetScoreboardMode()  { return m_iScoreboardMode; };
+	void  SetScoreboardMode( int newmode )  { m_iScoreboardMode = newmode; };
+
 	bool IsMultiplayer() { return true; }
 	bool IsTeamplay();
 	bool IsIntermission();
+
+	void SetMapFloorHeight(float height);
+	float GetMapFloorHeight();
+
+	int   GetRandomSeedOffset() { return m_iRandomSeedOffset; }
+
+	int	  GetSpecialEventCode() { return m_iAwardEventCode; };
+	void  SetSpecialEventCode(int newcode)  { m_iAwardEventCode = newcode; };
 
 	// ------------------------------
 	// Server Only -- Inherited Functions
@@ -196,6 +230,7 @@ private:
 
 	CGELoadoutManager	*m_pLoadoutManager;
 	CGETokenManager		*m_pTokenManager;
+	CGEMapManager		*m_pMapManager;
 
 	ConVar				*m_pAllTalkVar;
 
@@ -203,13 +238,20 @@ private:
 	bool m_bEnableWeaponSpawns;
 	bool m_bEnableArmorSpawns;
 
+	bool m_bAllowSuperfluousAreas;
+
 	float m_flIntermissionEndTime;
 	float m_flNextTeamBalance;
 	float m_flNextIntermissionCheck;
 	float m_flChangeLevelTime;
 
+	float m_flSpawnInvulnDuration;
+	bool m_bSpawnInvulnCanBreak;
+
 	float m_flNextBotCheck;
 	CUtlVector<EHANDLE> m_vBotList;
+
+	CUtlVector<CBaseEntity*> m_vTrapList; //List of traps that needs to be checked when a potential trap owner disconnects.
 
 	char  m_szNextLevel[64];
 	char  m_szGameDesc[32];
@@ -229,8 +271,14 @@ private:
 	int   m_iNumInRoundPlayers;
 #endif
 
+	CNetworkVar( int, m_iRandomSeedOffset );
+	CNetworkVar( float, m_flMapFloorHeight );
 	CNetworkVar( bool,	m_bTeamPlayDesired );
+	CNetworkVar( bool,  m_bGlobalInfAmmo );
+	CNetworkVar( bool,  m_bGamemodeInfAmmo );
 	CNetworkVar( int,	m_iTeamplayMode );
+	CNetworkVar( int, m_iScoreboardMode );
+	CNetworkVar( int, m_iAwardEventCode );
 
 	CNetworkHandle( CGEGameTimer, m_hMatchTimer );
 	CNetworkHandle( CGEGameTimer, m_hRoundTimer );

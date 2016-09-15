@@ -25,6 +25,7 @@ extern "C"
 		REG( GEPlayer );
 		REG( GEGlobal );
 		REG( GEWeapon );
+		REG( GEAmmoCrate );
 		REG( GEGamePlay );
 		REG( GEMPGameRules );
 		REG( GEAi );

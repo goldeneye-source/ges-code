@@ -34,6 +34,7 @@ public:
 	// Get the current active weapon in the slot provided or the entire enchilada
 	int  GetWeaponInSlot( int slot );
 	bool GetWeaponSet( CUtlVector<int> &set );
+	void GetRecentLoadouts(CUtlVector<CGELoadout*> &loadouts);
 
 	void OnTokenAdded( const char *szClassname );
 
@@ -46,16 +47,22 @@ public:
 	
 private:
 	void ParseGameplayAffinity( void );
+	void ParseLogData( void );
 	void ClearLoadouts( void );
+
+	// Adjusts weights according to weaponset grouping rules.
+	bool AdjustWeights(CUtlVector<int> &groups, CUtlVector<int> &weights);
 
 	struct GameplaySet
 	{
 		CUtlVector<char*>	loadouts;
 		CUtlVector<int>		weights;
+		CUtlVector<int>		groups;
 	};
 
 	// Our loadout information
 	CGELoadout *m_pCurrentLoadout;
+	int			m_iCurrentGroup[3];
 	CUtlDict<CGELoadout*, int>	m_Loadouts;
 	CUtlDict<GameplaySet*, int> m_GameplaySets;
 	// Used to select random_loadout or cycle_loadout
@@ -63,6 +70,8 @@ private:
 	CUtlVector<int>		m_RandomSetWeights;
 	// Flags
 	bool				m_bKeepCurrLoadout;
+
+	CUtlVector<CGELoadout*>	m_pRecentLoadouts;
 };
 
 #endif //GE_SPAWNERMANAGER_H

@@ -14,11 +14,11 @@
 #include "hudelement.h"
 #include "iclientmode.h"
 #include "vgui/ILocalize.h"
-#include <vgui/IVGui.h>
-#include <vgui/ISurface.h>
-#include <vgui_controls/AnimationController.h>
-#include <vgui_controls/ImagePanel.h>
-#include <vgui_controls/Label.h>
+#include "vgui/IVGui.h"
+#include "vgui/ISurface.h"
+#include "vgui_controls/AnimationController.h"
+#include "vgui_controls/ImagePanel.h"
+#include "vgui_controls/Label.h"
 #include "ge_CreditsText.h"
 #include "networkstringtable_clientdll.h"
 #include "c_ge_player.h"

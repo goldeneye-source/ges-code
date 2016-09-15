@@ -289,16 +289,16 @@ void CGEScoreBoard::UpdateSpectatorList( void )
 	if ( !specTeam || !spectators )
 		return;
 
-	char szSpecNames[1024];
+	wchar_t wszSpecNames[1024];
 	int iPlayers = specTeam->Get_Number_Players();
-	szSpecNames[0] = '\0';
+	wszSpecNames[0] = 0;
 
 	if ( iPlayers > 0 )
 	{
 		char name[64];
 		wchar_t wszNames[1024];
 		wchar_t wszPlayer[MAX_PLAYER_NAME_LENGTH];
-		wszNames[0] = '\0';
+		wszNames[0] = 0;
 
 		// Parse out the spectators' names into a list
 		for ( int i=0; i < iPlayers; i++ )
@@ -312,14 +312,10 @@ void CGEScoreBoard::UpdateSpectatorList( void )
 		}
 		
 		// Smash the spectator name list into our localization
-		wchar_t wszString[1024];
-		g_pVGuiLocalize->ConstructString( wszString, sizeof(wszString), g_pVGuiLocalize->Find("#ScoreBoard_Spectators"), 1, wszNames );
-
-		// Finally convert us back into a char string
-		g_pVGuiLocalize->ConvertUnicodeToANSI( wszString, szSpecNames, 1024 );
+		g_pVGuiLocalize->ConstructString(wszSpecNames, sizeof(wszSpecNames), g_pVGuiLocalize->Find("#ScoreBoard_Spectators"), 1, wszNames);
 	}
 
-	PostMessage( spectators, new KeyValues( "SetText", "text", szSpecNames ) );
+	PostMessage(spectators, new KeyValues("SetText", "text", wszSpecNames));
 
 	IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
 	spectators->SetFgColor( pScheme->GetColor( "Scoreboard_Spectators", Color(100,100,100,200) ) );
@@ -353,9 +349,19 @@ bool CGEScoreBoard::GetPlayerScoreInfo( int playerIndex, KeyValues *kv )
 	kv->SetInt("team", GEPlayerRes()->GetTeam( playerIndex ) );
 	kv->SetString("name", GEUTIL_RemoveColorHints(name) );
 	kv->SetInt("deaths", GEPlayerRes()->GetDeaths( playerIndex ));
-	kv->SetInt("score", GEPlayerRes()->GetPlayerScore( playerIndex ));
 	kv->SetString("char", GEPlayerRes()->GetCharName( playerIndex ));
 
+	if (!GEMPRules()->GetScoreboardMode())
+		kv->SetInt("score", GEPlayerRes()->GetPlayerScore(playerIndex));
+	else
+	{
+		int seconds = GEPlayerRes()->GetPlayerScore(playerIndex);
+		int displayseconds = seconds % 60;
+		int displayminutes = floor(seconds / 60);
+
+		Q_snprintf(name, sizeof(name), "%d:%s%d", displayminutes, displayseconds < 10 ? "0" : "", displayseconds);
+		kv->SetString("score", name);
+	}
 	// Get our developer status
 	int iStatus = GEPlayerRes()->GetDevStatus(playerIndex);
 
@@ -373,6 +379,13 @@ bool CGEScoreBoard::GetPlayerScoreInfo( int playerIndex, KeyValues *kv )
 			kv->SetInt("deadicon", 4);
 		else
 			kv->SetInt("deadicon", 3);
+	}
+	else if (iStatus == GE_CONTRIBUTOR)
+	{
+		if (!GEPlayerRes()->IsAlive(playerIndex))
+			kv->SetInt("deadicon", 1);
+		else
+			kv->SetInt("deadicon", 7);
 	}
 	else if ( iStatus == GE_SILVERACH )
 	{
@@ -429,13 +442,43 @@ bool CGEScoreBoard::StaticPlayerSortFunc(vgui::SectionedListPanel *list, int ite
 	KeyValues *it2 = list->GetItemData(itemID2);
 	Assert(it1 && it2);
 
+	int v1, v2;
+
 	// first compare frags
-	int v1 = it1->GetInt("score");
-	int v2 = it2->GetInt("score");
-	if (v1 > v2)
-		return true;
-	else if (v1 < v2)
-		return false;
+	if (!GEMPRules()->GetScoreboardMode())
+	{
+		v1 = it1->GetInt("score");
+		v2 = it2->GetInt("score");
+
+		if (v1 > v2)
+			return true;
+		else if (v1 < v2)
+			return false;
+	}
+	else // Having to do this instead of just sorting by score and then translating score into the time string really bugs me but I'm not sure if it can be done.
+	{
+		const char* score1 = it1->GetString("score");
+		const char* score2 = it2->GetString("score");
+
+		int length1 = Q_strlen(score1);
+		int length2 = Q_strlen(score2);
+
+		// The bigger string will be the bigger number.
+		if (length1 > length2)
+			return true;
+		else if (length2 > length1)
+			return false;
+
+		//However, they will usually end up the same length, so we'll need to compare them.
+		int compval = Q_strcmp(score1, score2);
+
+		if (compval < 0)
+			return false;
+		else if (compval > 0)
+			return true;
+
+		//If we made it this far they're equal.
+	}
 
 	// next compare deaths
 	v1 = it1->GetInt("deaths");

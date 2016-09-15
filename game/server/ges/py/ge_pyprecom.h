@@ -7,9 +7,6 @@
 	#pragma warning(disable : 4217)
 #endif
 
-// Allow debugging of Python code
-//#define BOOST_DEBUG_PYTHON
-
 #include "cbase.h"
 
 // Undefine max/min
@@ -40,6 +37,12 @@ enum GES_EVENTHOOK
 	FUNC_GP_PLAYERTEAM,
 	FUNC_GP_ROUNDBEGIN,
 	FUNC_GP_ROUNDEND,
+	FUNC_GP_WEAPONSPAWNED,
+	FUNC_GP_WEAPONREMOVED,
+	FUNC_GP_ARMORSPAWNED,
+	FUNC_GP_ARMORREMOVED,
+	FUNC_GP_AMMOSPAWNED,
+	FUNC_GP_AMMOREMOVED,
 
 	// Ai Function Hooks
 	FUNC_AI_ONSPAWN,

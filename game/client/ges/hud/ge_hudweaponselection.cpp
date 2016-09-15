@@ -15,12 +15,12 @@
 #include "input.h"
 #include "weapon_parse.h"
 
-#include <KeyValues.h>
-#include <vgui/IScheme.h>
-#include <vgui/ISurface.h>
-#include <vgui/ISystem.h>
-#include <vgui_controls/AnimationController.h>
-#include <vgui_controls/Panel.h>
+#include "KeyValues.h"
+#include "vgui/IScheme.h"
+#include "vgui/ISurface.h"
+#include "vgui/ISystem.h"
+#include "vgui_controls/AnimationController.h"
+#include "vgui_controls/Panel.h"
 
 #include "vgui/ILocalize.h"
 
@@ -31,6 +31,9 @@
 #define SELECTION_FADEOUT_TIME   2.0f
 
 using namespace vgui;
+
+ConVar cl_ge_hud_fastswitchlist("cl_ge_hud_fastswitchlist", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Show all held weapons on fast switch.");
+ConVar cl_ge_hud_noswitchlist("cl_ge_hud_noswitchlist", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Hide weaponlist entirely on switch.");
 
 //-----------------------------------------------------------------------------
 // Purpose: Selection of weapons for GE:Source
@@ -146,6 +149,9 @@ bool CHudWeaponSelection::ShouldDraw()
 		return false;
 	}
 
+	if (cl_ge_hud_noswitchlist.GetBool())
+		return false;
+
 	if ( !CBaseHudWeaponSelection::ShouldDraw() )
 		return false;
 
@@ -254,7 +260,7 @@ void CHudWeaponSelection::CycleToPrevWeapon( void )
 	// We didn't find a next one so we will return the LAST one!
 	if ( !pPrevWeapon || pPrevWeapon == pCurrWeapon )
 	{
-		for ( i=MAX_WEAPON_SLOTS-1,j=MAX_WEAPON_POSITIONS-1; i > 0; i-- )
+		for ( i=MAX_WEAPON_SLOTS-1,j=MAX_WEAPON_POSITIONS-1; i >= 0; i-- )
 		{
 			pPrevWeapon = GetPrevActivePos(i, j);
 			if ( pPrevWeapon )
@@ -467,7 +473,7 @@ void CHudWeaponSelection::Paint()
 		return;
 
 	// If we are using fast-switch we only draw our current weapon (exported methodology)
-	if ( hud_fastswitch.GetBool() )
+	if ( hud_fastswitch.GetBool() && !cl_ge_hud_fastswitchlist.GetBool())
 	{
 		PaintFastWeaponSwitch();
 		return;

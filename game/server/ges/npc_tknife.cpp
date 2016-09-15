@@ -78,7 +78,7 @@ void CGETKnife::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 	Vector vecAiming = pEvent->preVelocity[index];
 	VectorNormalize( vecAiming );
 
-	if ( pOther->m_takedamage != DAMAGE_NO )
+	if ( pOther->m_takedamage != DAMAGE_NO && (pOther->IsPlayer() || pOther->IsNPC()) )
 	{
 		ClearMultiDamage();
 
@@ -136,6 +136,9 @@ void CGETKnife::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 
 		SetTouch( &CGETKnife::PickupTouch );
 		SetThink( &CGETKnife::RemoveThink );
+
+		g_PostSimulationQueue.QueueCall(this, &CBaseEntity::SetCollisionGroup, COLLISION_GROUP_DROPPEDWEAPON);
+
 		SetNextThink( gpGlobals->curtime + 10.0f );
 	}
 }
@@ -151,12 +154,23 @@ void CGETKnife::DamageTouch( CBaseEntity *pOther )
 	if ( !g_pGameRules->ShouldCollide( GetCollisionGroup(), pOther->GetCollisionGroup() ) )
 		return;
 
+	if (!pOther->IsPlayer() && !pOther->IsNPC())
+		return;
+
 	Vector vecAiming;
 	VPhysicsGetObject()->GetVelocity( &vecAiming, NULL );
 	VectorNormalize( vecAiming );
 
 	trace_t tr;
 	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + (vecAiming * 24), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
+
+	// We didn't hit the player again with our damage cast.  Do a cast to the player's center to get a proper hit.
+	if (tr.m_pEnt != pOther)
+	{
+		Vector TargetVec = pOther->GetAbsOrigin();
+		TargetVec.z = min(GetAbsOrigin().z, pOther->EyePosition().z); //Make sure we don't cast over their head.
+		UTIL_TraceLine(GetAbsOrigin(), pOther->GetAbsOrigin(), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
+	}
 
 // TEMPORARY DEBUGGING PURPOSES
 //	DebugDrawLine( tr.startpos, tr.endpos, 0, 255, 0, true, 5.0f );

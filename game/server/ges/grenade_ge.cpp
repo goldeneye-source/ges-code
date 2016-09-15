@@ -37,13 +37,15 @@ void CGEGrenade::Spawn( void )
 
 	m_takedamage	= DAMAGE_YES;
 	m_iHealth		= 1;
+	m_bHitSomething = false;
+	m_bDroppedOnDeath = false;
 
 	// Default Damages they should be modified by the thrower
 	SetDamage( 320 );
 	SetDamageRadius( 260 );
 
 	SetSize( -Vector(4,4,4), Vector(4,4,4) );
-	SetCollisionGroup( COLLISION_GROUP_GRENADE );
+	SetCollisionGroup( COLLISION_GROUP_MINE );
 	
 	// Init our physics definition
 	VPhysicsInitNormal( SOLID_VPHYSICS, GetSolidFlags() | FSOLID_TRIGGER, false );
@@ -66,7 +68,7 @@ void CGEGrenade::Precache( void )
 
 void CGEGrenade::SetTimer( float detonateDelay )
 {
-	m_flDetonateTime = gpGlobals->curtime + detonateDelay;
+	m_flDetonateTime = gpGlobals->curtime + detonateDelay / max(phys_timescale.GetFloat(), 0.01);
 
 	SetThink( &CGEGrenade::DelayThink );
 	SetNextThink( gpGlobals->curtime );
@@ -113,6 +115,8 @@ void CGEGrenade::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 
 	if ( pOther->IsWorld() )
 	{
+		m_bHitSomething = true;
+
 		surfacedata_t *phit = physprops->GetSurfaceData( pEvent->surfaceProps[!index] );
 		if ( phit->game.material == 'X' )
 		{
@@ -132,15 +136,7 @@ int CGEGrenade::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	VPhysicsTakeDamage( inputInfo );
 
 	// Grenades take Blast AND Bullet damage
-	if( inputInfo.GetDamageType() & DMG_BLAST )
-	{
-		m_iHealth -= inputInfo.GetDamage();
-		if ( m_iHealth <= 0 )
-			Explode();
-
-		return inputInfo.GetDamage();
-	}
-	else if ( inputInfo.GetDamageType() & DMG_BULLET )
+	if ((inputInfo.GetDamage() > 160 && inputInfo.GetDamageType() & DMG_BLAST) || inputInfo.GetDamageType() & DMG_BULLET)
 	{
 		// Bullet damage transfers ownership to the attacker instead of the thrower
 		m_iHealth -= inputInfo.GetDamage();

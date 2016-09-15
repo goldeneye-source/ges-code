@@ -21,7 +21,7 @@
 #include "ge_gamerules.h"
 #include "gemp_gamerules.h"
 #include "ihudlcd.h"
-#include <game/client/iviewport.h>
+#include "iviewport.h"
 #include "viewport_panel_names.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -42,6 +42,11 @@ CHudChat::CHudChat( const char *pElementName ) : BaseClass( pElementName )
 	m_IScheme = NULL;
 	m_pHudGameplay = NULL;
 	m_bIntermissionSet = false;
+}
+
+bool CHudChat::ShouldDraw(void)
+{
+	return true;
 }
 
 void CHudChat::CreateChatInputLine( void )
@@ -71,14 +76,6 @@ void CHudChat::OnTick( void )
 			// Reset our view after intermission is over
 			ApplySchemeSettings( m_IScheme );
 		}
-	}
-
-	if ( !IsMouseInputEnabled() )
-	{
-		if ( m_pHudGameplay && m_pHudGameplay->IsRaised() )
-			SetVisible( false );
-		else if ( gViewPortInterface->FindPanelByName(PANEL_SCENARIOHELP)->IsVisible() )
-			SetVisible( false );
 	}
 
 	BaseClass::OnTick();

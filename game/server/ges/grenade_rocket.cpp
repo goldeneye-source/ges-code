@@ -1,4 +1,4 @@
-///////////// Copyright © 2009, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright ï¿½ 2009, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: grenade_rocket.cpp
 // Description:
@@ -39,10 +39,11 @@ void CGERocket::Spawn( void )
 
 	m_takedamage	= DAMAGE_YES;
 	m_iHealth		= 1;
+	m_bHitPlayer	= false;
 
 	// Default Damages they should be modified by the thrower
-	SetDamage( 320 );
-	SetDamageRadius( 260 );
+	SetDamage( 512 );
+	SetDamageRadius( 125 );
 
 	SetModel( "models/weapons/rocket_launcher/w_rocket.mdl" );
 	
@@ -55,7 +56,7 @@ void CGERocket::Spawn( void )
 
 //	UTIL_SetSize( this, Vector(-10,-5,-5), Vector(10,5,5) );
  	
-	SetCollisionGroup( COLLISION_GROUP_PROJECTILE );
+	SetCollisionGroup( COLLISION_GROUP_GRENADE );
 
 	SetThink( &CGERocket::IgniteThink );
 	SetNextThink( gpGlobals->curtime );
@@ -94,12 +95,35 @@ void CGERocket::IgniteThink( void )
 	EmitSound( "Weapon_RocketLauncher.Ignite" );
 
 	AngleVectors( GetLocalAngles(), &m_vForward );
-	SetAbsVelocity( m_vForward * GE_ROCKET_MAXVEL * 0.1f );
+	AngleVectors(GetLocalAngles() + QAngle(-90, 0, 0), &m_vUp);
+
+	m_vRight = CrossProduct(m_vForward, m_vUp);
+
+//	SetAbsVelocity( m_vForward * GE_ROCKET_MAXVEL * 0.1f );
 
 	SetThink( &CGERocket::AccelerateThink );
-	SetNextThink( gpGlobals->curtime + 0.1f );
+	SetNextThink(gpGlobals->curtime + m_fthinktime);
+
+	m_fthinktime = 0.1;
+	m_fFuseTime = gpGlobals->curtime + GE_ROCKET_FUSETIME / max(phys_timescale.GetFloat(), 0.01);
 
 	CreateSmokeTrail();
+
+/*
+	DevMsg("modifiers are..");
+	if (m_iseed1 < 50) // Vertical Sine Wave
+		DevMsg(", sine");
+	if (m_iseed1 % 50 < 25) // Horizontal Cosine Wave, overlap with sine wave causes spiral.
+		DevMsg(", cosine");
+	if (m_iseed1 % 25 < 5) // Comes back
+		DevMsg(", return");
+	if (m_iseed1 % 20 < 5) // Gravity
+		DevMsg(", gravity");
+	if (m_iseed1 % 10 < 4) // Random Jitter
+		DevMsg(", jitter");
+
+	DevMsg(", and seed 1 is %d, seed 2 is %d, seed 3 is %d.", m_iseed1, m_iseed2, m_iseed3); 
+*/
 }
 
 void CGERocket::AccelerateThink( void ) 
@@ -107,24 +131,30 @@ void CGERocket::AccelerateThink( void )
 	float lifetime = gpGlobals->curtime - m_flSpawnTime;
 	if ( lifetime > 0.75f )
 	{
+		SetAbsVelocity(m_vForward * GE_ROCKET_MAXVEL * (lifetime < 0.75f ? lifetime : 0.75f) * phys_timescale.GetFloat());
 		SetThink( &CGERocket::FlyThink );
 		SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 	else
 	{
-		SetAbsVelocity( m_vForward * GE_ROCKET_MAXVEL * (lifetime < 0.75f ? lifetime : 0.75f) );
-		SetNextThink( gpGlobals->curtime + 0.1f );
+		float timescale = phys_timescale.GetFloat();
+		float lifetime = (gpGlobals->curtime - m_flSpawnTime) * timescale;
+		Vector flypath = m_vForward * GE_ROCKET_MAXVEL * min(lifetime, 0.75) * timescale;
+
+		SetAbsVelocity( flypath );
+		SetNextThink( gpGlobals->curtime + m_fthinktime );
 	}
 }
 
 void CGERocket::FlyThink( void )
 {
-	if ( gpGlobals->curtime > m_flSpawnTime + GE_ROCKET_FUSETIME )
+	if ( gpGlobals->curtime > m_fFuseTime )
 	{
 		Explode();
 		return;
 	}
 
+	SetAbsVelocity(m_vForward * GE_ROCKET_MAXVEL * 0.75f * phys_timescale.GetFloat());
 	SetNextThink( gpGlobals->curtime + 0.1 );
 }
 
@@ -134,12 +164,8 @@ void CGERocket::ExplodeTouch( CBaseEntity *pOther )
 	if ( !pOther->IsSolid() )
 		return;
 
+	// This also handles teammate collisions.
 	if ( !g_pGameRules->ShouldCollide( GetCollisionGroup(), pOther->GetCollisionGroup() ) )
-		return;
-
-	// Don't collide with teammates
-	int myteam = GetThrower()->GetTeamNumber();
-	if ( myteam >= FIRST_GAME_TEAM && pOther->GetTeamNumber() == myteam && !friendlyfire.GetBool() )
 		return;
 
 	trace_t tr;
@@ -147,6 +173,7 @@ void CGERocket::ExplodeTouch( CBaseEntity *pOther )
 	if( tr.surface.flags & SURF_SKY )
 	{
 		// Game Over, we hit the sky box, remove the rocket from the world (no explosion)
+		StopSound("Weapon_RocketLauncher.Ignite");
 		UTIL_Remove(this);
 		return;
 	}
@@ -156,8 +183,24 @@ void CGERocket::ExplodeTouch( CBaseEntity *pOther )
 	if ( pBot && pBot->GetNPC() == pOther )
 		return;
 
-	if ( pOther != GetThrower() )
+	if (pOther != GetThrower())
+	{
+		// Check if they're a player, if they are deal out instant death.
+		if (!m_bHitPlayer && (pOther->IsPlayer() || pOther->IsNPC()))
+		{
+			Vector playercenter = pOther->GetAbsOrigin() + Vector(0, 0, 38);
+			Vector impactforce = playercenter - GetAbsOrigin();
+			VectorNormalize(impactforce);
+
+			impactforce *= 1000;
+
+			CTakeDamageInfo rocketinfo(this, GetThrower(), impactforce, GetAbsOrigin(), 398.0f, DMG_BLAST);
+			pOther->TakeDamage(rocketinfo);
+
+			m_bHitPlayer = true; // Only deal one direct hit per projectile.
+		}
 		Explode();
+	}
 }
 
 int CGERocket::OnTakeDamage( const CTakeDamageInfo &inputInfo )
@@ -168,23 +211,22 @@ int CGERocket::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	// Manually apply vphysics because BaseCombatCharacter takedamage doesn't call back to CBaseEntity OnTakeDamage
 	VPhysicsTakeDamage( inputInfo );
 
-	// Rockets take Blast AND Bullet damage
-	if( inputInfo.GetDamageType() & DMG_BLAST )
+	// Rockets take Blast AND Bullet damage, though blast damage requires more.
+	if ((inputInfo.GetDamageType() & DMG_BLAST && inputInfo.GetDamage() > 80) || inputInfo.GetDamageType() & DMG_BULLET)
 	{
 		m_iHealth -= inputInfo.GetDamage();
-		if ( m_iHealth <= 0 )
-			Explode();
-
-		return inputInfo.GetDamage();
-	}
-	else if ( inputInfo.GetDamageType() & DMG_BULLET )
-	{
-		// Bullet damage transfers ownership to the attacker instead of the thrower
-		m_iHealth -= inputInfo.GetDamage();
-		if ( m_iHealth <= 0 )
+		if (m_iHealth <= 0)
 		{
-			if ( inputInfo.GetAttacker()->IsPlayer() )
-				SetThrower( ToBasePlayer(inputInfo.GetAttacker()) );
+			if (inputInfo.GetAttacker()->IsPlayer())
+			{
+				SetThrower(inputInfo.GetAttacker()->MyCombatCharacterPointer());
+			}
+			else if (inputInfo.GetAttacker()->IsNPC())
+			{
+				CNPC_GEBase *npc = (CNPC_GEBase*)inputInfo.GetAttacker();
+				if (npc->GetBotPlayer())
+					SetThrower(npc->GetBotPlayer());
+			}
 
 			Explode();
 		}

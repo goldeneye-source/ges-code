@@ -44,9 +44,14 @@ public:
 	void Start( float length_seconds );
 	void Stop();
 
-	// Change the length of an already running timer
+	// Change the length of an already running timer, will account for time already elapsed.
 	void ChangeLength( float length_seconds );
 	
+	// Set the current value of the timer, will ignore time already elapsed.
+	void SetCurrentLength( float length_seconds );
+	// Add time to the timer
+	void AddToLength( float length_seconds );
+
 	// Pause and resume control
 	void Pause();
 	void Resume();

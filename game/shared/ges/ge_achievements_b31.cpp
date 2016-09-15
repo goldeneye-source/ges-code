@@ -271,19 +271,29 @@ class CAchBeHonored : public CGEAchievement
 protected:
 	virtual void Init()
 	{
-		SetFlags( ACH_LISTEN_KILL_EVENTS | ACH_SAVE_GLOBAL );
-		SetGoal( 50 );
+		SetFlags(ACH_SAVE_GLOBAL);
+		SetGoal(50);
 	}
-	
-	virtual void Event_EntityKilled( CBaseEntity *pVictim, CBaseEntity *pAttacker, CBaseEntity *pInflictor, IGameEvent *event )
+
+	virtual void ListenForEvents()
 	{
-		if ( !pAttacker || pVictim == pAttacker )
+		ListenForGameEvent("player_death");
+	}
+
+	virtual void FireGameEvent_Internal(IGameEvent *event)
+	{
+		CGEPlayer *pPlayer = ToGEPlayer(CBasePlayer::GetLocalPlayer());
+		if (!pPlayer)
 			return;
 
-		if ( pVictim == C_BasePlayer::GetLocalPlayer() && GEPlayerRes()->GetDevStatus( pAttacker->entindex() ) )
+		// If this isn't us doing the killing, we don't care
+		if (event->GetInt("attacker") != pPlayer->GetUserID())
+			return;
+
+		// If we killed them with a skinned weapon, we did it!
+		if (event->GetInt("weaponid") < WEAPON_SPAWNMAX && event->GetInt("weaponskin") > 0)
 			IncrementCount();
 	}
-
 };
 DECLARE_GE_ACHIEVEMENT( CAchBeHonored, ACHIEVEMENT_GES_BE_HONORED, "GES_BE_HONORED", 40, GE_ACH_UNLOCKED );
 

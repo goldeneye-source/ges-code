@@ -27,7 +27,7 @@ protected:
 	virtual void OnInit( void );
 	virtual void OnEntSpawned( const char *szClassname );
 	
-	virtual bool  ShouldRespawn( void );
+	virtual int  ShouldRespawn( void );
 	virtual float GetRespawnInterval( void );
 };
 
@@ -54,20 +54,23 @@ void CGEAmmoSpawner::OnEntSpawned( const char *szClassname )
 
 	// Load us up with the appropriate ammo
 	int weapid = GEMPRules()->GetLoadoutManager()->GetWeaponInSlot( GetSlot() );
+	pCrate->SetWeaponID( weapid );
 	pCrate->SetAmmoType( GetAmmoDef()->Index( GetAmmoForWeapon(weapid) ) );
 	// Force a respawn NOW (default is to wait item respawn time)
 	pCrate->SetNextThink( gpGlobals->curtime );
 }
 
-bool CGEAmmoSpawner::ShouldRespawn( void )
+int CGEAmmoSpawner::ShouldRespawn( void )
 {
-	if ( IsOverridden() )
-		return BaseClass::ShouldRespawn();
+	int basestate = BaseClass::ShouldRespawn();
+
+	if ( IsOverridden() && basestate > 1 )
+		return 2;
 
 	if ( !GEMPRules()->AmmoShouldRespawn() )
-		return false;
+		return 0;
 
-	return BaseClass::ShouldRespawn();
+	return basestate;
 }
 
 float CGEAmmoSpawner::GetRespawnInterval( void )

@@ -37,9 +37,12 @@ public:
 	virtual bool		IsInAir( void ) { return true; };
 	virtual GEWeaponID	GetWeaponID( void ) { return WEAPON_GRENADE; };
 	virtual const char* GetPrintName( void ) { return "#GE_Grenade"; };
+	virtual int			GetCustomData(void) { return m_bDroppedOnDeath * 2 + !m_bHitSomething; };
 
 	// Functions
 	virtual void	DelayThink();
+	bool m_bDroppedOnDeath;
+	bool m_bHitSomething;
 };
 
 #endif

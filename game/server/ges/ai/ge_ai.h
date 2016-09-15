@@ -44,6 +44,7 @@ public:
 
 	virtual bool IsValidEnemy( CBaseEntity *pEnemy )=0;
 
+	virtual void OnPickupItem()=0;
 	virtual void GatherConditions()=0;
 	virtual NPC_STATE SelectIdealState()=0;
 	virtual int  SelectSchedule()=0;

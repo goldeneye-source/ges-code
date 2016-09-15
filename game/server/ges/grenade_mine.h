@@ -29,6 +29,7 @@ public:
 	void	Spawn( void );
 	void	Precache( void );
 	void	MineTouch( CBaseEntity *pOther );
+	void	MineAttach( CBaseEntity *pEntity );
 	void	MineThink( void );
 
 	bool	AlignToSurf( CBaseEntity *pSurface );

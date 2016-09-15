@@ -52,9 +52,10 @@ public:
 	float		GetRange( void )		{ return KNIFE_RANGE; }
 
 	void		AddViewKick( void );
-	void		SecondaryAttack( void );
 
-	void		Drop( const Vector &vecVelocity );
+	virtual		void Precache(void);
+
+//	void		Drop( const Vector &vecVelocity );
 
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_KNIFE; }
 
@@ -107,6 +108,7 @@ acttable_t	CWeaponKnife::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_HL2MP_GESTURE_RELOAD_MELEE,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_KNIFE,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_KNIFE,					false },
 };
 IMPLEMENT_ACTTABLE(CWeaponKnife);
 
@@ -117,6 +119,21 @@ IMPLEMENT_ACTTABLE(CWeaponKnife);
 CWeaponKnife::CWeaponKnife( void )
 {
 }
+
+
+void CWeaponKnife::Precache(void)
+{
+	PrecacheModel("models/weapons/knife/v_knife.mdl");
+	PrecacheModel("models/weapons/knife/w_knife.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/knife");
+
+	PrecacheScriptSound("Weapon_Knife.Single");
+	PrecacheScriptSound("Weapon_Crowbar.Melee_Hit");
+
+	BaseClass::Precache();
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Add in a view kick for this weapon
@@ -130,8 +147,8 @@ void CWeaponKnife::AddViewKick( void )
 
 	QAngle punchAng;
 
-	punchAng.x = random->RandomFloat( 1.0f, 2.0f );
-	punchAng.y = random->RandomFloat( -2.0f, -1.0f );
+	punchAng.x = random->RandomFloat( -1.0f, 1.0f );
+	punchAng.y = random->RandomFloat( 0.5f, 1.25f );
 	punchAng.z = 0.0f;
 	
 	pPlayer->ViewPunch( punchAng ); 
@@ -150,9 +167,12 @@ void CWeaponKnife::HandleAnimEventMeleeHit( animevent_t *pEvent, CBaseCombatChar
 	AngleVectors( GetAbsAngles(), &vecDirection );
 
 	Vector vecEnd;
-	VectorMA( pOperator->Weapon_ShootPosition(), 50, vecDirection, vecEnd );
-	CBaseEntity *pHurt = pOperator->CheckTraceHullAttack( pOperator->Weapon_ShootPosition(), vecEnd, 
-		Vector(-16,-16,-16), Vector(36,36,36), GetDamageForActivity( GetActivity() ), DMG_CLUB, 0.75 );
+//	VectorMA( pOperator->Weapon_ShootPosition(), 50, vecDirection, vecEnd );
+//	CBaseEntity *pHurt = pOperator->CheckTraceHullAttack( pOperator->Weapon_ShootPosition(), vecEnd, 
+//		Vector(-16,-16,-16), Vector(36,36,36), GetDamageForActivity( GetActivity() ), DMG_CLUB, 0.75 );
+
+	VectorMA(pOperator->Weapon_ShootPosition(), KNIFE_RANGE, vecDirection, vecEnd);
+	CBaseEntity *pHurt = pOperator->CheckTraceHullAttack(pOperator->Weapon_ShootPosition(), vecEnd, Vector(-16, -16, -16), Vector(36, 36, 36), GetGEWpnData().m_iDamage, DMG_CLUB);
 	
 	// did I hit someone?
 	if ( pHurt )
@@ -194,14 +214,6 @@ void CWeaponKnife::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCha
 }
 #endif
 
-
-void CWeaponKnife::SecondaryAttack()
-{
-#ifndef CLIENT_DLL
-	SwitchToThrowing();
-#endif
-}
-
 #ifndef CLIENT_DLL
 void CWeaponKnife::SwitchToThrowing()
 {
@@ -224,15 +236,17 @@ void CWeaponKnife::SwitchToThrowing()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponKnife::Drop( const Vector &vecVelocity )
-{
-#ifndef CLIENT_DLL
-	UTIL_Remove( this );
-#endif
-}
+//void CWeaponKnife::Drop( const Vector &vecVelocity )
+//{
+//#ifndef CLIENT_DLL
+//	UTIL_Remove( this );
+//#endif
+//}
 
 void CWeaponKnife::ImpactEffect( trace_t &traceHit )
 {
+	return; // Avoid doing melee impact effects for 5.0
+
 	// See if we hit water (we don't do the other impact effects in this case)
 	if ( ImpactWater( traceHit.startpos, traceHit.endpos ) )
 		return;

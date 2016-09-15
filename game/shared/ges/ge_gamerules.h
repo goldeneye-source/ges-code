@@ -33,6 +33,8 @@ public:
 	CGERules();
 	~CGERules();
 
+	bool CheckInPVS(CBaseEntity *ent, byte iPVS[MAX_MAP_CLUSTERS / 8]);
+
 	// ---------------
 	// GES Functions
 #ifdef GAME_DLL
@@ -56,6 +58,18 @@ protected:
 
 	void LoadMapCycle();
 	void ClearSpawnerLocations();
+
+	bool CheckVotekick();
+
+	char m_pKickTargetID[64];
+	CGEPlayer *m_pLastKickCaller;
+	float m_flLastKickCall;
+	float m_flKickEndTime;
+
+	int m_iVoteCount;
+	int m_iVoteGoal;
+	float m_flVoteFrac;
+	CUtlVector<int> m_vVoterIDs;
 #endif
 
 	// -------------------
@@ -71,8 +85,6 @@ public:
 	virtual const unsigned char *GetEncryptionKey();
 
 	virtual bool ShouldUseRobustRadiusDamage( CBaseEntity *pEntity );
-
-	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer ) { return true; }
 
 	// -------------------
 	// Server Only - Inherited

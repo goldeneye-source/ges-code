@@ -27,10 +27,11 @@ BOOST_PYTHON_MODULE(GEGlobal)
 	self.attr("API_VERSION_1_0_0") = "1.0.0";
 	self.attr("API_VERSION_1_1_0") = "1.1.0";
 	self.attr("API_VERSION_1_1_1") = "1.1.1";
+	self.attr("API_VERSION_1_2_0") = "1.2.0";
 
 	// Current version level of AI and GamePlay
 	self.attr("API_AI_VERSION") = self.attr("API_VERSION_1_1_0");
-	self.attr("API_GP_VERSION") = self.attr("API_VERSION_1_1_1");
+	self.attr("API_GP_VERSION") = self.attr("API_VERSION_1_2_0");
 
 	self.attr("SAY_COMMAND1") = "!voodoo";
 	self.attr("SAY_COMMAND2") = "!gesrocks";
@@ -45,6 +46,12 @@ BOOST_PYTHON_MODULE(GEGlobal)
 		.value("GP_PLAYERTEAM",			FUNC_GP_PLAYERTEAM)
 		.value("GP_ROUNDBEGIN",			FUNC_GP_ROUNDBEGIN)
 		.value("GP_ROUNDEND",			FUNC_GP_ROUNDEND)
+		.value("GP_WEAPONSPAWNED",		FUNC_GP_WEAPONSPAWNED)
+		.value("GP_WEAPONREMOVED",		FUNC_GP_WEAPONREMOVED)
+		.value("GP_ARMORSPAWNED",		FUNC_GP_ARMORSPAWNED)
+		.value("GP_ARMORREMOVED",		FUNC_GP_ARMORREMOVED)
+		.value("GP_AMMOSPAWNED",		FUNC_GP_AMMOSPAWNED)
+		.value("GP_AMMOREMOVED",		FUNC_GP_AMMOREMOVED)
 		
 		.value("AI_ONSPAWN",			FUNC_AI_ONSPAWN)
 		.value("AI_ONLOOKED",			FUNC_AI_ONLOOKED)

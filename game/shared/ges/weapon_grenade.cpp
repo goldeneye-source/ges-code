@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: weapon_grenade.cpp
 // Description:
@@ -29,6 +29,7 @@
 	#define CGEWeaponGrenade	C_GEWeaponGrenade
 #endif
 
+#define GE_GRENADE_THROW_FORCE	750.0f
 #define GE_GRENADE_FUSE_TIME	4.0f
 #define GE_GRENADE_SPAWN_DELAY	0.1f;
 #define GE_GRENADE_PIN_DELAY	0.1f;
@@ -67,6 +68,7 @@ public:
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 	virtual bool Deploy( void );
 	virtual void Drop( const Vector &vecVelocity );
+	virtual void PreOwnerDeath(); //Fired when owner dies but before anything else.
 
 	virtual const char	*GetWorldModel( void ) const;
 
@@ -86,7 +88,7 @@ protected:
 private:
 	// check a throw from vecSrc.  If not valid, move the position back along the line to vecEye
 	void	CheckThrowPosition( const Vector &vecEye, Vector &vecSrc );
-	void	ThrowGrenade( void );
+	void	ThrowGrenade( float throwforce );
 	void	ExplodeInHand( void );
 	
 	CNetworkVar( bool, m_bDrawNext );
@@ -116,6 +118,7 @@ acttable_t	CGEWeaponGrenade::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_HL2MP_GESTURE_RELOAD_GRENADE,		false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_GRENADE,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_GRENADE,					false },
 };
 IMPLEMENT_ACTTABLE(CGEWeaponGrenade);
 
@@ -180,6 +183,13 @@ CGEWeaponGrenade::CGEWeaponGrenade( void )
 
 void CGEWeaponGrenade::Precache( void )
 {
+	PrecacheModel("models/weapons/grenade/v_grenade.mdl");
+	PrecacheModel("models/weapons/grenade/w_grenade.mdl");
+
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_grenade");
+
+	PrecacheScriptSound("Weapon_mines.Throw");
+
 	BaseClass::Precache();
 	m_iCrateModelIndex = PrecacheModel( BABYCRATE_MODEL );
 	m_iWorldModelIndex = PrecacheModel( BaseClass::GetWorldModel() );
@@ -211,6 +221,15 @@ bool CGEWeaponGrenade::Deploy( void )
 	m_flPrimedTime = -1;
 
 	return BaseClass::Deploy();
+}
+
+void CGEWeaponGrenade::PreOwnerDeath()
+{
+	// Throw the grenade if the player was about to before they died.
+	if (m_bSpawnWait || m_bPreThrow)
+		ThrowGrenade(GE_GRENADE_THROW_FORCE/5);
+
+	BaseClass::PreOwnerDeath();
 }
 
 void CGEWeaponGrenade::Drop( const Vector &vecVelocity )
@@ -262,7 +281,7 @@ void CGEWeaponGrenade::PrimaryAttack( void )
 void CGEWeaponGrenade::FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, bool bUseWeaponAngles )
 {
 	m_flPrimedTime = gpGlobals->curtime;
-	ThrowGrenade();
+	ThrowGrenade(GE_GRENADE_THROW_FORCE);
 }
 #endif
 
@@ -302,11 +321,11 @@ void CGEWeaponGrenade::ItemPostFrame( void )
 	{
 		if ( m_flGrenadeSpawnTime < gpGlobals->curtime )
 		{
-			ThrowGrenade();
+			ThrowGrenade(GE_GRENADE_THROW_FORCE);
 
 			// player "shoot" animation
 			pOwner->SetAnimation( PLAYER_ATTACK1 );
-//			ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+			ToGEPlayer(pOwner)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 			m_bSpawnWait = false;
 		}
@@ -332,7 +351,7 @@ void CGEWeaponGrenade::CheckThrowPosition( const Vector &vecEye, Vector &vecSrc 
 //-----------------------------------------------------------------------------
 // Purpose: Throw a primed grenade with timeleft of (gpGlobals->curtime - m_flPrimedTime)
 //-----------------------------------------------------------------------------
-void CGEWeaponGrenade::ThrowGrenade( void )
+void CGEWeaponGrenade::ThrowGrenade( float throwforce )
 {
 	CBaseCombatCharacter *pOwner = GetOwner();
 	if ( !pOwner )
@@ -353,7 +372,7 @@ void CGEWeaponGrenade::ThrowGrenade( void )
 
 	Vector vecThrow;
 	pOwner->GetVelocity( &vecThrow, NULL );
-	vecThrow += vForward * 750;
+	vecThrow += vForward * throwforce;
 
 	// Convert us into a bot player :-D
 	if ( pOwner->IsNPC() )
@@ -373,7 +392,11 @@ void CGEWeaponGrenade::ThrowGrenade( void )
 
 		pGrenade->SetDamage( GetGEWpnData().m_iDamage );
 		pGrenade->SetDamageRadius( GetGEWpnData().m_flDamageRadius );
+		pGrenade->SetSourceWeapon(this);
 		
+		if (throwforce == GE_GRENADE_THROW_FORCE / 5) // For acheivement tracking.
+			pGrenade->m_bDroppedOnDeath = true;
+
 		// The timer is whatever is left over from the primed time + our fuse minus our 
 		// current time to give us an absolute time in seconds
 		pGrenade->SetTimer( (m_flPrimedTime + GE_GRENADE_FUSE_TIME) - gpGlobals->curtime );
@@ -409,7 +432,9 @@ void CGEWeaponGrenade::ExplodeInHand( void )
 	{
 		pGrenade->SetThrower( GetOwner() );
 		pGrenade->SetOwnerEntity( GetOwner() );
-		pGrenade->SetVelocity( Vector(0), Vector(0) );
+		pGrenade->SetSourceWeapon(this);
+		pGrenade->SetVelocity( 0, NULL );
+		pGrenade->m_bHitSomething = true; //I'm not gonna just give it to you!
 
 		pGrenade->SetDamage( GetGEWpnData().m_iDamage );
 		pGrenade->SetDamageRadius( GetGEWpnData().m_flDamageRadius );

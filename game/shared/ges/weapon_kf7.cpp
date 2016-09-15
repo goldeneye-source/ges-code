@@ -15,6 +15,11 @@
 
 #ifdef CLIENT_DLL
 #define CWeaponKF7 C_WeaponKF7
+#include "c_ge_playerresource.h"
+#include "c_gemp_player.h"
+#else
+#include "gemp_player.h"
+
 #endif
 
 //-----------------------------------------------------------------------------
@@ -31,6 +36,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_KF7; }
 	virtual void	ItemPostFrame( void );
 	virtual bool	Deploy( void );
@@ -90,6 +96,7 @@ acttable_t CWeaponKF7::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_AR33,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_AR33,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_AR33,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponKF7 );
 
@@ -100,6 +107,22 @@ CWeaponKF7::CWeaponKF7( void )
 {
 	m_iBurst = 0;
 	m_bInBurst = false;
+}
+
+void CWeaponKF7::Precache(void)
+{
+	PrecacheModel("models/weapons/kf7/v_kf7.mdl");
+	PrecacheModel("models/weapons/kf7/w_kf7.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/kf7");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_rifle");
+
+	PrecacheScriptSound("Weapon.Rifle_Reload");
+	PrecacheScriptSound("Weapon_kf7.Single");
+	PrecacheScriptSound("Weapon.Special1");
+	PrecacheScriptSound("Weapon.Special2");
+
+	BaseClass::Precache();
 }
 
 void CWeaponKF7::ItemPostFrame( void )

@@ -82,7 +82,7 @@ private:
 	KeyCode			m_iScoreBoardKey;
 
 	Label			*m_pCharName;
-	RichText		*m_pCharBio;
+	GECreditsText	*m_pCharBio;
 	CGrid			*m_pCharGrid;
 	CModelPanel		*m_pCharModel;
 	GEVertListPanel *m_pCharSkins;

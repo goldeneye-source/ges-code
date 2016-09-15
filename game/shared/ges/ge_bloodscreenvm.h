@@ -1,4 +1,4 @@
-///////////// Copyright Â© 2010, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2010, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_bloodscreenvm.h
 // Description:
@@ -33,6 +33,9 @@ public:
 	DECLARE_PREDICTABLE();
 
 	CGEBloodScreenVM( void ) {};
+
+	// Animation handling
+	virtual void		SendViewModelMatchingSequence( int sequence );
 	
 	virtual void		CalcViewModelView( CBasePlayer *owner, const Vector& eyePosition, const QAngle& eyeAngles );
 

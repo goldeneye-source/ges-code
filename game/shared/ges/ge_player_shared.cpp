@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Goldeneye: Source. All rights reserved. /////////////
+///////////// Copyright © 2008, Goldeneye: Source. All rights reserved. /////////////
 // 
 // File: ge_player.h
 // Description:
@@ -37,6 +37,7 @@
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "particle_parse.h"
+#include "gemp_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -58,18 +59,23 @@ public:
 
 	bool ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
 	{
+		CBaseEntity *pEntity = EntityFromEntityHandle(pHandleEntity);
+
 		if ( m_PassEntities.Count() )
 		{
-			CBaseEntity *pEntity = EntityFromEntityHandle( pHandleEntity );
 			CBaseEntity *pPassEntity = EntityFromEntityHandle( m_PassEntities[0] );
-			if ( pEntity && pPassEntity && pEntity->GetOwnerEntity() == pPassEntity && 
-				pPassEntity->IsSolidFlagSet(FSOLID_NOT_SOLID) && pPassEntity->IsSolidFlagSet( FSOLID_CUSTOMBOXTEST ) && 
-				pPassEntity->IsSolidFlagSet( FSOLID_CUSTOMRAYTEST ) )
+			if (pEntity && pPassEntity && pEntity->GetOwnerEntity() == pPassEntity &&
+				pPassEntity->IsSolidFlagSet(FSOLID_NOT_SOLID) && pPassEntity->IsSolidFlagSet(FSOLID_CUSTOMBOXTEST) &&
+				pPassEntity->IsSolidFlagSet(FSOLID_CUSTOMRAYTEST))
 			{
 				// It's a bone follower of the entity to ignore (toml 8/3/2007)
 				return false;
 			}
 		}
+
+		if (pEntity && (Q_strncmp(pEntity->GetClassname(), "npc_mine_", 9) == 0))
+			return true; // Can always shoot mines.
+
 		return CTraceFilterSimpleList::ShouldHitEntity( pHandleEntity, contentsMask );
 	}
 
@@ -110,15 +116,6 @@ void CGEPlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float
 	CBasePlayer::PlayStepSound( vecOrigin, psurface, fvol, force );
 }
 
-void CGEPlayer::DoMuzzleFlash( void )
-{
-	CGEWeapon *pWeapon = ToGEWeapon( GetActiveWeapon() );
-	if ( pWeapon && (pWeapon->IsSilenced() || pWeapon->IsAlwaysSilenced()) )
-		return;
-	else
-		BaseClass::DoMuzzleFlash();
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Sets the view model's location, set it closer when ducked
 // Input  : Eye position and angle
@@ -131,7 +128,13 @@ void CGEPlayer::CalcViewModelView( const Vector& eyeOrigin, const QAngle& eyeAng
 	Vector newEyeOrigin = eyeOrigin;
 	Vector	forward, right;
 	AngleVectors( eyeAngles, &forward, &right, NULL );
-	if ( IsDucking() )
+
+	if ( IsObserver() ) // Dinky fix for now, spectator needs a complete rework.
+	{
+		flViewPullBack = 0;
+		flViewPullRight = 0;
+	}
+	else if ( IsDucking() )
 	{
 		// We are in transition, figure out our extent of pull based on our current height
 		float fraction = RemapValClamped( GetViewOffset().z, VEC_DUCK_VIEW.z, VEC_VIEW.z, 1.0f, 0 );
@@ -161,6 +164,14 @@ float CGEPlayer::GetSequenceGroundSpeed( CStudioHdr *pStudioHdr, int iSequence )
 		return ( BaseClass::GetSequenceGroundSpeed( pStudioHdr, iSequence ) * 0.5 );
 	else
 		return BaseClass::GetSequenceGroundSpeed( pStudioHdr, iSequence );
+}
+
+void CGEPlayer::RemoveAmmo(int iCount, int iAmmoIndex)
+{
+	if ( GEMPRules()->InfAmmoEnabled() )
+		return;
+
+	BaseClass::RemoveAmmo(iCount, iAmmoIndex);
 }
 
 void CGEPlayer::FireBullets( const FireBulletsInfo_t &info )
@@ -225,9 +236,8 @@ void CGEPlayer::FireBullets( const FireBulletsInfo_t &info )
 #ifdef GAME_DLL
 	// If we were invulnerable on spawn, well its cancelled now
 	// also, this shot counts for 0 damage!
-	if ( m_bInSpawnInvul && !IsObserver() )
+	if (m_bInSpawnInvul && !IsObserver() && GEMPRules()->GetSpawnInvulnCanBreak())
 	{
-		modinfo.m_iPlayerDamage = modinfo.m_flDamage = 0;
 		StopInvul();
 	}
 #endif
@@ -255,6 +265,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 {
 	FireBulletsInfo_t modinfo = info;
 	CGEWeapon *pWeapon = NULL;
+	bool isWepShotgun = false;
 
 	// Player and NPC specific actions
 	if ( IsNPC() || IsPlayer() )
@@ -263,16 +274,16 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 
 		if ( pWeapon )
 		{
-			// Setup our tracers as defined in the weapon's script file
-			modinfo.m_iTracerFreq = pWeapon->GetTracerFreq();
 			if ( !(modinfo.m_nFlags & FIRE_BULLETS_PENETRATED_SHOT) )
 				// Only take the weapon's damage if this is the first shot
-				modinfo.m_flDamage = pWeapon->GetGEWpnData().m_iDamage;
+				modinfo.m_iDamage = pWeapon->GetGEWpnData().m_iDamage;
+
+			isWepShotgun = pWeapon->IsShotgun(); // We can't use the amount of shots fired for this because automatics can fire multiple bullets per frame.
 		}
 	}
 
 	// Always replicate all the damage to the player
-	modinfo.m_iPlayerDamage = modinfo.m_flDamage;
+	modinfo.m_iPlayerDamage = modinfo.m_iDamage;
 
 	// Now we handle the entire sequence so that we can implement bullet penetration properly
 	static int	tracerCount;
@@ -308,14 +319,34 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		bStartedInWater = ( enginetrace->GetPointContents( modinfo.m_vecSrc ) & (CONTENTS_WATER|CONTENTS_SLIME) ) != 0;
 	}
 
+#ifdef GAME_DLL
 	// Prediction seed
-	int iSeed = CBaseEntity::GetPredictionRandomSeed() & 255;
+	int iSeed;
+
+	// If we're worried we can desynch the server and client seed.
+	if ( iAlertCode & 1 )
+		iSeed = GERandom<int>(INT_MAX);
+	else
+		iSeed = CBaseEntity::GetPredictionRandomSeed();
+#else
+	// Prediction seed
+	int iSeed = CBaseEntity::GetPredictionRandomSeed();
+#endif
 
 	//-----------------------------------------------------
 	// Set up our shot manipulator.
 	//-----------------------------------------------------
 	CShotManipulator Manipulator( modinfo.m_vecDirShooting );
 	float flCumulativeDamage = 0.0f;
+	Vector shotoffsetarray[4][5] = {
+		{ Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0), Vector(-1, 0, 0), Vector(0, -1, 0) },//0 degrees
+		{ Vector(0, 0, 0), Vector(0.92, 0.38, 0), Vector(-0.38, 0.92, 0), Vector(-0.92, -0.38, 0), Vector(0.38, -0.92, 0) }, //67.5 degrees
+		{ Vector(0, 0, 0), Vector(0.7, 0.7, 0), Vector(-0.7, 0.7, 0), Vector(-0.7, -0.7, 0), Vector(0.7, -0.7, 0) }, //45 degrees
+		{ Vector(0, 0, 0), Vector(0.38, 0.92, 0), Vector(-0.92, 0.38, 0), Vector(-0.38, -0.92, 0), Vector(0.92, -0.38, 0) }, //22.5 degrees
+	}; //4 quadrantal points rotated 67.5 degrees.
+
+	RandomSeed(iSeed);
+	int ishotmatrixID = rand() % 4;
 
 	// Now we actually fire the shot(s)
 	for (int iShot = 0; iShot < modinfo.m_iShots; iShot++)
@@ -332,8 +363,37 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		}
 		else
 		{
-			// Don't run the biasing code for the player at the moment.
-			vecDir = Manipulator.ApplySpread( modinfo.m_vecSpread );
+			Vector adjShotDir = modinfo.m_vecDirShooting;
+			Vector adjSpread = modinfo.m_vecSpread;
+
+			// For shotguns we want to take more control of the spread to give the weapon a more consistent performance.
+			// This code projects one shot down the center that is fairly accurate, and then 4 more shots at each corner
+			// that are substancially less so.  Overlap between the shot spreads is minimal, meaning across the map instant
+			// kills and point blank misses are much less likely.
+			if (isWepShotgun)
+			{
+				Vector vecRight, vecUp;
+
+				adjSpread *= 0.64; //Reduce radius to compensate for offsets.
+				VectorVectors(adjShotDir, vecRight, vecUp);
+
+				adjShotDir += shotoffsetarray[ishotmatrixID][iShot].x * vecRight * adjSpread.x + shotoffsetarray[ishotmatrixID][iShot].y * vecUp * adjSpread.y;
+
+				if (iShot > 0)
+					adjSpread *= 0.5;
+				else // Center shot is more accurate
+					adjSpread *= 0.35;
+			}
+
+#ifdef GAME_DLL
+			// If we're worried we can desynch the server and client.
+			if ( iAlertCode & 1 )
+				vecDir = ApplySpreadGauss(adjSpread, adjShotDir, modinfo.m_iGaussFactor, GERandom<int>(INT_MAX) + iShot);
+			else
+				vecDir = ApplySpreadGauss(adjSpread, adjShotDir, modinfo.m_iGaussFactor, CBaseEntity::GetPredictionRandomSeed() + iShot);
+#else
+			vecDir = ApplySpreadGauss(adjSpread, adjShotDir, modinfo.m_iGaussFactor, CBaseEntity::GetPredictionRandomSeed() + iShot);
+#endif
 		}
 
 		vecEnd = modinfo.m_vecSrc + vecDir * modinfo.m_flDistance;
@@ -367,7 +427,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 
 		// Now hit all triggers along the ray that respond to shots...
 		// Clip the ray to the first collided solid returned from traceline
-		CTakeDamageInfo triggerInfo( pAttacker, pAttacker, modinfo.m_flDamage, nDamageType );
+		CTakeDamageInfo triggerInfo( pAttacker, pAttacker, modinfo.m_iDamage, nDamageType );
 		CalculateBulletDamageForce( &triggerInfo, modinfo.m_iAmmoType, vecDir, tr.endpos );
 		triggerInfo.ScaleDamageForce( modinfo.m_flDamageForceScale );
 		triggerInfo.SetAmmoType( modinfo.m_iAmmoType );
@@ -401,7 +461,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 				bHitWater = HandleShotImpactingWater( modinfo, vecEnd, &traceFilter, &vecTracerDest );
 			}
 
-			float flActualDamage = modinfo.m_flDamage;
+			float flActualDamage = modinfo.m_iDamage;
 			
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
@@ -521,6 +581,51 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 	} // end fire bullets loop
 }
 
+inline const Vector CBaseEntity::ApplySpreadGauss(const Vector &vecSpread, const Vector &vecShotDir, int gfactor, int pseed)
+{
+	Vector vecRight, vecUp;
+
+	VectorVectors(vecShotDir, vecRight, vecUp);
+
+	// establish polar coordinates
+	float x, y, radius, angle, sin, cos;
+
+	//Get random angle from 0 to 360 degrees
+	angle = random->RandomFloat(0, 6.2831853); //approximation of 2 pi.
+
+
+	// Calculate a gaussian integer with a given gaussfactor
+	// The higher the gaussfactor is, the closer the range becomes to a true normal destribution.
+
+	float gausrand = 0.000;
+
+	if (gfactor < 1) //A GFactor of 0 or less should mean equal destribution across the cone of fire's area
+	{
+		RandomSeed(pseed - 1); //Avoid having the same seed as the random angle.
+		gausrand = rand() % 1000;
+		radius = sqrtf(gausrand / 1000); //Radius is rooted here to make the spread a function of circle area, not radius.
+	}
+	else //A GFactor of 1 should mean equal destribution across the cone of fire's radius
+	{
+		for (int i = 0; i < gfactor; i++)
+		{
+			RandomSeed(pseed + i);
+			gausrand += rand() % 1000;
+		}
+
+		// Adjust gauss range to 0-1 where 0 is the middle of the normal curve.
+		// This is a function of radius, not area, meaning shots will tend towards the center even at gfactor = 1!
+		radius = abs(gausrand / (gfactor * 500) - 1);
+	}
+
+	SinCos(angle, &sin, &cos);
+
+	x = radius * cos;
+	y = radius * sin;
+
+	return (vecShotDir + x * vecSpread.x * vecRight + y * vecSpread.y * vecUp);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Handle bullet penetrations
 //-----------------------------------------------------------------------------
@@ -579,27 +684,47 @@ void CBaseEntity::HandleBulletPenetration( CBaseCombatWeapon *pWeapon, const Fir
 	if ( info.m_flPenetrateDepth < 1.0f )
 		return;
 
+	// Also give up if trace is from outside world.
+#ifdef GAME_DLL
+	if (engine->GetClusterForOrigin(tr.endpos) == -1)
+		return;
+#endif
+
+	//Entities get penetrated twice as far.
+	float depthmult = 1.0;
+	if (tr.DidHitNonWorldEntity() && info.m_flPenetrateDepth >= 2)
+		depthmult = 2.0;
+
 	// Move through up to our max penetration
-	Vector	testPos = tr.endpos + ( vecDir * info.m_flPenetrateDepth );
+	Vector	testPos = tr.endpos + ( vecDir * info.m_flPenetrateDepth * depthmult);
 
 	trace_t	passTrace;
 	// Re-trace as if the bullet had passed right through
 	UTIL_TraceLine( testPos, tr.endpos, MASK_SHOT, pTraceFilter, &passTrace );
 
-	// If we didn't make it through, we are done
-	if ( passTrace.startsolid || passTrace.fraction == 1.0f )
-		return;
-
-	// Impact the other side (will look like an exit effect)
-	DoImpactEffect( passTrace, GetAmmoDef()->DamageType(info.m_iAmmoType) );
-
 	float depth = info.m_flPenetrateDepth * (1.0 - passTrace.fraction);
+
+	// If we didn't make it through, we will do a very short range bullet refire to make sure we hit whatever we ended up in.
+	// Setting the penetrate depth to 0 here will kill the next refire attempt.
+	if (passTrace.startsolid || passTrace.fraction == 1.0f)
+	{
+		if (passTrace.DidHitNonWorldEntity() && passTrace.m_pEnt != tr.m_pEnt)
+			refireInfo.m_flPenetrateDepth = 0;
+		else // If we ended up inside the world or the entity we hit with the first trace there's no point in hitting it again.
+			return;
+	}
+	else
+		refireInfo.m_flPenetrateDepth = info.m_flPenetrateDepth - depth;
+
+
+	// If surface is thick enough, impact the other side (will look like an exit effect)
+	if (depth/depthmult > 4)
+		DoImpactEffect( passTrace, GetAmmoDef()->DamageType(info.m_iAmmoType) );
+
 	if ( tr.m_pEnt && (tr.m_pEnt->IsPlayer() || tr.m_pEnt->IsNPC()) )
 	{
 		// Don't let this bullet hit us again
 		refireInfo.m_pAdditionalIgnoreEnt = tr.m_pEnt;
-		// Players take away half the actual depth
-		depth /= 2.0f;
 	}
 	else
 	{
@@ -624,14 +749,13 @@ void CBaseEntity::HandleBulletPenetration( CBaseCombatWeapon *pWeapon, const Fir
 	refireInfo.m_iShots			= 1;
 	refireInfo.m_vecSrc			= passTrace.endpos;
 	refireInfo.m_vecDirShooting = vecDir;
+	refireInfo.m_flDistance		= info.m_flDistance*(1.0f - tr.fraction);
 	refireInfo.m_vecSpread		= vec3_origin;
-	refireInfo.m_flDistance		= info.m_flDistance*( 1.0f - tr.fraction );
 	refireInfo.m_iAmmoType		= info.m_iAmmoType;
 	refireInfo.m_iTracerFreq	= info.m_iTracerFreq;
-	refireInfo.m_flDamage		= info.m_flDamage;
+	refireInfo.m_iDamage		= info.m_iDamage;
 	refireInfo.m_pAttacker		= info.m_pAttacker ? info.m_pAttacker : this;
 	refireInfo.m_nFlags			= info.m_nFlags | FIRE_BULLETS_PENETRATED_SHOT;
-	refireInfo.m_flPenetrateDepth = info.m_flPenetrateDepth - depth;
 
 	// Refire the shot from the other side of the object
 	FireBullets( refireInfo );
@@ -641,31 +765,42 @@ void CBaseEntity::HandleBulletPenetration( CBaseCombatWeapon *pWeapon, const Fir
 //-----------------------------------------------------------------------------
 // Specific handling of glass impacts
 //-----------------------------------------------------------------------------
-void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter )
+void CBaseEntity::HandleShotImpactingGlass(const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter)
 {
-	static int sBPGlassSurfaceIdx = physprops->GetSurfaceIndex( "bulletproof_glass" );
+	static int sBPGlassSurfaceIdx = physprops->GetSurfaceIndex("bulletproof_glass");
 	// Move through the glass until we're at the other side
-	Vector	testPos = tr.endpos + ( vecDir * MAX_GLASS_PENETRATION_DEPTH );
+	Vector	testPos = tr.endpos + (vecDir * MAX_GLASS_PENETRATION_DEPTH);
 
 	CEffectData	data;
 
 	data.m_vNormal = tr.plane.normal;
 	data.m_vOrigin = tr.endpos;
 
-	DispatchEffect( "GlassImpact", data );
+	DispatchEffect("GlassImpact", data);
 
 	trace_t	penetrationTrace;
+	FireBulletsInfo_t behindGlassInfo;
 
 	// Re-trace as if the bullet had passed right through
-	UTIL_TraceLine( testPos, tr.endpos, MASK_SHOT, pTraceFilter, &penetrationTrace );
+	UTIL_TraceLine(testPos, tr.endpos, MASK_SHOT, pTraceFilter, &penetrationTrace);
 
-	// See if we found the surface again
-	if ( penetrationTrace.startsolid || tr.fraction == 0.0f || penetrationTrace.fraction == 1.0f )
-	{
-		// We didn't penetrate, display a bulletproof bullet decal
-		tr.surface.surfaceProps = sBPGlassSurfaceIdx;
-		DoImpactEffect( tr, DMG_BULLET );
+	// We somehow didn't hit anything, ragequit.
+	if (penetrationTrace.fraction == 1.0f)
 		return;
+
+	// We got stuck inside of something
+	if (penetrationTrace.startsolid || tr.fraction == 0.0f)
+	{
+		// We got stuck inside the world, ragequit.
+		if (penetrationTrace.DidHitWorld())
+		{
+			DoImpactEffect(tr, DMG_BULLET);
+			return;
+		}
+
+		// We got stuck inside an entity, ignore it and keep going.
+		if (penetrationTrace.m_pEnt)
+			behindGlassInfo.m_pAdditionalIgnoreEnt = penetrationTrace.m_pEnt;
 	}
 	
 	// Do a penetrated bullet decal
@@ -691,7 +826,6 @@ void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace
 #endif
 
 	// Refire the round, as if starting from behind the glass
-	FireBulletsInfo_t behindGlassInfo;
 	behindGlassInfo.m_iShots = 1;
 	behindGlassInfo.m_vecSrc = penetrationTrace.endpos;
 	behindGlassInfo.m_vecDirShooting = vecDir;
@@ -699,7 +833,7 @@ void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace
 	behindGlassInfo.m_flDistance = info.m_flDistance*( 1.0f - tr.fraction );
 	behindGlassInfo.m_iAmmoType = info.m_iAmmoType;
 	behindGlassInfo.m_iTracerFreq = info.m_iTracerFreq;
-	behindGlassInfo.m_flDamage = info.m_flDamage;
+	behindGlassInfo.m_iDamage = info.m_iDamage;
 	behindGlassInfo.m_pAttacker = info.m_pAttacker ? info.m_pAttacker : this;
 	behindGlassInfo.m_nFlags = info.m_nFlags;
 	behindGlassInfo.m_flPenetrateDepth = info.m_flPenetrateDepth;
@@ -719,9 +853,6 @@ bool CGEPlayer::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex /*
 	{
 	#ifdef GAME_DLL
 		GEStats()->Event_WeaponSwitch( this, Weapon_GetLast(), GetActiveWeapon() );
-
-		// Reset the aim mode on the server, client is handled through m_hActiveWeaponCache
-		ResetAimMode();
 	#else
 		// Kill off any remaining particle effects
 		CBaseViewModel *pViewModel = GetViewModel( viewmodelindex );
@@ -730,26 +861,27 @@ bool CGEPlayer::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex /*
 	#endif
 	}
 
+	ResetAimMode();
+
 	return res;
 }
 
 void CGEPlayer::ResetAimMode( bool forced /*=false*/ )
 {
+	m_flFullZoomTime = 0;
+
 #ifdef CLIENT_DLL
 	// Only the client needs to actually unzoom
-	SetZoom( 0, forced );
-#else
-	// Force us out of aim mode on the server
-	m_bInAimMode = false;
-#endif
+	if (forced)
+		SetZoom(0, true);
 
-	m_iAimModeState = AIM_NONE;
+	m_iNewZoomOffset = 0;
+#endif
 }
 
 bool CGEPlayer::IsInAimMode( void )
 {
-	// Calculated server side in CheckAimMode()
-	return m_bInAimMode;
+	return (m_flFullZoomTime != 0 && m_flFullZoomTime < gpGlobals->curtime);
 }
 
 // AIM MODE
@@ -759,44 +891,31 @@ void CGEPlayer::CheckAimMode( void )
 	if ( !pWeapon )
 		return;
 
-	// Don't allow zooming functions while reloading or dead
-	if ( pWeapon->m_bInReload || !IsAlive() || !pWeapon->IsWeaponVisible() )
+	// Don't allow zooming functions while dead, we'll allow pWeapon->m_bInReload for now.
+	if ( !IsAlive() || !pWeapon->IsWeaponVisible())
 	{
-		m_bInAimMode = false;
+		if (m_flFullZoomTime > 0)
+			ResetAimMode(true);
+
 		return;
 	}
 
-	// Get out of aim mode if we release the button
-	if ( !(m_nButtons & IN_AIMMODE) && m_iAimModeState != AIM_NONE )
+	// Get out of aim mode if we're currently in it and not pressing the button.
+	if ( !(m_nButtons & IN_AIMMODE) && m_flFullZoomTime > 0)
 	{
 		ResetAimMode();
 	}
-	else if ( (m_nButtons & IN_AIMMODE) && m_iAimModeState == AIM_NONE )
+	else if (m_nButtons & IN_AIMMODE && m_flFullZoomTime == 0)
 	{
+		if (pWeapon->GetWeaponID() == WEAPON_SNIPER_RIFLE) // Lazy fix for sniper so the variable zoom doesn't cause prediction errors.
+			m_flFullZoomTime = gpGlobals->curtime + abs(-50 / WEAPON_ZOOM_RATE);
+		else if (pWeapon->GetZoomOffset() != 0)
+			m_flFullZoomTime = gpGlobals->curtime + abs(pWeapon->GetZoomOffset() / WEAPON_ZOOM_RATE);
+		else
+			m_flFullZoomTime = gpGlobals->curtime + GE_AIMMODE_DELAY;
+
 #ifdef CLIENT_DLL
-		int zoom = (90 + pWeapon->GetZoomOffset()) - GetDefaultFOV();
-		SetZoom( zoom );
-#else
-		// Set our "full zoom time" which is when we should enter aimed mode
-		// Incorporate latency to the player, divide by 700 vice 1000 to account for propogation delays
-		float latency = g_pPlayerResource->GetPing( entindex() ) / 700.0f;
-		m_flFullZoomTime = gpGlobals->curtime + abs( pWeapon->GetZoomOffset() / WEAPON_ZOOM_RATE ) - latency;
+		m_iNewZoomOffset = (int)(pWeapon->GetZoomOffset()); //Update our desired zoom offset.
 #endif
-
-		m_iAimModeState = AIM_ZOOM_IN;
 	}
-
-#ifdef GAME_DLL
-	// Check if we made it into aim mode
-	if ( m_iAimModeState == AIM_ZOOM_IN && gpGlobals->curtime > m_flFullZoomTime )
-	{
-		m_bInAimMode = true;
-		m_iAimModeState = AIM_ZOOMED;
-	}
-	else if ( m_bInAimMode && m_iAimModeState != AIM_ZOOMED )
-	{
-		// FAIL-SAFE! Reset our aim mode if we are not in "zoomed" state
-		ResetAimMode( true );
-	}
-#endif
 }

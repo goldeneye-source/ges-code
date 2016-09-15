@@ -19,6 +19,7 @@
 #include "ge_stats_recorder.h"
 #include "gemp_player.h"
 #include "gemp_gamerules.h"
+#include "ge_mapmanager.h"
 
 #include "team.h"
 #include "script_parser.h"
@@ -66,8 +67,14 @@ void GEGPCVar_Callback( IConVar *var, const char *pOldString, float flOldValue )
 ConVar ge_gp_cyclefile( "ge_gp_cyclefile", "gameplaycycle.txt", FCVAR_GAMEDLL, "The gameplay cycle to use for random gameplay or ordered gameplay" );
 ConVar ge_autoteam( "ge_autoteam", "0", FCVAR_REPLICATED|FCVAR_NOTIFY, "Automatically toggles teamplay based on the player count (supplied value) [4-32]",  true, 0, true, MAX_PLAYERS );
 
-ConVar ge_gameplay_mode( "ge_gameplay_mode", "0", FCVAR_GAMEDLL, "Mode to choose next gameplay: \n\t0=Same as last map, \n\t1=Random from Gameplay Cycle file, \n\t2=Ordered from Gameplay Cycle file" );
+ConVar ge_autoautoteam("ge_autoautoteam", "1", FCVAR_GAMEDLL, "If set to 1, server will set ge_autoteam to the value specified in the current map script file.");
+ConVar ge_gameplay_mode( "ge_gameplay_mode", "1", FCVAR_GAMEDLL, "Mode to choose next gameplay: \n\t0=Same as last map, \n\t1=Random from current map file, \n\t2=Ordered from Gameplay Cycle file" );
 ConVar ge_gameplay( "ge_gameplay", "DeathMatch", FCVAR_GAMEDLL, "Sets the current gameplay mode.\nDefault is 'deathmatch'", GEGameplay_Callback );
+
+ConVar ge_gameplay_threshold("ge_gameplay_threshold", "4", FCVAR_GAMEDLL, "Playercount that must be exceeded before gamemodes other than Deathmatch will be randomly chosen.");
+
+ConVar ge_gameplay_modebuffercount("ge_gameplay_modebuffercount", "5", FCVAR_GAMEDLL, "How many other maps need to be played since the last time a map was played before it can be selected randomly without penalties.");
+ConVar ge_gameplay_modebufferpenalty("ge_gameplay_modebufferpenalty", "500", FCVAR_GAMEDLL, "How much to take off of the weight of a mode for each time it appears in the buffer.");
 
 #define GAMEPLAY_MODE_FIXED		0
 #define GAMEPLAY_MODE_RANDOM	1
@@ -172,7 +179,7 @@ CGEBaseGameplayManager::CGEBaseGameplayManager()
 
 CGEBaseGameplayManager::~CGEBaseGameplayManager()
 {
-	m_vScenarioCycle.PurgeAndDeleteElements();
+	m_vScenarioCycle.Purge();
 	m_vScenarioList.PurgeAndDeleteElements();
 }
 
@@ -182,6 +189,9 @@ void CGEBaseGameplayManager::Init()
 	LoadGamePlayList( "python\\ges\\GamePlay\\*.py" );
 	LoadScenarioCycle();
 
+	// Load our past gameplays
+	ParseLogData();
+
 	// Load the scenario
 	LoadScenario();
 }
@@ -190,6 +200,67 @@ void CGEBaseGameplayManager::Shutdown()
 {
 	// Shutdown the scenario
 	ShutdownScenario();
+}
+
+void CGEBaseGameplayManager::ParseLogData()
+{
+	char *contents = (char*)UTIL_LoadFileForMe("gamesetuprecord.txt", NULL);
+
+	if (!contents)
+	{
+		Msg("No rotation log!\n");
+		return;
+	}
+
+	CUtlVector<char*> lines;
+	char linebuffer[64];
+	Q_SplitString(contents, "\n", lines);
+
+	bool readingmodes = false;
+
+	for (int i = 0; i < lines.Count(); i++)
+	{
+		// Ignore comments
+		if (!Q_strncmp(lines[i], "//", 2))
+			continue;
+
+		if (readingmodes)
+		{
+			if (!Q_strncmp(lines[i], "-", 1)) // Our symbol for the end of a block.
+				break;
+
+			Q_StrLeft(lines[i], -1, linebuffer, 64); // Take off the newline character.
+
+			// We could create a bunch of new strings, or we could just make use of the scenario list which already exists.
+			for (int i = 0; i < m_vScenarioList.Count(); i++)
+			{
+				if (!Q_strcmp(linebuffer, m_vScenarioList[i]))
+				{
+					m_vRecentScenarioList.AddToTail(m_vScenarioList[i]);
+					break;
+				}
+			}
+		}
+
+		if (!Q_strncmp(lines[i], "Modes:", 6))
+			readingmodes = true;
+	}
+
+	// NOTE: We do not purge the data!
+	ClearStringVector(lines);
+	delete[] contents;
+}
+
+void CGEBaseGameplayManager::GetRecentModes(CUtlVector<const char*> &modenames)
+{
+	modenames.RemoveAll();
+
+	int buffercount = min(ge_gameplay_modebuffercount.GetInt(), m_vRecentScenarioList.Count());
+
+	for (int i = 0; i < buffercount; i++)
+	{
+		modenames.AddToTail(m_vRecentScenarioList[i]);
+	}
 }
 
 void CGEBaseGameplayManager::BroadcastMatchStart()
@@ -229,7 +300,15 @@ void CGEBaseGameplayManager::BroadcastRoundEnd( bool showreport )
 	IGameEvent* pEvent = gameeventmanager->CreateEvent("round_end");
 	if ( pEvent )
 	{
+		int winnerindex = GEMPRules()->GetRoundWinner();
+		int winnerscore = -1;
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(winnerindex);
+
+		if (pPlayer)
+			winnerscore = ToGEMPPlayer(pPlayer)->GetRoundScore();
+
 		pEvent->SetInt( "winnerid", GEMPRules()->GetRoundWinner() );
+		pEvent->SetInt( "winnerscore", winnerscore );
 		pEvent->SetInt( "teamid", GEMPRules()->GetRoundTeamWinner() );
 		pEvent->SetBool( "isfinal", false );
 		pEvent->SetBool( "showreport", showreport );
@@ -237,6 +316,33 @@ void CGEBaseGameplayManager::BroadcastRoundEnd( bool showreport )
 		pEvent->SetInt( "roundcount", m_iRoundCount );
 		GEStats()->SetAwardsInEvent( pEvent );
 		gameeventmanager->FireEvent(pEvent);
+	}
+
+	// Print it to the chat
+	IGameEvent *event = gameeventmanager->CreateEvent("round_ranks");
+	if (event)
+	{
+		CUtlVector<CGEMPPlayer*> rankedPlayers;
+		GEMPRules()->GetRankSortedPlayers(rankedPlayers);
+		event->SetBool("isfinal", false);
+
+		for (int i = 0; i < 16; i++)
+		{
+			char strbuffer[8];
+			Q_snprintf(strbuffer, 8, "id%d", i + 1);
+			if ( i < rankedPlayers.Count() )
+				event->SetInt(strbuffer, rankedPlayers[i]->GetUserID());
+			else
+				event->SetInt(strbuffer, -1);
+
+			Q_snprintf(strbuffer, 8, "sc%d", i + 1);
+			if (i < rankedPlayers.Count())
+				event->SetInt(strbuffer, rankedPlayers[i]->GetRoundScore());
+			else
+				event->SetInt(strbuffer, -1);
+		}
+
+		gameeventmanager->FireEvent(event);
 	}
 
 	// Print it to the chat
@@ -250,7 +356,16 @@ void CGEBaseGameplayManager::BroadcastMatchEnd()
 	IGameEvent* pEvent = gameeventmanager->CreateEvent("round_end");
 	if ( pEvent )
 	{
+		int winnerindex = GEMPRules()->GetRoundWinner();
+		int winnerscore = -1;
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(winnerindex);
+
+		if (pPlayer)
+			winnerscore = ToGEMPPlayer(pPlayer)->GetMatchScore();
+
+
 		pEvent->SetInt( "winnerid", GEMPRules()->GetRoundWinner() );
+		pEvent->SetInt( "winnerscore", winnerscore );
 		pEvent->SetInt( "teamid", GEMPRules()->GetRoundTeamWinner() );
 		pEvent->SetBool( "isfinal", true );
 		pEvent->SetBool( "showreport", true );
@@ -258,6 +373,33 @@ void CGEBaseGameplayManager::BroadcastMatchEnd()
 		pEvent->SetInt( "roundcount", m_iRoundCount );
 		GEStats()->SetAwardsInEvent( pEvent );
 		gameeventmanager->FireEvent(pEvent);
+	}
+
+	// Print it to the chat
+	IGameEvent *event = gameeventmanager->CreateEvent("round_ranks");
+	if (event)
+	{
+		CUtlVector<CGEMPPlayer*> rankedPlayers;
+		GEMPRules()->GetRankSortedPlayers(rankedPlayers);
+		event->SetBool("isfinal", true);
+
+		for (int i = 0; i < 16; i++)
+		{
+			char strbuffer[8];
+			Q_snprintf(strbuffer, 8, "id%d", i + 1);
+			if (i < rankedPlayers.Count())
+				event->SetInt(strbuffer, rankedPlayers[i]->GetUserID());
+			else
+				event->SetInt(strbuffer, -1);
+
+			Q_snprintf(strbuffer, 8, "sc%d", i + 1);
+			if (i < rankedPlayers.Count())
+				event->SetInt( strbuffer, rankedPlayers[i]->GetMatchScore() );
+			else
+				event->SetInt( strbuffer, -1 );
+		}
+
+		gameeventmanager->FireEvent(event);
 	}
 
 	// Print it to the chat
@@ -303,34 +445,109 @@ bool CGEBaseGameplayManager::LoadScenario( const char *ident )
 	return true;
 }
 
+extern ConVar ge_bot_threshold;
+
 const char *CGEBaseGameplayManager::GetNextScenario()
 {
 	int mode = ge_gameplay_mode.GetInt();
 	int count = m_vScenarioCycle.Count();
 
-	if ( mode == GAMEPLAY_MODE_RANDOM )
-	{
-		// Random game mode, pick a scenario in our list
-		if ( count > 0 )
-		{
-			int cur = g_iScenarioIndex;
-			do {
-				g_iScenarioIndex = GERandom<int>( count );
-			} while ( count > 1 && g_iScenarioIndex != cur );
+	// Figure out teamplay related stuff here since it factors into the gamemode we choose.
 
-			return m_vScenarioCycle[ g_iScenarioIndex ];
+	MapSelectionData *pMapData = GEMPRules()->GetMapManager()->GetCurrentMapSelectionData();
+	int teamthresh = -1;
+
+	if (ge_autoautoteam.GetBool() && pMapData)
+	{
+		teamthresh = pMapData->teamthreshold;
+		ge_autoteam.SetValue(teamthresh);
+	}
+	else if (!ge_autoautoteam.GetBool())
+		teamthresh = ge_autoteam.GetInt();
+
+	int iNumConnections = 0;
+
+	// Find out how many people are actually connected to the server.
+	for (int i = 0; i < gpGlobals->maxClients; i++)
+	{
+		if (engine->GetPlayerNetInfo(i))
+			iNumConnections++;
+	}
+
+	// Consider bots too.
+	iNumConnections = max(iNumConnections, ge_bot_threshold.GetInt());
+
+	if (ge_teamplay.GetInt() != 1)
+	{
+		if (iNumConnections >= teamthresh)
+			ge_teamplay.SetValue(2); // Premptively go into teamplay if we've got enough players for it.
+		else
+			ge_teamplay.SetValue(0);
+	}
+
+	if (mode == GAMEPLAY_MODE_RANDOM)
+	{
+		CUtlVector<char*>	gamemodes;
+		CUtlVector<int>		weights;
+		CUtlVector<const char*>	recentgamemodes;
+
+		// Random game mode, pick a scenario in our list
+		if (iNumConnections <= ge_gameplay_threshold.GetInt())
+			return "deathmatch";
+
+		// Random game mode according to map script.  
+		GEMPRules()->GetMapManager()->GetMapGameplayList(gamemodes, weights, iNumConnections >= teamthresh);
+
+		// Adjust the weight of gamemodes we just played.
+		GetRecentModes(recentgamemodes);
+		int deductionamount = ge_gameplay_modebufferpenalty.GetInt();
+		int totalweight = 0;
+
+		for (int i = 0; i < gamemodes.Count(); i++)
+		{
+			totalweight += weights[i];
+		}
+
+		if (recentgamemodes.Count())
+		{
+			for (int b = 0; b < recentgamemodes.Count(); b++)
+			{
+				if (totalweight <= deductionamount)
+					break; // Make sure we'll have at least one gamemode with above 0 weight.
+
+				for (int l = 0; l < gamemodes.Count(); l++)
+				{
+					if (!Q_strcmp(gamemodes[l], recentgamemodes[b]))
+					{
+						int deduction = min(weights[l], deductionamount);
+						weights[l] -= deduction;
+						totalweight -= deduction;
+						break;
+					}
+				}
+			}
+		}
+
+		if (gamemodes.Count())
+		{
+			return GERandomWeighted<char*>(gamemodes.Base(), weights.Base(), gamemodes.Count());
+		}
+		else
+		{
+			Warning("No gamemodes found in map script, defaulting to first gameplay in scenariocycle!\n");
+			return m_vScenarioCycle[0].ToCStr();
 		}
 	}
-	else if ( mode == GAMEPLAY_MODE_CYCLE )
+	else if (mode == GAMEPLAY_MODE_CYCLE)
 	{
 		// Ordered game mode, get the next scenario in our list
-		if ( count > 0 )
+		if (count > 0)
 		{
 			// Increment our index, rolling over if we exceed our count
-			if ( ++g_iScenarioIndex  >= count )
+			if (++g_iScenarioIndex >= count)
 				g_iScenarioIndex = 0;
 
-			return m_vScenarioCycle[ g_iScenarioIndex ];
+			return m_vScenarioCycle[g_iScenarioIndex].ToCStr();
 		}
 	}
 
@@ -363,6 +580,12 @@ void CGEBaseGameplayManager::InitScenario()
 	FOR_EACH_MPPLAYER( pPlayer )		
 		GetScenario()->ClientConnect( pPlayer );
 	END_OF_PLAYER_LOOP()
+
+	m_vRecentScenarioList.AddToHead(GetScenario()->GetIdent());
+
+	// Now let anyone who is interested know we are finished initilazing.  
+	// Added to fix the help bug and avoid making any more by switching the order of things, but should be useful in its own right.
+	GP_EVENT(SCENARIO_POST_INIT);
 }
 
 void CGEBaseGameplayManager::ShutdownScenario()
@@ -485,16 +708,29 @@ void CGEBaseGameplayManager::StartMatch()
 
 void CGEBaseGameplayManager::StartRound()
 {
-	if ( ge_autoteam.GetInt() > 0 )
+	if ( ge_autoteam.GetInt() > 0 && ge_teamplay.GetInt() != 1 ) // If teamplay is 1 then it is forced on.
 	{
+
+		int iNumConnections = 0;
+
 		// If we had 1 or more people than ge_autoteam on the last map, enforce teamplay immediately
+		for (int i = 0; i < gpGlobals->maxClients; i++)
+		{
+			if (engine->GetPlayerNetInfo(i))
+				iNumConnections++;
+		}
+
 		// If we have the requisite active players, enforce teamplay
+		iNumConnections = max(iNumConnections, ge_bot_threshold.GetInt());
+
 		// If we don't, and ge_teamplay > 1 (ie not set by the player), then deactivate teamplay
-		if ( g_iLastPlayerCount >= (ge_autoteam.GetInt() + 1) || GEMPRules()->GetNumActivePlayers() >= ge_autoteam.GetInt() )
+		if ( iNumConnections >= ge_autoteam.GetInt() )
 			ge_teamplay.SetValue(2);
-		else if ( ge_teamplay.GetInt() > 1 )
+		else
 			ge_teamplay.SetValue(0);
 	}
+
+	GetScenario()->BeforeSetupRound();
 
 	// Reload the world sparing only level designer placed entities
 	// This must be called before the ROUND_START event
@@ -622,87 +858,56 @@ bool CGEBaseGameplayManager::ShouldEndMatch()
 
 void CGEBaseGameplayManager::LoadScenarioCycle()
 {
-	if ( m_vScenarioCycle.Count() > 0 )
-		return;
+	// Clear out the existing cycle and index
+	m_vScenarioCycle.Purge();
 
-	const char *cfile = ge_gp_cyclefile.GetString();
-	Assert( cfile != NULL );
+	const char *curr_scenario = ge_gameplay.GetString();
+	const char *cycle_file = ge_gp_cyclefile.GetString();
+	Assert(cycle_file != NULL);
 
-	// Check the time of the mapcycle file and re-populate the list of level names if the file has been modified
-	const int nCycleTimeStamp = filesystem->GetPathTime( cfile, "GAME" );
-
-	if ( 0 == nCycleTimeStamp )
+	CUtlBuffer buf;
+	buf.SetBufferType(true, false);
+	if (filesystem->ReadFile(cycle_file, "MOD", buf))
 	{
-		// cycle file does not exist, make a list containing only the current gameplay
-		char *szCurrentGameplay = new char[32];
-		Q_strncpy( szCurrentGameplay, GetScenario()->GetIdent(), 32 );
-		m_vScenarioCycle.AddToTail( szCurrentGameplay );
-	}
-	else
-	{
-		int nFileLength;
-		char *aFileList = (char*)UTIL_LoadFileForMe( cfile, &nFileLength );
-
-		const char* curMode = ge_gameplay.GetString();
-
-		if ( aFileList && nFileLength )
+		char line[32];
+		buf.GetLine(line, 32);
+		while (line[0])
 		{
-			CUtlVector<char*> vList;
-			V_SplitString( aFileList, "\n", vList );
+			// Strip out the spaces in the name
+			GEUTIL_StripWhitespace(line);
 
-			for ( int i = 0; i < vList.Count(); i++ )
-			{
-				bool bIgnore = false;
+			if (!IsValidGamePlay(line))
+			{ Warning("Invalid scenario '%s' included in gameplay cycle file. Ignored.\n", line); }
+			else if (!Q_strncmp(line, "//", 2))
+			{ /* Ignore this line */ }
+			else
+			{ m_vScenarioCycle.AddToTail(AllocPooledString(line)); }
 
-				// Strip out the spaces in the name
-				GEUTIL_StripWhitespace( vList[i] );
+			// Load next line
+			buf.GetLine(line, 32);
 				
-				if ( !IsValidGamePlay( vList[i] ) )
-				{
-					bIgnore = true;
-					Warning( "Invalid scenario '%s' included in gameplay cycle file. Ignored.\n", vList[i] );
-				}
-				else if ( !Q_strncmp( vList[i], "//", 2 ) )
-				{
-					bIgnore = true;
-				}
+		}
 
-				if ( !bIgnore )
-				{
-					m_vScenarioCycle.AddToTail(vList[i]);
-					vList[i] = NULL;
-				}
-			}
-
-			// Only resolve our gameplay index if we are out of bounds
-			if ( g_iScenarioIndex < 0 || g_iScenarioIndex >= m_vScenarioCycle.Count() )
+		// TODO: This might cause issues when running random or cycled scenarios on first load...
+		// Reset the gameplay index 
+		if (g_iScenarioIndex < 0 || g_iScenarioIndex >= m_vScenarioCycle.Count())
+		{
+			for (int i = 0; i < m_vScenarioCycle.Count(); i++)
 			{
-				for (int i=0; i<m_vScenarioCycle.Size(); i++)
+				// Find the first match for our current game mode if it exists in the list
+				if (curr_scenario && Q_stricmp(m_vScenarioCycle[i].ToCStr(), curr_scenario) == 0)
 				{
-					// Find the first match for our current game mode if it exists in the list
-					if ( curMode && Q_stricmp(m_vScenarioCycle[i], curMode) == 0 )
-						g_iScenarioIndex = i;
+					g_iScenarioIndex = i;
+					break;
 				}
 			}
-
-			for ( int i = 0; i < vList.Count(); i++ )
-			{
-				if ( vList[i] )
-					delete [] vList[i];
-			}
-
-			vList.Purge();
-
-			UTIL_FreeFile( (byte *)aFileList );
 		}
 	}
 
 	// If somehow we have no scenarios in the list then add the current one
-	if ( m_vScenarioCycle.Count() == 0 )
+	if (m_vScenarioCycle.Count() == 0)
 	{
-		char *ident = new char[32];
-		Q_strncpy( ident, GetScenario()->GetIdent(), 32 );
-		m_vScenarioCycle.AddToTail( ident );
+		m_vScenarioCycle.AddToTail(AllocPooledString(curr_scenario));
 	}
 }
 

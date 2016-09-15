@@ -624,7 +624,7 @@ bool CGEStats::GetFavoriteWeapon( int iPlayer, GEWeaponSort &fav )
 	CUtlVector<GEWeaponSort*> weapons;
 	float killPercent;
 
-	for ( int i=WEAPON_NONE+1; i < WEAPON_MAX; i++ )
+	for ( int i=WEAPON_NONE+1; i < WEAPON_RANDOM; i++ ) // Go up to WEAPON_RANDOM to exclude tokens.
 	{
 		GEWeaponSort *entry = new GEWeaponSort;
 		if ( GEGameplay()->IsInFinalIntermission() )

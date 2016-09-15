@@ -38,6 +38,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_PP7_SILENCED; }
 
 	// So that we can explicitly make this weapon silenced upon creation
@@ -82,6 +83,7 @@ acttable_t CWeaponPP7Silenced::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponPP7Silenced );
 
@@ -91,4 +93,17 @@ IMPLEMENT_ACTTABLE( CWeaponPP7Silenced );
 CWeaponPP7Silenced::CWeaponPP7Silenced( void )
 {
 	ToggleSilencer( false );
+}
+
+void CWeaponPP7Silenced::Precache(void)
+{
+	PrecacheModel("models/weapons/pp7/v_pp7_s.mdl");
+	PrecacheModel("models/weapons/pp7/w_pp7_s.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/pp7_silenced");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon.Silenced");
+
+	BaseClass::Precache();
 }

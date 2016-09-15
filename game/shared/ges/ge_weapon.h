@@ -66,11 +66,15 @@ public:
 
 	virtual void	PrimaryAttack();
 	virtual bool	Reload();
+	virtual void	OnReloadOffscreen();
 	virtual void	DryFire();
+	virtual void	PrepareFireBullets(int number, CBaseCombatCharacter *pOperator, Vector vecShootOrigin, Vector vecShootDir, bool haveplayer);
+	virtual void	PreOwnerDeath(); //Fired when owner dies but before anything else.
 
 #ifdef GAME_DLL
 	virtual void	Spawn();
 	virtual void	UpdateOnRemove();
+	virtual int		UpdateTransmitState();
 
 	virtual float	GetHeldTime() { return gpGlobals->curtime - m_flDeployTime; };
 	virtual bool	CanEquip( CBaseCombatCharacter *pOther ) { return true; };
@@ -93,20 +97,23 @@ public:
 	virtual float			GetFireRate( void );
 	virtual float			GetClickFireRate(void);
 	virtual const Vector&	GetBulletSpread( void );
+	virtual int				GetGaussFactor( void );
 	virtual float			GetFireDelay( void );
 	virtual int				GetTracerFreq( void ) { return GetGEWpnData().m_iTracerFreq; };
+	virtual const char*		GetSpecAttString(void) { return GetGEWpnData().m_szSpecialAttributes; };
+
+	virtual int		GetDamageCap(void) { return GetGEWpnData().m_iDamageCap; };
 
 	virtual float	GetMaxPenetrationDepth( void ) { return GetGEWpnData().m_flMaxPenetration; };
-	virtual float	GetMaximumPenaltyTime( void ) { return 2.875 * GetFireRate(); };
-	virtual float	GetRecoil( void ) { return GetGEWpnData().m_flRecoil; };
-	virtual void	UpdatePenaltyTime( void );
+	virtual void	AddAccPenalty(float numshots);
+	virtual void	UpdateAccPenalty( void );
+	virtual float	GetAccPenalty(void) { return m_flAccuracyPenalty; };
 
 	// Fixes for NPC's
 	virtual bool	HasAmmo( void );
 	virtual bool	HasShotsLeft( void );
 	virtual bool	IsWeaponVisible( void );
 
-	virtual void	ItemPreFrame( void );
 	virtual void	ItemPostFrame( void );
 
 	virtual void	Equip( CBaseCombatCharacter *pOwner );
@@ -114,8 +121,15 @@ public:
 	virtual	bool	Deploy( void );
 	virtual bool	Holster( CBaseCombatWeapon *pSwitchingTo );
 
-	virtual void	SetSkin( int skin );
 
+
+	virtual void	SetViewModel();
+	virtual void	SetSkin( int skin );
+	virtual int		GetSkin()						{ return (int)m_nSkin; }
+
+	virtual int		GetBodygroupFromName(const char* name);
+	virtual void	SwitchBodygroup( int group, int value );
+	
 	virtual void	SetPickupTouch( void );
 	virtual void	MakeTracer( const Vector &vecTracerSrc, const trace_t &tr, int iTracerType );
 
@@ -130,9 +144,12 @@ public:
 
 	virtual bool	CanBeSilenced( void ) { return false; };
 	virtual bool	IsSilenced() { return m_bSilenced; };
+	virtual bool	IsShotgun() { return false; };
 	virtual void	ToggleSilencer( bool doanim = true );
 	virtual void	SetAlwaysSilenced( bool set ) { m_bIsAlwaysSilent = set; };
 	virtual bool	IsAlwaysSilenced() { return m_bIsAlwaysSilent; };
+	virtual float	GetAccFireRate(){ return GetGEWpnData().m_flAccurateRateOfFire; }
+	virtual int		GetAccShots(){ return GetGEWpnData().m_flAccurateShots; }
 
 	virtual int		GetTracerAttachment( void );
 
@@ -177,6 +194,9 @@ private:
 #else
 	CEntGlowEffect *m_pEntGlowEffect;
 	bool m_bClientGlow;
+	float m_flLastBobCalc;
+	float m_flLastSpeedrat;
+	float m_flLastFallrat;
 #endif
 
 	CNetworkVar( bool, m_bEnableGlow );

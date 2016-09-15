@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2008, Anthony Iacono. All rights reserved. /////////////
+///////////// Copyright © 2008, Anthony Iacono. All rights reserved. /////////////
 // 
 // File: ge_hudammo.cpp
 // Description:
@@ -9,17 +9,15 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "cbase.h"
-
-#include "iclientmode.h"
-#include "ivrenderview.h"
-#include "vgui/ISurface.h"
-#include "vgui/ILocalize.h"
-#include "vgui_controls/AnimationController.h"
-#include "in_buttons.h"
-#include "view.h"
 #include "hud.h"
-
 #include "ge_hudammo.h"
+#include "iclientmode.h"
+#include "view.h"
+#include "vgui/ISurface.h"
+#include "IVRenderView.h"
+#include "in_buttons.h"
+#include "vgui_controls/AnimationController.h"
+#include "vgui/ILocalize.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -27,6 +25,8 @@
 using namespace vgui;
 
 DECLARE_HUDELEMENT( CGEHudAmmo );
+
+ConVar cl_ge_show_ammocount("cl_ge_show_ammocount", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Show the match time when rounds are disabled instead of --:--");
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -152,6 +152,9 @@ void CGEHudAmmo::UpdateAmmoDisplays( void )
 bool CGEHudAmmo::ShouldDraw( void )
 {
 	bool ret = CHudElement::ShouldDraw();
+
+	if ( !cl_ge_show_ammocount.GetBool() )
+		return false;
 
 	CBasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
 	if ( !pPlayer )

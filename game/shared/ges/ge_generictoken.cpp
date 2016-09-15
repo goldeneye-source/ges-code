@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2009 GoldenEye: Source. All rights reserved. /////////////
+///////////// Copyright © 2009 GoldenEye: Source. All rights reserved. /////////////
 //
 //   Project     : Server (GES)
 //   File        : ge_generictoken.cpp
@@ -76,12 +76,12 @@ END_PREDICTION_DATA()
 // Declare a bunch of different entity names so the token manager can distinguish
 // between the token types when assigning models and other things
 LINK_ENTITY_TO_CLASS( token_mi6, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_janus, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_deathmatch, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_custom1, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_custom2, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_custom3, CGenericToken );
-//LINK_ENTITY_TO_CLASS( token_custom4, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_janus, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_deathmatch, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_custom1, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_custom2, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_custom3, CGenericToken );
+LINK_ENTITY_TO_CLASS( token_custom4, CGenericToken );
 
 acttable_t CGenericToken::m_acttable[] = 
 {
@@ -99,6 +99,7 @@ acttable_t CGenericToken::m_acttable[] =
 	{ ACT_GES_DRAW,						ACT_GES_GESTURE_DRAW_KNIFE,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_KNIFE,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_KNIFE,					false },
 };
 IMPLEMENT_ACTTABLE( CGenericToken );
 
@@ -237,12 +238,18 @@ void CGenericToken::PrimaryAttack( void )
 bool CGenericToken::CanEquip( CBaseCombatCharacter *pOther )
 {
 	// Don't allow multiple pickups of the same token
-	if ( pOther->Weapon_OwnsThisType(GetClassname()) )
+	if ( pOther->Weapon_OwnsThisType( GetClassname()) )
 		return false;
 
 	// If we are a teamplay token don't allow opposite team to pick us up
 	if ( GEMPRules()->IsTeamplay() && GetTeamNumber() )
-		return GetTeamNumber() == pOther->GetTeamNumber();
+		if ( GetTeamNumber() == pOther->GetTeamNumber() )
+			return true;
+		else
+		{
+			GEGameplay()->GetScenario()->OnEnemyTokenTouched(this, ToGEPlayer(pOther));
+			return false;
+		}
 
 	return true;
 }
@@ -357,6 +364,8 @@ void CGenericToken::AddViewKick( void )
 
 void CGenericToken::ImpactEffect( trace_t &traceHit )
 {
+	return; // NIEN!!!!
+
 	// See if we hit water (we don't do the other impact effects in this case)
 	if ( ImpactWater( traceHit.startpos, traceHit.endpos ) )
 		return;

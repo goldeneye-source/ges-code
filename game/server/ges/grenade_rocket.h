@@ -48,8 +48,16 @@ protected:
 
 private:
 	Vector m_vForward;
+	Vector m_vUp;
+	Vector m_vRight;
+
+	float m_fthinktime;
+	float m_fFuseTime;
+
 	float m_flSpawnTime;
 	CHandle<SmokeTrail> m_hSmokeTrail;
+
+	bool m_bHitPlayer;
 };
 
 #endif

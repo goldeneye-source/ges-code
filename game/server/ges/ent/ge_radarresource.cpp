@@ -9,6 +9,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "cbase.h"
 #include "ge_radarresource.h"
+#include "ge_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -277,8 +278,9 @@ void CGERadarResource::UpdateState( int pos )
 
 		if ( pEnt->IsPlayer() )
 		{
-			CBasePlayer *pPlayer = ToBasePlayer( pEnt );
-			if ( !pPlayer->IsAlive() || pPlayer->IsObserver() || pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+			CGEPlayer *pPlayer = ToGEPlayer(pEnt);
+
+			if (!pPlayer->IsAlive() || pPlayer->IsObserver() || pPlayer->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->IsRadarCloaked())
 				m_iState.Set( pos, RADAR_STATE_NODRAW );
 			else
 				m_iState.Set( pos, RADAR_STATE_DRAW );

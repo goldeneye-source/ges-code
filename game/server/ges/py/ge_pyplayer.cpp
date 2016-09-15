@@ -70,6 +70,16 @@ bool pyHasWeapon( CBaseCombatCharacter *pEnt, bp::object weap_or_id )
 	return false;
 }
 
+void pyMakeInvisible( CBaseCombatCharacter *pEnt )
+{
+	pEnt->SetRenderMode(kRenderNone);
+}
+
+void pyMakeVisible( CBaseCombatCharacter *pEnt )
+{
+	pEnt->SetRenderMode(kRenderNormal);
+}
+
 bool pyWeaponSwitch( CBaseCombatCharacter *pEnt, bp::object weap_or_id )
 {
 	bp::extract<CGEWeapon*> to_weap( weap_or_id );
@@ -180,6 +190,8 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GiveNamedWeapon_overloads, CGEPlayer::Giv
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(BotGiveNamedWeapon_overloads, CGEBotPlayer::GiveNamedWeapon, 2, 3);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ChangeTeam_overloads, CGEMPPlayer::ChangeTeam, 1, 2);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(BotChangeTeam_overloads, CGEBotPlayer::ChangeTeam, 1, 2);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(KnockOffHat_overloads, CGEPlayer::KnockOffHat, 0, 1);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(BotKnockOffHat_overloads, CGEBotPlayer::KnockOffHat, 0, 1);
 
 BOOST_PYTHON_MODULE(GEPlayer)
 {
@@ -225,7 +237,7 @@ BOOST_PYTHON_MODULE(GEPlayer)
 		.def("GetHealth", &CGEPlayer::GetHealth)
 		.def("ResetDeathCount", &CGEPlayer::ResetDeathCount)
 		.def("CommitSuicide", CommitSuicideFP)
-		.def("GetPlayerName", &CGEPlayer::GetPlayerName)
+		.def("GetPlayerName", &CGEMPPlayer::GetSafePlayerName)
 		.def("GetPlayerID", &CGEPlayer::GetUserID)
 		.def("GetSteamID", &CGEPlayer::GetNetworkIDString)
 		.def("IsDead", &CGEPlayer::IsDead)
@@ -237,6 +249,10 @@ BOOST_PYTHON_MODULE(GEPlayer)
 		.def("SetArmor", &CGEPlayer::SetArmorValue)
 		.def("GetPlayerModel", &CGEPlayer::GetCharIdent)
 		.def("SetPlayerModel", pySetPlayerModel)
+		.def("SetHat", &CGEPlayer::SpawnHat)
+		.def("KnockOffHat", &CGEPlayer::KnockOffHat, KnockOffHat_overloads())
+		.def("MakeInvisible", pyMakeInvisible)
+		.def("MakeVisible", pyMakeVisible)
 		.def("SetDamageMultiplier", &CGEPlayer::SetDamageMultiplier)
 		.def("SetSpeedMultiplier", &CGEPlayer::SetSpeedMultiplier)
 		.def("SetScoreBoardColor", &CGEPlayer::SetScoreBoardColor)
@@ -261,7 +277,7 @@ BOOST_PYTHON_MODULE(GEPlayer)
 		.def("SetDeaths", &CGEMPPlayer::SetDeaths)
 		.def("ForceRespawn", &CGEMPPlayer::ForceRespawn)
 		.def("ChangeTeam", &CGEMPPlayer::ChangeTeam, ChangeTeam_overloads())
-		.def("GetCleanPlayerName", &CGEMPPlayer::GetCleanPlayerName)
+		.def("GetCleanPlayerName", &CGEMPPlayer::GetSafeCleanPlayerName)
 		.def("SetInitialSpawn", &CGEMPPlayer::SetInitialSpawn)
 		.def("IsInitialSpawn", &CGEMPPlayer::IsInitialSpawn)
 		.def("IsInRound", &CGEMPPlayer::IsInRound)
@@ -273,5 +289,6 @@ BOOST_PYTHON_MODULE(GEPlayer)
 	class_<CGEBotPlayer, bases<CGEMPPlayer>, boost::noncopyable>("CGEBotPlayer", no_init)
 		.def("GiveNamedWeapon", &CGEBotPlayer::GiveNamedWeapon, BotGiveNamedWeapon_overloads())
 		.def("ChangeTeam", &CGEBotPlayer::ChangeTeam, BotChangeTeam_overloads())
-		.def("StripAllWeapons", &CGEBotPlayer::StripAllWeapons);
+		.def("StripAllWeapons", &CGEBotPlayer::StripAllWeapons)
+		.def("KnockOffHat", &CGEBotPlayer::KnockOffHat, BotKnockOffHat_overloads());
 }

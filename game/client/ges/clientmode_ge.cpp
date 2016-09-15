@@ -52,6 +52,7 @@
 #include "tier0/memdbgon.h"
 
 // Add all these convars because Valve forces us, they don't do anything!
+ConVar hap_HasDevice("hap_HasDevice", "0");
 ConVar topcolor("topcolor","0");
 ConVar bottomcolor("bottomcolor","0");
 ConVar cl_himodels("cl_himodels","1");
@@ -382,6 +383,16 @@ int	ClientModeGENormal::KeyInput( int down, ButtonCode_t keynum, const char *psz
 			CHudGameplay *elem = GET_HUDELEMENT( CHudGameplay );
 			if ( elem )
 				elem->KeyboardInput( CHudGameplay::GAMEPLAY_WEAPONSET );
+		}
+		return 0;
+	}
+	else if (pszCurrentBinding && Q_strcmp(pszCurrentBinding, "cl_ge_weapon_stats") == 0)
+	{
+		if (down)
+		{
+			CHudGameplay *elem = GET_HUDELEMENT( CHudGameplay );
+			if (elem)
+				elem->KeyboardInput(CHudGameplay::GAMEPLAY_WEAPONSTATS);
 		}
 		return 0;
 	}

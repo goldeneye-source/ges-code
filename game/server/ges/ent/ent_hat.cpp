@@ -65,7 +65,7 @@ void CGE_Hat::Spawn( void )
 	Precache();
 	SetModel( m_szModel );
 
-	SetCollisionGroup( COLLISION_GROUP_WEAPON );
+	SetCollisionGroup( COLLISION_GROUP_DEBRIS );
 	VPhysicsInitNormal( SOLID_VPHYSICS, 0, false );
 }
 

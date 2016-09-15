@@ -354,6 +354,11 @@ public:
 		TRYFUNC( this->get_override("OnThink")() );
 	}
 
+	virtual void BeforeSetupRound()
+	{
+		TRYFUNC( this->get_override("BeforeSetupRound")() );
+	}
+
 	virtual void OnRoundBegin()
 	{
 		PY_CALLHOOKS( FUNC_GP_ROUNDBEGIN, bp::make_tuple() );
@@ -426,13 +431,13 @@ public:
 		TRYFUNCRET( this->get_override("OnPlayerSay")(bp::ptr(pPlayer), text), false );
 	}
 
-	virtual bool CanPlayerChangeTeam(CGEPlayer *pPlayer, int iOldTeam, int iNewTeam)
+	virtual bool CanPlayerChangeTeam(CGEPlayer *pPlayer, int iOldTeam, int iNewTeam, bool wasForced )
 	{
 		bool ret = true;
-		TRYFUNC( ret = this->get_override("CanPlayerChangeTeam")(bp::ptr(pPlayer), iOldTeam, iNewTeam) );
+		TRYFUNC( ret = this->get_override("CanPlayerChangeTeam")(bp::ptr(pPlayer), iOldTeam, iNewTeam, wasForced) );
 		// Call our hook only if we actually changed teams
 		if ( ret )
-			PY_CALLHOOKS( FUNC_GP_PLAYERTEAM, bp::make_tuple(bp::ptr(pPlayer), iOldTeam, iNewTeam) );
+			PY_CALLHOOKS( FUNC_GP_PLAYERTEAM, bp::make_tuple(bp::ptr(pPlayer), iOldTeam, iNewTeam, wasForced ) );
 
 		return ret;
 	}
@@ -458,6 +463,41 @@ public:
 		TRYFUNC( this->get_override("OnCaptureAreaExited")(bp::ptr(pCapture), bp::ptr(pPlayer)) );
 	}
 
+	virtual void OnWeaponSpawned( CGEWeapon *pWeapon )
+	{
+		PY_CALLHOOKS( FUNC_GP_WEAPONSPAWNED, bp::make_tuple(bp::ptr(pWeapon)) );
+		TRYFUNC( this->get_override("OnWeaponSpawned")(bp::ptr(pWeapon)) );
+	}
+
+	virtual void OnWeaponRemoved( CGEWeapon *pWeapon )
+	{
+		PY_CALLHOOKS( FUNC_GP_WEAPONREMOVED, bp::make_tuple(bp::ptr(pWeapon)) );
+		TRYFUNC( this->get_override("OnWeaponRemoved")(bp::ptr(pWeapon)) );
+	}
+
+	virtual void OnArmorSpawned( CBaseEntity *pArmor )
+	{
+		PY_CALLHOOKS( FUNC_GP_ARMORSPAWNED, bp::make_tuple(bp::ptr(pArmor)) );
+		TRYFUNC( this->get_override("OnArmorSpawned")(bp::ptr(pArmor)) );
+	}
+
+	virtual void OnArmorRemoved( CBaseEntity *pArmor )
+	{
+		PY_CALLHOOKS( FUNC_GP_ARMORREMOVED, bp::make_tuple(bp::ptr(pArmor)) );
+		TRYFUNC( this->get_override("OnArmorRemoved")(bp::ptr(pArmor)) );
+	}
+
+	virtual void OnAmmoSpawned( CBaseEntity *pAmmo )
+	{
+		PY_CALLHOOKS( FUNC_GP_AMMOSPAWNED, bp::make_tuple(bp::ptr(pAmmo)) );
+		TRYFUNC( this->get_override("OnAmmoSpawned")(bp::ptr(pAmmo)) );
+	}
+
+	virtual void OnAmmoRemoved( CBaseEntity *pAmmo )
+	{
+		PY_CALLHOOKS( FUNC_GP_AMMOREMOVED, bp::make_tuple(bp::ptr(pAmmo)) );
+		TRYFUNC( this->get_override("OnAmmoRemoved")(bp::ptr(pAmmo)) );
+	}
 
 	virtual void OnTokenSpawned( CGEWeapon *pToken )
 	{
@@ -484,6 +524,10 @@ public:
 		TRYFUNC( this->get_override("OnTokenAttack")(bp::ptr(pToken), bp::ptr(pPlayer), position, forward) );
 	}
 
+	virtual void OnEnemyTokenTouched(CGEWeapon *pToken, CGEPlayer *pPlayer)
+	{
+		TRYFUNC( this->get_override("OnEnemyTokenTouched")(bp::ptr(pToken), bp::ptr(pPlayer)) );
+	}
 
 	virtual bool CanRoundEnd()
 	{
@@ -609,7 +653,7 @@ public:
 		bool is_official = false;
 
 		char pyFile[128];
-		Q_snprintf( pyFile, 128, "%s\\GamePlay\\%s.py", GEPy()->GetRootPath(), ident );
+		Q_snprintf( pyFile, 128, "%s\\ges\\GamePlay\\%s.py", GEPy()->GetRootPath(), ident );
 
 		// Calculate the MD5 sum of the Python file
 		if ( filesystem->ReadFile( pyFile, "MOD", buf ) )
@@ -639,7 +683,7 @@ public:
 		m_md5Hashes = bp::list();
 
 		KeyValues *pKV = new KeyValues("Hashes" );
-		char *szFilename = "scripts/python/gphashes.txt";
+		char *szFilename = "python/gphashes.txt";
 
 		CUtlBuffer buffer;
 		// Decrypt the file so we can read it
@@ -653,8 +697,9 @@ public:
 		{
 			while ( pKey )
 			{
-				if ( !Q_strcasecmp( pKey->GetName(), "hash" ) )
-					m_md5Hashes.append( pKey->GetString() );
+				if ( !Q_strcasecmp(pKey->GetName(), "hash") )
+					m_md5Hashes.append(pKey->GetString());
+
 				pKey = pKey->GetNextKey();
 			}
 		}

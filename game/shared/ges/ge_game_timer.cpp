@@ -52,7 +52,7 @@ CGEGameTimer::CGEGameTimer()
 float CGEGameTimer::GetTimeRemaining()
 {
 	// If we are not started return 0
-	if ( !IsStarted() )
+	if (!IsStarted())
 		return 0;
 
 	float seconds_remaining;
@@ -139,10 +139,87 @@ void CGEGameTimer::ChangeLength( float length_seconds )
 
 	// Find time diff and modify the end time
 	int time_diff = length_seconds - m_flLength;
-	m_flEndTime += time_diff;
+
+	DevMsg("%d is time difference \n", time_diff);
+	DevMsg("%f is endtime \n", (float)m_flEndTime);
+	DevMsg("%f is timer length \n", (float)m_flLength);
+	DevMsg("%f is entered length \n", length_seconds);
+	DevMsg("%f is computed offset \n", m_flEndTime - gpGlobals->curtime + (float)time_diff);
+
+	// If changing the time would result in negative time, just set the roundtime to the time it was changed to.
+	if (m_flEndTime - gpGlobals->curtime + time_diff > 0) // If the time to be adjusted to is greater than 0, go ahead and offset
+	{
+		m_flEndTime += time_diff;
+		m_flLength += time_diff;
+	}
+	else // Otherwise just directly set the time to the time entered to prevent nonsense.
+	{
+		m_flEndTime = gpGlobals->curtime + length_seconds;
+		m_flLength = length_seconds;
+	}
 
 	// If we were paused, put as back in that state
 	if ( was_paused )
+		Pause();
+}
+
+void CGEGameTimer::SetCurrentLength(float length_seconds)
+{
+	// Don't do anything we are are not enabled
+	if (!IsEnabled())
+		return;
+
+	// Stop the timer if we change to no length
+	if (length_seconds <= 0) {
+		Stop();
+		return;
+	}
+
+	// Simply start the timer if not running already
+	if (!IsStarted()) {
+		Start(length_seconds);
+		return;
+	}
+
+	// If paused, resume the time to capture our real end time
+	bool was_paused = IsPaused();
+	if (was_paused)
+		Resume();
+
+	// We always directly set to this time.
+	m_flEndTime = gpGlobals->curtime + length_seconds;
+	m_flLength = length_seconds;
+
+	// If we were paused, put as back in that state
+	if (was_paused)
+		Pause();
+}
+
+void CGEGameTimer::AddToLength(float length_seconds)
+{
+	// Don't do anything we are are not enabled
+	if (!IsEnabled())
+		return;
+
+	// If paused, resume the time to capture our real end time
+	bool was_paused = IsPaused();
+	if (was_paused)
+		Resume();
+
+	// If changing the time would result in negative time, end the round.
+	if (m_flEndTime - gpGlobals->curtime + length_seconds > 0) // If the time to be adjusted to is greater than 0, go ahead and offset
+	{
+		m_flEndTime += length_seconds;
+		m_flLength += length_seconds;
+	}
+	else // Otherwise we took off all the remaining round time and ended it.
+	{
+		m_flEndTime = gpGlobals->curtime;
+		m_flLength = 1;
+	}
+
+	// If we were paused, put as back in that state
+	if (was_paused)
 		Pause();
 }
 

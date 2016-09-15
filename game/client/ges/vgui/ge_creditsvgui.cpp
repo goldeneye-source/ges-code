@@ -155,10 +155,10 @@ void CGECreditsPanel::LoadCredits( void )
 		entry->textColor = m_pScheme->GetColor( data[1], Color( 255, 255, 255, 255 ) );
 		m_vCredits.AddToTail( entry );
 
+		if ( entry->textFont != INVALID_FONT )
+			m_pCreditsText->InsertFontChange( entry->textFont );
 //		if ( entry->textFont != INVALID_FONT )
-//			m_pCreditsText->InsertFontChange( entry->textFont );
-
-//		m_pCreditsText->InsertCenterText( true );
+		m_pCreditsText->InsertCenterText( true );
 		m_pCreditsText->InsertColorChange( entry->textColor );
 		m_pCreditsText->InsertString( entry->szName );
 		m_pCreditsText->InsertChar( L'\n' );

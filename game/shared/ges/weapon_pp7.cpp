@@ -38,6 +38,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_PP7; }
 	
 	DECLARE_ACTTABLE();
@@ -79,9 +80,25 @@ acttable_t CWeaponPP7::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,			false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,					false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,					false },
 };
 IMPLEMENT_ACTTABLE( CWeaponPP7 );
 
+void CWeaponPP7 :: Precache(void)
+{
+	PrecacheModel("models/weapons/pp7/v_pp7.mdl");
+	PrecacheModel("models/weapons/pp7/w_pp7.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/pp7");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon_pp7.Single");
+	PrecacheScriptSound("Weapon_pp7.AltSingle");
+	PrecacheScriptSound("Weapon.Silenced");
+	PrecacheScriptSound("Weapon_pp7.NPC_Single");
+
+	BaseClass::Precache();
+}
 
 //-----------------------------------------------------------------------------
 // CWeaponPP7Silver
@@ -101,6 +118,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_SILVERPP7; }
 
 	DECLARE_ACTTABLE();
@@ -142,9 +160,25 @@ acttable_t CWeaponPP7Silver::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_GES_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponPP7Silver );
 
+void CWeaponPP7Silver::Precache(void)
+{
+	PrecacheModel("models/weapons/pp7/v_pp7_silver.mdl");
+	PrecacheModel("models/weapons/pp7/w_pp7_silver.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/pp7_silver");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon_pp7.Single");
+	PrecacheScriptSound("Weapon_pp7.AltSingle");
+	PrecacheScriptSound("Weapon.Silenced");
+	PrecacheScriptSound("Weapon_pp7.NPC_Single");
+
+	BaseClass::Precache();
+}
 
 //-----------------------------------------------------------------------------
 // CWeaponPP7Gold
@@ -164,6 +198,7 @@ public:
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
+	virtual void	Precache(void);
 	virtual GEWeaponID GetWeaponID( void ) const { return WEAPON_GOLDENPP7; }
 	
 	DECLARE_ACTTABLE();
@@ -205,5 +240,22 @@ acttable_t CWeaponPP7Gold::m_acttable[] =
 	{ ACT_MP_RELOAD_CROUCH,				ACT_GES_GESTURE_RELOAD_PISTOL,				false },
 
 	{ ACT_MP_JUMP,						ACT_HL2MP_JUMP_PISTOL,						false },
+	{ ACT_GES_CJUMP,					ACT_GES_CJUMP_PISTOL,						false },
 };
 IMPLEMENT_ACTTABLE( CWeaponPP7Gold );
+
+void CWeaponPP7Gold::Precache(void)
+{
+	PrecacheModel("models/weapons/pp7/v_pp7_gold.mdl");
+	PrecacheModel("models/weapons/pp7/w_pp7_gold.mdl");
+
+	PrecacheMaterial("sprites/hud/weaponicons/pp7_gold");
+	PrecacheMaterial("sprites/hud/ammoicons/ammo_9mm");
+
+	PrecacheScriptSound("Weapon_pp7.Single");
+	PrecacheScriptSound("Weapon_pp7.AltSingle");
+	PrecacheScriptSound("Weapon.Silenced");
+	PrecacheScriptSound("Weapon_pp7.NPC_Single");
+
+	BaseClass::Precache();
+}

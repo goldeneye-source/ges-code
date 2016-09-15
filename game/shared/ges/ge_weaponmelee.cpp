@@ -1,4 +1,4 @@
-///////////// Copyright ï¿½ 2006, Scott Loyd. All rights reserved. /////////////
+///////////// Copyright © 2006, Scott Loyd. All rights reserved. /////////////
 // 
 // File: weapon_gebasemelee.cpp
 // Description:
@@ -11,6 +11,7 @@
 #include "cbase.h"
 #include "ge_weaponmelee.h"
 #include "ge_gamerules.h"
+#include "gemp_gamerules.h"
 #include "ammodef.h"
 #include "mathlib/mathlib.h"
 #include "in_buttons.h"
@@ -79,10 +80,6 @@ void CGEWeaponMelee::ItemPostFrame( void )
 	{
 		PrimaryAttack();
 	} 
-	else if ( (pOwner->m_nButtons & IN_ATTACK2) && (m_flNextSecondaryAttack <= gpGlobals->curtime) )
-	{
-		SecondaryAttack();
-	}
 	else 
 	{
 		WeaponIdle();
@@ -170,10 +167,10 @@ void CGEWeaponMelee::PrimaryAttack()
 // Input   :
 // Output  :
 //------------------------------------------------------------------------------
-void CGEWeaponMelee::SecondaryAttack()
+/*void CGEWeaponMelee::SecondaryAttack()
 {
 	Swing( true );
-}
+}*/
 
 
 //------------------------------------------------------------------------------
@@ -194,7 +191,9 @@ void CGEWeaponMelee::Hit( trace_t &traceHit, Activity nHitActivity )
 	if ( pHitEntity != NULL )
 	{
 		Vector hitDirection;
-		AngleVectors( pOwner->EyeAngles(), &hitDirection, NULL, NULL );
+		//AngleVectors( pOwner->EyeAngles(), &hitDirection, NULL, NULL );
+
+		hitDirection = traceHit.endpos - traceHit.startpos;
 		VectorNormalize( hitDirection );
 
 		// Take into account bots...
@@ -326,6 +325,8 @@ bool CGEWeaponMelee::ImpactWater( const Vector &start, const Vector &end )
 //-----------------------------------------------------------------------------
 void CGEWeaponMelee::ImpactEffect( trace_t &traceHit )
 {
+	return; // Avoid doing melee impact effects for 5.0
+
 	// See if we hit water (we don't do the other impact effects in this case)
 	if ( ImpactWater( traceHit.startpos, traceHit.endpos ) )
 		return;
@@ -361,6 +362,7 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 
 	Vector swingEnd = swingStart + forward * GetRange();
 	UTIL_TraceLine( swingStart, swingEnd, MASK_SHOT | CONTENTS_GRATE, pOwner, COLLISION_GROUP_NONE, &traceHit );
+
 	Activity nHitActivity = ACT_VM_HITCENTER;
 
 #ifndef CLIENT_DLL
@@ -369,38 +371,145 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 	TraceAttackToTriggers( triggerInfo, traceHit.startpos, traceHit.endpos, vec3_origin );
 #endif
 
-	if ( traceHit.fraction == 1.0 )
+	// We didn't hit a player, do some additional checks.  This means that if the user was looking directly at a player
+	// that player will always be hit at the location the user was aiming at, but if they weren't then they still
+	// have a good chance to hit someone close to their crosshair.
+
+	if (traceHit.fraction == 1.0 || !traceHit.m_pEnt->IsPlayer() )
 	{
-		float bludgeonHullRadius = 1.732f * BLUDGEON_HULL_DIM;  // hull is +/- 16, so use cuberoot of 2 to determine how big the hull is from center to the corner point
+		// This is just used to approximate the extra distance to add to the radius check to make sure we include
+		// all eligible entities, so we can just pretend the player is a giant cube and calculate the max possible distance from that.
 
-		// Back off by hull "radius"
-		swingEnd -= forward * bludgeonHullRadius;
+		// Distance from cube corner to center = sqrt(3dist^2) or dist * sqrt(3), sqrt(3) = 1.732
+		// Using player height as that's the longest dimension
 
-		UTIL_TraceHull( swingStart, swingEnd, g_bludgeonMins, g_bludgeonMaxs, MASK_SHOT_HULL, pOwner, COLLISION_GROUP_NONE, &traceHit );
-		if ( traceHit.fraction < 1.0 && traceHit.m_pEnt )
+		float maxPlayerDist = GEMPRules()->GetViewVectors()->m_vHullMax.z * 1.732;
+		
+		CGEPlayer *targetPlayer = NULL;
+		float targetDist = GetRange() + maxPlayerDist;
+
+		// First identify potential victims, choose the closest one.
+		for (int i = 1; i <= gpGlobals->maxClients; ++i) 
 		{
-			Vector vecToTarget = traceHit.m_pEnt->GetAbsOrigin() - swingStart;
-			VectorNormalize( vecToTarget );
+			CGEPlayer *pPlayer = ToGEPlayer(UTIL_PlayerByIndex(i));
 
-			float dot = vecToTarget.Dot( forward );
+			if (pPlayer == NULL || !pPlayer->IsPlayer())
+				continue;
 
-			// YWB:  Make sure they are sort of facing the guy at least...
-			if ( dot < 0.70721f )
-			{
-				// Force amiss
-				traceHit.fraction = 1.0f;
-			}
-			else
-			{
-				nHitActivity = ChooseIntersectionPointAndActivity( traceHit, g_bludgeonMins, g_bludgeonMaxs, pOwner );
-			}
+			// Don't hit spectating players.
+			if (pPlayer->IsObserver())
+				continue;
+
+
+			//Dead players can mess up everything for now because i'm a little skittish about these functions.
+
+			/*
+#ifdef GAME_DLL
+			if (pPlayer->IsDead())
+				continue;
+#else
+			if (pPlayer->IsPlayerDead())
+				continue;
+#endif
+			*/
+
+			// If they're not alive don't go huge.
+			if (!pPlayer->IsAlive())
+				continue;
+
+			// Don't pay attention to teammates.
+			if (GEMPRules()->IsTeamplay() && pPlayer->GetTeamNumber() == pOwner->GetTeamNumber())
+				continue;
+
+			Vector diff = pPlayer->GetAbsOrigin() - pOwner->GetAbsOrigin();
+			float dist = diff.Length();
+
+			// Make sure they're in range or closer than the current best target.
+			if (dist > targetDist)
+				continue;
+
+			// Draw a line from the player to the target to use for direction calculations.
+			Vector vecToTarget = pPlayer->GetAbsOrigin() - pOwner->GetAbsOrigin();
+			VectorNormalize(vecToTarget);
+
+			float dot = vecToTarget.Dot(forward);
+
+			// If this player is 45 degrees outside of our crosshair, ignore them.
+			if (dot < 0.7)
+				continue;
+			
+			// We made it to the end, which means this player is better than the previous target, so make them the new target.
+			targetPlayer = pPlayer;
+			targetDist = dist;
+		}
+
+		// Make sure there's someone to hit, if not then allow the previous miss to occour.
+		if (targetPlayer)
+		{
+			// Identify 3 points.  Face, Chest, and Legs.  We don't care about arm hits, they'll get treated like chest hits anyway.
+			// They're calculated this way to compensate for crouching players and other states.
+
+			Vector headPos = targetPlayer->EyePosition(); // Pretty sure this is slightly offset but it shouldn't matter -too- much
+			Vector chestPos = (targetPlayer->EyePosition() * 3 + targetPlayer->GetAbsOrigin())/4; //3 fourths the distance between the ground and the target's eyes
+			Vector legsPos = (targetPlayer->EyePosition() + targetPlayer->GetAbsOrigin() * 2) / 3; //1 third that distance up from the ground
+
+			//First check to see if we can get a headshot.
+			Vector vecToheadPos = headPos - swingStart;
+			Vector vecTochestPos = chestPos - swingStart;
+			Vector vecTolegsPos = legsPos - swingStart;
+
+			float vecToheadLength = vecToheadPos.Length();
+			float vecTochestLength = vecTochestPos.Length();
+			float vecTolegsLength = vecTolegsPos.Length();
+
+			VectorNormalize(vecToheadPos);
+			VectorNormalize(vecTochestPos);
+			VectorNormalize(vecTolegsPos);
+
+			float dothead = vecToheadPos.Dot(forward);
+			float dotchest = vecTochestPos.Dot(forward);
+			float dotlegs = vecTolegsPos.Dot(forward);
+
+			// These hitlocations are arranged in a line so they can be analyized linearly.  
+			// Ex: If dothead is higher than dotchest then it is definitely higher than dotlegs
+			// Dotchest can never be the lowest because of this and serves as a good comparison metric.
+
+			Vector targetloc;
+
+			// The closer you are, the easier it is to get hits.  Ranges from 1 when at max distance to 0 when point blank.  Can never actually hit zero though due to player volume.
+			
+			float hullwidth = GEMPRules()->GetViewVectors()->m_vHullMax.x * 1.8;
+			float effectiverange = GetRange() - hullwidth;
+
+			// These can actually go slightly negative sometimes since hullwidth is only approximating the minimum distance.
+			// Not a big deal, it just means the starting values in the hit detecting equations aren't the lowest.
+			float rangefactor1 = (vecToheadLength - hullwidth) / effectiverange;
+			float rangefactor2 = (vecTochestLength - hullwidth) / effectiverange;
+			float rangefactor3 = (vecTolegsLength - hullwidth) / effectiverange;
+
+			// First try for a headshot, the criteria for this is much more demanding 
+			// so that someone can't just aim into the sky and get them every time.
+			
+			if ((dothead > dotchest || vecTochestLength > GetRange()) && dothead > 0.94 + 0.06 * rangefactor1 && vecToheadLength < GetRange())
+				targetloc = headPos;
+			else if ((dotchest > dotlegs || vecTolegsLength > GetRange()) && dotchest > 0.65 + 0.35 * rangefactor2 && vecTochestLength < GetRange()) // Now try for a chest hit, they're much easier to get.
+				targetloc = chestPos;
+			else if (vecTolegsLength < GetRange() && dotlegs > 0.65 + 0.35 * rangefactor3) // Settle for a leg hit if the previous ones didn't click.
+				targetloc = legsPos;
+			else //We can't hit anything, resign to missing.  If damageworld is false then set up the trace to fail, otherwise we can still damage entities we're looking straight at.
+				DamageWorld() ? targetloc = swingEnd : targetloc = swingStart;
+
+			//Finally redo the trace.
+			// TODO: Set this up so it doesn't always cast to the same spot and doesn't miss the target's legs sometimes.
+
+			UTIL_TraceLine(swingStart, targetloc, MASK_SHOT | CONTENTS_GRATE, pOwner, COLLISION_GROUP_NONE, &traceHit);
 		}
 	}
 
 	WeaponSound( SINGLE );
 
-#ifdef GAME_DLL
 	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>( pOwner );
+#ifdef GAME_DLL
 	if ( pPlayer )
 		gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
 #endif
@@ -430,8 +539,8 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 	// Send the anim
 	SendWeaponAnim( nHitActivity );
 
-//	if ( pPlayer )
-//		ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+	if ( pPlayer )
+		ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	//Setup our next attack times
 	m_flNextPrimaryAttack = gpGlobals->curtime + max(GetFireRate(),SequenceDuration());

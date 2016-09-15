@@ -353,6 +353,11 @@ void CGERadar::OnThink( void )
 			}
 
 			// Never add a contact that is out of range initially or set to not draw on the radar (don't include campers!)
+			// Don't show contacts the gamerules say we shouldn't.
+
+
+
+			// Never add a contact that is out of range initially or set to not draw on the radar (don't include campers!)
 			if ( !g_RR->GetAlwaysVisible(i) && !IsContactCamping(iEntSerial) && !IsContactInRange(g_RR->GetOrigin(i)) )
 				continue;
 
@@ -478,13 +483,19 @@ void CGERadar::WorldToRadar( CGERadarContact *contact )
 	if(y_diff == 0.0f )
 		y_diff = 0.001f;
 
-	float fRadarRadius = m_flRadarDiameter / 2.0f;
+	float fRadarRadius = m_flRadarDiameter * 0.500f;
 	float fRange = GetRadarRange();
-	float fScale = fRange >= 1.0f ? fRadarRadius / fRange : 0;
+	float fScale = fRange >= 1.000f ? fRadarRadius / fRange : 0.000f;
 	float dist = min( GetContactRange( vContact ), fRange );
 
 	float flOffset = atan(y_diff/x_diff);
-	float flPlayerY = (pLocalPlayer->LocalEyeAngles().y * M_PI) / 180.0f; // Convert player y-angle to rads
+	float flPlayerY;
+
+	// If we're in first person spectate mode we should use the rotation of whoever we're spectating.
+	if (pLocalPlayer->IsObserver() && pLocalPlayer->GetObserverTarget() && pLocalPlayer->GetObserverMode() == OBS_MODE_IN_EYE)
+		flPlayerY = (pLocalPlayer->GetLocalAngles().y * M_PI) * 0.0055555f;
+	else
+		flPlayerY = (pLocalPlayer->LocalEyeAngles().y * M_PI) * 0.0055555f;
 
 	// Always add because atan will return neg angle w/ neg coeff
 	if ( x_diff < 0 )
@@ -503,8 +514,8 @@ void CGERadar::WorldToRadar( CGERadarContact *contact )
 	ynew_diff *= fScale;
 
 	// Make sure we never leave our radar circle!
-	contact->m_vScaledPos.x = (int)fRadarRadius + (int)xnew_diff + m_iSideBuff;
-	contact->m_vScaledPos.y = (int)fRadarRadius + (int)ynew_diff + m_iSideBuff;
+	contact->m_vScaledPos.x = fRadarRadius + xnew_diff + m_iSideBuff;
+	contact->m_vScaledPos.y = fRadarRadius + ynew_diff + m_iSideBuff;
 	contact->m_vScaledPos.z = vContact.z - pLocalPlayer->GetAbsOrigin().z;
 
 	// Figure out our alpha modulation
@@ -609,15 +620,17 @@ void CGERadar::DrawIconOnRadar( CGERadarContact *contact, Color col )
 
 	int width, height;
 
+	float floorheight = GEMPRules()->GetMapFloorHeight();
+
 	// Get the correct icon for this type of contact
 	CHudTexture *icon = NULL;
 
 	if ( contact->m_Icon )
 	{
 		// We have a custom icon!
-		if ( z_delta > 125.0f && contact->m_IconAbove )
+		if (z_delta > floorheight && contact->m_IconAbove)
 			icon = contact->m_IconAbove;
-		else if ( z_delta < -125.0f && contact->m_IconBelow )
+		else if (z_delta < floorheight * -1 && contact->m_IconBelow)
 			icon = contact->m_IconBelow;
 		else
 			icon = contact->m_Icon;
@@ -627,9 +640,9 @@ void CGERadar::DrawIconOnRadar( CGERadarContact *contact, Color col )
 	}
 	else if ( contact->m_iType == RADAR_TYPE_TOKEN )
 	{
-		if ( z_delta > 125.0f )
+		if ( z_delta > floorheight )
 			icon = m_IconTokenAbove;
-		else if ( z_delta < -125.0f )
+		else if ( z_delta < floorheight * -1 )
 			icon = m_IconTokenBelow;
 		else
 			icon = m_IconToken;
@@ -639,9 +652,9 @@ void CGERadar::DrawIconOnRadar( CGERadarContact *contact, Color col )
 	}
 	else
 	{
-		if ( z_delta > 125.0f )
+		if ( z_delta > floorheight )
 			icon = m_IconBlipAbove;
-		else if ( z_delta < -125.0f )
+		else if ( z_delta < floorheight * -1 )
 			icon = m_IconBlipBelow;
 		else
 			icon = m_IconBlip;
