@@ -1,0 +1,3 @@
+[submodule "thirdparty/python"]
+	path = thirdparty/python
+	url = https://github.com/python-cmake-buildsystem/python-cmake-buildsystem.git

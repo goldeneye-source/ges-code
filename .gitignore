@@ -77,14 +77,8 @@ lib/public/**/vgui_controls.*
 # shader files
 *.tmp
 
-#codelite files
-*.project
-*.batch_build
-.codelite/
-
 #linux
 .directory
 
 #GES Specific
-bin/
-libpython3.so
+build*/
