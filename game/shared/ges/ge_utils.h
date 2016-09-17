@@ -13,10 +13,6 @@
 #include "mathlib/IceKey.H"
 #include "filesystem.h"
 
-// Convience function to iterate over a CUtlDict
-#define FOR_EACH_DICT( dictName, iterName ) \
-	for ( int iterName = dictName.First(); iterName != dictName.InvalidIndex(); iterName = dictName.Next(iterName) )
-
 // Encrypt/Decrypt using ICE
 void GEUTIL_EncryptICE( unsigned char * buffer, int size, const unsigned char *key );
 bool GEUTIL_DEncryptFile(const char* filename, const unsigned char* key, bool bEncrypt = true, bool bChangeExt = false);

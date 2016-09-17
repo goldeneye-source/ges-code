@@ -15,8 +15,9 @@
 #include "tier0/vprof.h"
 
 #ifdef GE_DLL
-  #include "npc_gebase.h"
-  #include "ge_gamerules.h"
+#include "ai_basenpc.h"
+#include "ge_gamerules.h"
+#include "gebot_player.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -410,7 +411,7 @@ void CLagCompensationManager::FrameUpdatePostEntityThink()
 			LagRecordNPC &head = track->Element( track->Head() );
  
 			// check if entity changed simulation time since last time updated
-			if ( &head && head.m_flSimulationTime >= pNPC->GetSimulationTime() )
+			if ( head.m_flSimulationTime >= pNPC->GetSimulationTime() )
 				continue; // don't add new entry for same or older time
  
 			// Simulation Time is set when an entity moves or rotates ...
@@ -555,13 +556,13 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	// also iterate all monsters
 	for ( int i = 0; i < nAIs; i++ )
 	{
-        // Custom checks for if bots should lag compensate
-        CGEBotPlayer *pBot = ToGEBotPlayer( ppAIs[i] );
-		if ( !pBot || !player->WantsLagCompensationOnEntity( pBot, cmd, pEntityTransmitBits ) )
+		CAI_BaseNPC *pNPC = ppAIs[i];
+		// Custom checks for if things should lag compensate
+		if ( !pNPC || !player->WantsLagCompensationOnEntity( pNPC, cmd, pEntityTransmitBits ) )
 			continue;
  
 		// Move NPC back in time
-		BacktrackEntity( ppAIs[i], TICKS_TO_TIME( targettick ) );
+		BacktrackEntity( pNPC, TICKS_TO_TIME( targettick ) );
 	}
 #endif
 }
@@ -1309,10 +1310,28 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 
 #ifdef GE_DLL
 		// Modify Collision Bounds back to normal
-		if ( pPlayer->GetFlags() & FL_DUCKING )
-			pPlayer->SetCollisionBounds( VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
+		CGEBotPlayer *pBotPlayer = ToGEBotPlayer(pPlayer);
+
+		if (pBotPlayer)
+		{
+			CNPC_GEBase *pBotNPC = pBotPlayer->GetNPC();
+			// Modify Collision Bounds back to normal
+			if (pBotNPC)
+			{
+				if (pBotNPC->GetFlags() & FL_DUCKING)
+					pBotNPC->SetCollisionBounds(VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX);
+				else
+					pBotNPC->SetCollisionBounds(VEC_HULL_MIN, VEC_HULL_MAX);
+			}
+		}
 		else
-			pPlayer->SetCollisionBounds( VEC_HULL_MIN, VEC_HULL_MAX );
+		{
+			// Modify Collision Bounds back to normal
+			if (pPlayer->GetFlags() & FL_DUCKING)
+				pPlayer->SetCollisionBounds(VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX);
+			else
+				pPlayer->SetCollisionBounds(VEC_HULL_MIN, VEC_HULL_MAX);
+		}
 #endif
 
 		LagRecord *restore = &m_RestoreData[ pl_index ];
