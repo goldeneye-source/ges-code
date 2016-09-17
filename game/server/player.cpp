@@ -5873,7 +5873,11 @@ CBaseEntity	*CBasePlayer::GiveNamedItem( const char *pszName, int iSubType )
 		return NULL;
 	}
 
+#ifdef GE_DLL
+	pent->SetLocalOrigin( GetLocalOrigin() + Vector(0, 0, 32) );
+#else
 	pent->SetLocalOrigin( GetLocalOrigin() );
+#endif
 	pent->AddSpawnFlags( SF_NORESPAWN );
 
 	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon*>( (CBaseEntity*)pent );

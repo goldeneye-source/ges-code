@@ -26,8 +26,10 @@
 CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectImpacts )
 CLIENTEFFECT_MATERIAL( "effects/fleck_cement1" )
 CLIENTEFFECT_MATERIAL( "effects/fleck_cement2" )
+#ifndef GE_DLL
 CLIENTEFFECT_MATERIAL( "effects/fleck_antlion1" )
 CLIENTEFFECT_MATERIAL( "effects/fleck_antlion2" )
+#endif
 CLIENTEFFECT_MATERIAL( "effects/fleck_wood1" )
 CLIENTEFFECT_MATERIAL( "effects/fleck_wood2" )
 CLIENTEFFECT_MATERIAL( "effects/blood" )
@@ -57,10 +59,10 @@ void FX_CacheMaterialHandles( void )
 
 	g_Mat_Fleck_Cement[0] = ParticleMgr()->GetPMaterial( "effects/fleck_cement1");
 	g_Mat_Fleck_Cement[1] = ParticleMgr()->GetPMaterial( "effects/fleck_cement2" );
-
+#ifndef GE_DLL
 	g_Mat_Fleck_Antlion[0] = ParticleMgr()->GetPMaterial( "effects/fleck_antlion1" );
 	g_Mat_Fleck_Antlion[1] = ParticleMgr()->GetPMaterial( "effects/fleck_antlion2" );
-
+#endif
 	g_Mat_Fleck_Glass[0] = ParticleMgr()->GetPMaterial( "effects/fleck_glass1" );
 	g_Mat_Fleck_Glass[1] = ParticleMgr()->GetPMaterial( "effects/fleck_glass2" );
 

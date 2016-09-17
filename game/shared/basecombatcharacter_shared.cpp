@@ -8,6 +8,10 @@
 #include "cbase.h"
 #include "ammodef.h"
 
+#ifdef GE_DLL
+#include "gemp_gamerules.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -128,6 +132,11 @@ CBaseCombatWeapon *CBaseCombatCharacter::GetActiveWeapon() const
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::RemoveAmmo( int iCount, int iAmmoIndex )
 {
+#ifdef GE_DLL
+	if (GEMPRules()->InfAmmoEnabled())
+		return;
+#endif
+
 	if (iCount <= 0)
 		return;
 

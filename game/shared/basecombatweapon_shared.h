@@ -647,6 +647,10 @@ private:
 	float					m_flHudHintPollTime;	// When to poll the weapon again for whether it should display a hud hint.
 	float					m_flHudHintMinDisplayTime; // if the hint is squelched before this, reset my counter so we'll display it again.
 	
+#ifdef GE_DLL
+	bool					m_bEmptySwitch; // If we drew this weapon with no ammo or not.  Used to tell automatic weapon switch to not instantly switch away.
+#endif
+
 	// Server only
 #if !defined( CLIENT_DLL )
 

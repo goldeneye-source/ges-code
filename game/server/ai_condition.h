@@ -28,7 +28,7 @@ enum SCOND_t
 	
 	COND_IN_PVS,
 	COND_IDLE_INTERRUPT,	// The schedule in question is a low priority idle, and therefore a candidate for translation into something else
-	
+	COND_LOW_WEAPON_WEIGHT,
 	COND_LOW_PRIMARY_AMMO,
 	COND_NO_PRIMARY_AMMO,
 	COND_NO_SECONDARY_AMMO,

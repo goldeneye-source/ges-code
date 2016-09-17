@@ -1583,17 +1583,15 @@ protected:
 #ifdef GE_DLL
 	// Base this so it can be used by NPC's as well
 	virtual void HandleBulletPenetration( CBaseCombatWeapon *pBaseWeapon, const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
-	// Made virtual and removed const on the trace
-	virtual void HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+
+	inline const Vector ApplySpreadGauss(const Vector &vecSpread, const Vector &vecShotDir, int gfactor, int pseed);
 #endif
 
 	// Handle shot entering water
 	bool HandleShotImpactingWater( const FireBulletsInfo_t &info, const Vector &vecEnd, ITraceFilter *pTraceFilter, Vector *pVecTracerDest );
 
 	// Handle shot entering water
-#ifndef GE_DLL
-	void HandleShotImpactingGlass( const FireBulletsInfo_t &info, const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
-#endif
+	virtual void HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
 	
 	// Should we draw bubbles underwater?
 	bool ShouldDrawUnderwaterBulletBubbles();

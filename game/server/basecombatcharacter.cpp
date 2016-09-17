@@ -39,6 +39,10 @@
 #include "saverestoretypes.h"
 #include "nav_mesh.h"
 
+#ifdef GE_DLL
+#include "ge_player.h"
+#endif
+
 #ifdef NEXT_BOT
 #include "NextBot/NextBotManager.h"
 #endif
@@ -1597,6 +1601,16 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	{
 		forceVector += pMagnet->GetForceVector( this );
 	}
+
+#ifdef GE_DLL
+	CGEPlayer *pGEPlayer = ToGEPlayer(this);
+
+	if (pGEPlayer)
+	{
+		pGEPlayer->DropAllTokens(); // Doing this here so OnPlayerKilled is called before OnTokenDropped.
+		pGEPlayer->DropTopWeapons(); // We have to do this here for ideal weapon drop behavior (like allowing gamemodes to prevent it)
+	}
+#endif
 
 	CBaseCombatWeapon *pDroppedWeapon = m_hActiveWeapon.Get();
 

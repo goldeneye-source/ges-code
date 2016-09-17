@@ -28,6 +28,10 @@ DECLARE_HUDELEMENT( CHudHistoryResource );
 DECLARE_HUD_MESSAGE( CHudHistoryResource, ItemPickup );
 DECLARE_HUD_MESSAGE( CHudHistoryResource, AmmoDenied );
 
+#ifdef GE_DLL
+ConVar cl_ge_show_pickuphistory("cl_ge_show_pickuphistory", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Show what weapons we just picked up along the right side of the screen.");
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
@@ -289,6 +293,11 @@ void CHudHistoryResource::CheckClearHistory( void )
 //-----------------------------------------------------------------------------
 bool CHudHistoryResource::ShouldDraw( void )
 {
+#ifdef GE_DLL
+	if (!cl_ge_show_pickuphistory.GetBool())
+		return false;
+#endif
+
 #ifdef TF_CLIENT_DLL
 	return false;
 #else

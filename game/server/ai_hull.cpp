@@ -38,7 +38,7 @@ ai_hull_t  Large_Centered_Hull	(bits_LARGE_CENTERED_HULL,	"LARGE_CENTERED_HULL",
 ai_hull_t  Medium_Tall_Hull		(bits_MEDIUM_TALL_HULL,		"MEDIUM_TALL_HULL",		Vector(-18,-18,   0),	Vector(18, 18, 100),	Vector(-12,-12, 0),	    Vector(12, 12, 100) );
 #else
 #ifdef GE_DLL
-ai_hull_t  Human_Hull			(bits_HUMAN_HULL,			"HUMAN_HULL",			Vector(-12,-12,   0),	Vector(12, 12, 72),		Vector(-12,-12,   0),		Vector( 12,  12, 72) );
+ai_hull_t  Human_Hull			(bits_HUMAN_HULL,			"HUMAN_HULL",			Vector(-12.5,-12.5,   0),	Vector(12.5, 12.5, 72),		Vector(-12.5,-12.5,   0),		Vector( 12.5,  12.5, 72) );
 #else
 ai_hull_t  Human_Hull			(bits_HUMAN_HULL,			"HUMAN_HULL",			Vector(-13,-13,   0),	Vector(13, 13, 72),		Vector(-8,-8,   0),		Vector( 8,  8, 72) );
 #endif

@@ -370,7 +370,9 @@ void CBaseHudChatLine::PerformFadeout( void )
 
 	OnThink();
 }
-
+#ifdef GE_DLL
+ConVar cl_ge_drawchat("cl_ge_drawchat", "1", FCVAR_ARCHIVE | FCVAR_USERINFO, "Draw the chat.");
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : time - 
@@ -378,6 +380,11 @@ void CBaseHudChatLine::PerformFadeout( void )
 void CBaseHudChatLine::SetExpireTime( void )
 {
 	m_flStartTime = gpGlobals->curtime;
+#ifdef GE_DLL
+	if (!cl_ge_drawchat.GetBool())
+		m_flExpireTime = m_flStartTime;
+	else
+#endif
 	m_flExpireTime = m_flStartTime + hud_saytext_time.GetFloat();
 	m_nCount = CBaseHudChat::m_nLineCounter++;
 }
@@ -1803,6 +1810,11 @@ void CBaseHudChatLine::Colorize( int alpha )
 			{	
 				pChat->GetChatHistory()->InsertColorChange( color );
 				pChat->GetChatHistory()->InsertString( wText );
+#ifdef GE_DLL
+				if (!cl_ge_drawchat.GetBool() && !Q_strcmp(pChat->GetClassName(), "CHudChat"))
+					pChat->GetChatHistory()->InsertFade(0, CHAT_HISTORY_IDLE_FADE_TIME);
+				else
+#endif
 				pChat->GetChatHistory()->InsertFade( hud_saytext_time.GetFloat(), CHAT_HISTORY_IDLE_FADE_TIME );
 
 				if ( i == m_textRanges.Count()-1 )

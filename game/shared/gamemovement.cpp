@@ -1223,11 +1223,15 @@ void CGameMovement::FinishMove( void )
 {
 	mv->m_nOldButtons = mv->m_nButtons;
 }
-
-#define PUNCH_DAMPING		9.0f		// bigger number makes the response more damped, smaller is less damped
+#ifdef GE_DLL
+#define PUNCH_DAMPING		25.0f		// bigger number makes the response more damped, smaller is less damped
 										// currently the system will overshoot, with larger damping values it won't
-#define PUNCH_SPRING_CONSTANT	65.0f	// bigger number increases the speed at which the view corrects
+#define PUNCH_SPRING_CONSTANT	800.0f	// bigger number increases the speed at which the view corrects
+#else
+#define PUNCH_DAMPING		9.0f		// bigger number makes the response more damped, smaller is less damped
 
+#define PUNCH_SPRING_CONSTANT	65.0f	// bigger number increases the speed at which the view corrects
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Decays the punchangle toward 0,0,0.
 //			Modelled as a damped spring
@@ -1851,13 +1855,17 @@ void CGameMovement::Accelerate( Vector& wishdir, float wishspeed, float accel )
 	if ( !CanAccelerate() )
 		return;
 
+#ifdef GE_DLL
+	// See if we are changing direction a bit
+	// currentspeed = mv->m_vecVelocity.Dot(wishdir);
+	// Enable the below line to disable wall run speed increase
+	currentspeed = sqrt( DotProduct(mv->m_vecVelocity, mv->m_vecVelocity) );
+#else
 	// See if we are changing direction a bit
 	currentspeed = mv->m_vecVelocity.Dot(wishdir);
-#ifdef GE_DLL
 	// Enable the below line to disable wall run speed increase
 	//currentspeed = sqrt( DotProduct(mv->m_vecVelocity, mv->m_vecVelocity) );
 #endif
-
 	// Reduce wishspeed by the amount of veer.
 	addspeed = wishspeed - currentspeed;
 
@@ -1936,10 +1944,18 @@ void CGameMovement::WalkMove( void )
 
 	CHandle< CBaseEntity > oldground;
 	oldground = player->GetGroundEntity();
+	#ifdef GE_DLL
 	
+	float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+
+	fmove = mv->m_flForwardMove * (1 - max(jumppenalty - 20, 0) / 160);
+	smove = mv->m_flSideMove * (1 - max(jumppenalty - 20, 0) / 160);
+	
+	#else
 	// Copy movement amounts
 	fmove = mv->m_flForwardMove;
 	smove = mv->m_flSideMove;
+	#endif
 
 	// Zero out z components of movement vectors
 	if ( g_bMovementOptimizations )
@@ -1973,20 +1989,117 @@ void CGameMovement::WalkMove( void )
 	VectorCopy (wishvel, wishdir);   // Determine maginitude of speed of move
 	wishspeed = VectorNormalize(wishdir);
 
+#ifdef GE_DLL
+	//
+
+	// Clamp to server defined max speed
+
+	int fcode, scode, newcode;
+
+	fcode = scode = 0;
+
+	if (fmove > 0)
+		fcode = 2;
+	else if (fmove < 0)
+		fcode = 1;
+
+	if (smove > 0)
+		scode = 2;
+	else if (smove < 0)
+		scode = 1;
+
+	//
+	newcode = scode * 3 + fcode;
+
+	Vector2D curmove2D = mv->m_vecVelocity.AsVector2D();
+	Vector2D wishmove2D = wishdir.AsVector2D();
+	Vector2DNormalize(curmove2D);
+	float turndot = curmove2D.Dot(wishmove2D);
+
+	// Tried to turn too quickly or went into aimmode.
+	if (turndot < 0.5 || ((CGEMPPlayer*)player)->IsInAimMode()) // 30 degree difference between movedir and wishdir.  This means higher friction equates to faster turning.
+	{
+		((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime);
+	}
+
+	float strafeboost = 1.0;
+	int prevcode = ((CGEMPPlayer*)player)->GetRunCode();
+	float runtime = gpGlobals->curtime - ((CGEMPPlayer*)player)->GetRunStartTime();
+
+	int pfcode, pscode;
+
+	pfcode = prevcode % 3;
+	pscode = (prevcode - pfcode)/3;
+
+	bool prevstrafe = (pfcode * pscode != 0);
+	bool newstrafe = (fcode * scode != 0);
+
+	if (prevcode != newcode) // We changed directions
+	{
+		if (newstrafe)
+		{
+			if (prevstrafe) // Continuing a strafe
+				((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime - clamp(runtime, 0, 1.5));
+			else // Just started strafing
+				((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime - clamp(runtime * -2, 0, 1.5));
+		}
+		else // Not strafing
+		{
+			if (prevstrafe) // Stopped strafing
+				((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime + clamp(runtime / 2, 0, 0.75)); //Timer is half the length so decays twice as fast.
+			// We don't need to update for non-strafe to non-strafe.
+		}
+
+		((CGEMPPlayer*)player)->SetRunCode(newcode);
+	}
+	
+	if (fcode * scode == 0)
+		runtime = min(runtime, 0); //Don't let runtime become positive when not strafing.  Otherwise acceleration is possible.
+
+	if (runtime >= 0)
+		strafeboost = clamp(runtime * 0.4 + 0.8, 1, 1.4);
+	else
+		strafeboost = clamp(runtime * -0.8 + 0.8, 1, 1.4); //The decay timer is only half the length so the formula needs to be adjusted for that.
+
+	//Calculate aimmode speed penalty.
+
+	float aimpenalty = 1;
+
+	if (((CGEMPPlayer*)player)->StartedAimMode())
+		aimpenalty = GE_AIM_SPEED_MULT;
+
+
 	//
 	// Clamp to server defined max speed
 	//
+
 	if ((wishspeed != 0.0f) && (wishspeed > mv->m_flMaxSpeed))
 	{
-		VectorScale (wishvel, mv->m_flMaxSpeed/wishspeed, wishvel);
+		VectorScale(wishvel, mv->m_flMaxSpeed / wishspeed, wishvel);
 		wishspeed = mv->m_flMaxSpeed;
 	}
 
 	// Set pmove velocity
 	mv->m_vecVelocity[2] = 0;
-	Accelerate ( wishdir, wishspeed, sv_accelerate.GetFloat() );
+	Accelerate(wishdir, wishspeed * strafeboost * aimpenalty, sv_accelerate.GetFloat());
 	mv->m_vecVelocity[2] = 0;
+#else
 
+	// Add in any base velocity to the current velocity.
+	// Clamp to server defined max speed
+	//
+
+	if ((wishspeed != 0.0f) && (wishspeed > mv->m_flMaxSpeed))
+	{
+		VectorScale(wishvel, mv->m_flMaxSpeed / wishspeed, wishvel);
+		wishspeed = mv->m_flMaxSpeed;
+	}
+
+	// Set pmove velocity
+	mv->m_vecVelocity[2] = 0;
+	Accelerate(wishdir, wishspeed, sv_accelerate.GetFloat());
+	mv->m_vecVelocity[2] = 0;
+#endif
 	// Add in any base velocity to the current velocity.
 	VectorAdd (mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
 
@@ -2006,7 +2119,11 @@ void CGameMovement::WalkMove( void )
 	dest[2] = mv->GetAbsOrigin()[2];
 
 	// first try moving directly to the next spot
-	TracePlayerBBox( mv->GetAbsOrigin(), dest, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+	TracePlayerBBox( mv->GetAbsOrigin(), dest, PlayerSolidMask(), player->GetCollisionGroup(), pm );
+
+#ifdef GE_DLL
+	Vector hitnorm = pm.plane.normal;
+#endif
 
 	// If we made it all the way, then copy trace end as new player position.
 	mv->m_outWishVel += wishdir * wishspeed;
@@ -2038,6 +2155,17 @@ void CGameMovement::WalkMove( void )
 	}
 
 	StepMove( dest, pm );
+	
+#ifdef GE_DLL
+	if (mv->m_outStepHeight == 0) // We hit a wall or some other obstruction
+	{
+		Vector2D hitnorm2D = hitnorm.AsVector2D();
+		Vector2DNormalize(hitnorm2D);
+
+		if (hitnorm2D.Dot(wishmove2D) < -0.35) // We hit it more than a 20 degree angle, kill strafe run.
+			((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime);
+	}
+#endif
 
 	// Now pull the base velocity back out.   Base velocity is set if you are on a moving object, like a conveyor (or maybe another monster?)
 	VectorSubtract( mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
@@ -2107,14 +2235,54 @@ void CGameMovement::FullWalkMove( )
 	// Not fully underwater
 	{
 	#ifdef GE_DLL
-		if ( player->GetGroundEntity() != NULL && ((CGEPlayer*)player)->IsMPPlayer() && !((CGEMPPlayer*)player)->GetNextJumpTime() )
+		if (player->GetGroundEntity() != NULL && ((CGEPlayer*)player)->IsMPPlayer() && !((CGEMPPlayer*)player)->GetNextJumpTime())
 		{
 			// Ok so we landed but we don't have a next jump time yet, so set it now
-			float delta = abs( ((CGEMPPlayer*)player)->GetStartJumpZ() - player->GetAbsOrigin().z );
- 			((CGEMPPlayer*)player)->SetNextJumpTime( gpGlobals->curtime + ((delta < 30) ? RemapValClamped(delta,0,30,0.65,0) : 0));
+			((CGEMPPlayer*)player)->SetNextJumpTime(gpGlobals->curtime + 0.5);
+
+			float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+
+			// Also give a penalty for landing from a jump
+			// and cap out the penalty so it doesn't send jumppenalty above 50
+			if (jumppenalty < 50)
+			{
+				((CGEMPPlayer*)player)->SetJumpPenalty(min(jumppenalty + 15, 50));
+				//DevMsg("Added extra penalty, jumppenalty is now %f \n", ((CGEMPPlayer*)player)->GetJumpPenalty());
+			}
+
+			// Make sure we don't continue a strafe run after loosing a bunch of speed to something in midair.
+			// Appears twice, here it takes into account jumps with very short falls and the other one takes into account
+			// falls without any preceeding jump.  At some point I should add a "OnLanded" function or something.
+			if (player->GetAbsVelocity().Length2D() < GE_NORM_SPEED)
+				((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime);
+
 			// Make sure we don't use crouched hit boxes on landing
 			player->m_Local.m_bInDuckJump = false;
 		}
+
+		//Get the jump penalty and use it to lower the player's view slightly
+		float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+		float landingforce = ((CGEMPPlayer*)player)->GetLastLandingVelocity();
+
+		// This is a very shoddy method of integrating the penalty viewoffset with the ducking viewoffset.
+		// Basically we only call it from here when the player is not ducking because otherwise all of the viewoffset stuff
+		// Is calculated from the code that handles the duck viewoffset which will get called during a duck.
+		// This may be the dinkiest thing i've ever coded but how else can it even be done?
+
+		// The first checks are to see if the jumppenalty is enough to adjust the view, the second set is to see if the player is ducking or in a duck jump
+		if ((jumppenalty >= 10 && (landingforce > 300 || jumppenalty > 55)) && !((player->m_Local.m_bDucking) || (player->m_Local.m_flDuckJumpTime && player->m_Local.m_flDuckJumpTime != 0.0f)))
+		{
+			// If player is fully ducked this function doesn't get called anymore under normal conditions
+			// So we need to force it to get called again with the proper parameters
+			if (player->GetFlags() & FL_DUCKING)
+				SetDuckedEyeOffset(1.0);
+			else
+				SetDuckedEyeOffset(-1);
+		}
+
+		//If the player is on the ground, start reducing their jumppenalty
+		if (jumppenalty > 0 && player->GetGroundEntity() != NULL)
+			((CGEMPPlayer*)player)->SetJumpPenalty(max(jumppenalty - gpGlobals->frametime* (3600 / (jumppenalty + 40)), 0)); //The lower it is the faster it decays
 	#endif
 
 		// Was jump button pressed?
@@ -2134,7 +2302,29 @@ void CGameMovement::FullWalkMove( )
 			mv->m_vecVelocity[2] = 0.0;
 			Friction();
 		}
+#ifdef GE_DLL
+		// Calculate slipnslide acceleration values.  No other material has a friction value this low so we should be able to get away with this.
+		// If you want to make this system more robust, use gradiants to find the steepest angle up the slope from the endtrace point
+		// Then accelerate the player in the opposite direction from that.  Also add a special flag or something to make slip surfaces
+		// idenfiable beyond the low friction coefficient, this will allow for higher friction surfaces.  I just don't see this being used
+		// enough at the moment to justify doing all of that.  Have fun!
+		if (player->GetGroundEntity() != NULL && player->m_surfaceFriction < 0.25)
+		{
+			trace_t bt, lt;
+			TracePlayerBBox(mv->GetAbsOrigin(), mv->GetAbsOrigin() + Vector(0, 0, -32), PlayerSolidMask(), player->GetCollisionGroup(), bt);
 
+			if (bt.fraction != 1.0 && bt.plane.normal.z != 1)
+			{
+				// Yeah we probably should use gradiants for this but for the very limited purpose this has it's probably not worth it.
+				float speed = bt.plane.normal.z * sv_gravity.GetInt(); // Cosine of the angle of the vector from the z axis multiplied by gravity.  The higher the angle the slower we go.
+				Vector movedir = bt.plane.normal;
+				movedir.z = 0;
+				movedir.NormalizeInPlace();
+				
+				mv->m_vecVelocity += speed * movedir * gpGlobals->frametime * 0.4; // Dampened slightly to cover up the dinkyness.
+			}
+		}
+#endif
 		// Make sure velocity is valid.
 		CheckVelocity();
 
@@ -2402,8 +2592,39 @@ bool CGameMovement::CheckJumpButton( void )
 	}
 
 #ifdef GE_DLL
-	if ( !ge_allowjump.GetBool() || (((CGEPlayer*)player)->IsMPPlayer() && gpGlobals->curtime < ((CGEMPPlayer*)player)->GetNextJumpTime()) )
+//	if ( !ge_allowjump.GetBool() || (((CGEPlayer*)player)->IsMPPlayer() && gpGlobals->curtime < ((CGEMPPlayer*)player)->GetNextJumpTime()) )
+	if (!ge_allowjump.GetBool() || (((CGEPlayer*)player)->IsMPPlayer() && ((CGEMPPlayer*)player)->GetJumpPenalty() > 50) )
 		return false;
+
+	// Cap out movement speed on subsequent jumps to prevent bhopping exploits.
+	if (((CGEPlayer*)player)->IsMPPlayer() && (gpGlobals->curtime < ((CGEMPPlayer*)player)->GetNextJumpTime()))
+	{
+		float jumpPenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+		float jumpCap = 250;
+		Vector PLVelocity = player->GetAbsVelocity();
+		Vector PLVelocity2D = PLVelocity;
+		PLVelocity2D.z = 0;
+		float PLSpeed2D = PLVelocity2D.Length();
+		float heightdelta = abs(((CGEMPPlayer*)player)->GetStartJumpZ() - player->GetAbsOrigin().z);
+
+		//If the jump penalty exceeds 20, start applying jump speed cap reductions
+		if (jumpPenalty > 20)
+		{
+			//If significant height change, don't be as harsh on crouch jump reduction
+			if (heightdelta < 30)
+				jumpCap -= player->IsDucked() ? (max(jumpPenalty - 20, 0) * 5) : max(jumpPenalty - 20, 0); //Max value reduces cap to 180 on crouch, 220 otherwise
+			else
+				jumpCap -= player->IsDucked() ? (jumpPenalty - 20) : (jumpPenalty - 20); //Max value reduces cap to 220 on crouch, 220 otherwise
+		}
+		if (heightdelta > 30 && jumpPenalty < 40) // Give a slight speedcap boost for special cases, this is mostly for jumping down ramps and off railings.  Will only work for the second jump since any subsequent ones will almost always put the penalty past 40.
+			jumpCap += 50;
+
+		if (PLSpeed2D > jumpCap)
+		{
+			VectorNormalize(PLVelocity2D);
+			mv->m_vecVelocity = PLVelocity2D * jumpCap + Vector(0, 0, PLVelocity.z);
+		}
+	}
 #endif
 
 	// See if we are waterjumping.  If so, decrement count and return.
@@ -2471,6 +2692,18 @@ bool CGameMovement::CheckJumpButton( void )
 	{
 		((CGEMPPlayer*)player)->SetStartJumpZ(player->GetAbsOrigin().z);
 		((CGEMPPlayer*)player)->SetNextJumpTime(0.0f);
+
+		float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+
+		if (jumppenalty >= 10 && (((CGEMPPlayer*)player)->GetLastLandingVelocity() > 300 || jumppenalty > 55))
+		{
+			// To prevent view getting stuck at a low posistion after jumping with a view penalty.
+			((CGEMPPlayer*)player)->SetLastLandingVelocity(0);
+			if (player->GetFlags() & FL_DUCKING)
+				SetDuckedEyeOffset(1.0);
+			else
+				SetDuckedEyeOffset(-1);
+		}
 	}
 #endif
 	
@@ -2490,7 +2723,11 @@ bool CGameMovement::CheckJumpButton( void )
 #ifdef GE_DLL
 		Assert( GetCurrentGravity() == 700.0f );
 		//flMul = 250.998007960222f; //45 units
-		flMul = 204.93901531919196f; //30 units
+		//flMul = 204.93901531919196f; //30 units
+		//-v^2/2*-gravity = d
+		//d = v^2/1400
+		//v = sqrt(34*1400)
+		flMul = 218.174242293; //34 units
 #else
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 		Assert( GetCurrentGravity() == 600.0f );
@@ -3992,6 +4229,27 @@ void CGameMovement::CheckFalling( void )
 				player->m_Local.m_flFallVelocity = MAX( 0.1f, player->m_Local.m_flFallVelocity );
 			}
 
+			#ifdef GE_DLL
+			float fallvalue = player->m_Local.m_flFallVelocity - PLAYER_FALL_PUNCH_THRESHOLD;
+
+			if (player->IsDucked()) // Landing while ducked squares our fall penalty.
+				fallvalue *= 1.22; //sqrt(1.5) since it gets squared later and we only want to multiply the final value by 1.5
+
+			((CGEMPPlayer*)player)->SetJumpPenalty(min(((CGEMPPlayer*)player)->GetJumpPenalty() + fallvalue*fallvalue / 4624, 100)); //vel^2 / ((800-120)^2/100)
+			((CGEMPPlayer*)player)->SetLastLandingVelocity(player->m_Local.m_flFallVelocity);
+
+			// Only reset landing time if it is greater than the previous one, a given threshold, or the player has landed from a jump
+			// Resetting this time means it will take longer for the player to recover from the landing
+			if (player->m_Local.m_flFallVelocity >= ((CGEMPPlayer*)player)->GetLastLandingVelocity() || player->m_Local.m_flFallVelocity > 300 || !((CGEMPPlayer*)player)->GetNextJumpTime())
+			{
+				((CGEMPPlayer*)player)->SetLastJumpTime(gpGlobals->curtime);
+			}
+
+			// Make sure we don't continue a strafe run after loosing a bunch of speed to something in midair.
+			if (player->GetAbsVelocity().Length2D() < GE_NORM_SPEED)
+				((CGEMPPlayer*)player)->SetRunStartTime(gpGlobals->curtime);
+			#endif
+
 			if ( player->m_Local.m_flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED )
 			{
 				//
@@ -4008,9 +4266,18 @@ void CGameMovement::CheckFalling( void )
 			{
 				fvol = 0;
 			}
-		}
 
+			#ifdef GE_DLL
+			fvol = min((player->m_Local.m_flFallVelocity - PLAYER_MIN_BOUNCE_SPEED) / (PLAYER_MAX_SAFE_FALL_SPEED - PLAYER_MIN_BOUNCE_SPEED), 1.0);
+			#endif
+
+		}
+		#ifdef GE_DLL
+		if (fvol > 0.5)
+			PlayerRoughLandingEffects( fvol );
+		#else
 		PlayerRoughLandingEffects( fvol );
+		#endif
 
 		if (bAlive)
 		{
@@ -4119,13 +4386,17 @@ bool CGameMovement::CanUnduck()
 	}
 	else
 	{
+#ifdef GE_DLL
 		// If in air an letting go of crouch, make sure we can offset origin to make
+		return false;
+#else
 		//  up for uncrouching
 		Vector hullSizeNormal = VEC_HULL_MAX_SCALED( player ) - VEC_HULL_MIN_SCALED( player );
 		Vector hullSizeCrouch = VEC_DUCK_HULL_MAX_SCALED( player ) - VEC_DUCK_HULL_MIN_SCALED( player );
 		Vector viewDelta = ( hullSizeNormal - hullSizeCrouch );
 		viewDelta.Negate();
 		VectorAdd( newOrigin, viewDelta, newOrigin );
+#endif
 	}
 
 	bool saveducked = player->m_Local.m_bDucked;
@@ -4331,21 +4602,69 @@ void CGameMovement::StartUnDuckJump( void )
 // Purpose: 
 // Input  : duckFraction - 
 //-----------------------------------------------------------------------------
+
+#ifdef GE_DLL
 void CGameMovement::SetDuckedEyeOffset( float duckFraction )
 {
- 	Vector vDuckHullMin = GetPlayerMins( true );
-	Vector vStandHullMin = GetPlayerMins( false );
+	Vector vDuckHullMin = GetPlayerMins(true);
+	Vector vStandHullMin = GetPlayerMins(false);
 
-	float fMore = ( vDuckHullMin.z - vStandHullMin.z );
+	float fMore = (vDuckHullMin.z - vStandHullMin.z);
 
-	Vector vecDuckViewOffset = GetPlayerViewOffset( true );
-	Vector vecStandViewOffset = GetPlayerViewOffset( false );
+	Vector vecDuckViewOffset = GetPlayerViewOffset(true);
+	Vector vecStandViewOffset = GetPlayerViewOffset(false);
 	Vector temp = player->GetViewOffset();
-	temp.z = ( ( vecDuckViewOffset.z - fMore ) * duckFraction ) +
-				( vecStandViewOffset.z * ( 1 - duckFraction ) );
+
+	// Checks to see if we are calling this through the duck code or the jump penalty code.  They should never both be calling it at once.
+	// If we are currently ducking, adjust the view offset accordingly, if not assume it is max.
+	if (duckFraction != -1)
+		temp.z = ((vecDuckViewOffset.z - fMore) * duckFraction) + (vecStandViewOffset.z * (1 - duckFraction));
+	else
+	{
+		duckFraction = 0; //Set this to 0 here so the math later will make sense.
+		temp.z = vecStandViewOffset.z;
+	}
+	
+
+	float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
+	float landingforce = ((CGEMPPlayer*)player)->GetLastLandingVelocity();
+
+	if (jumppenalty >= 10 && (landingforce > 300 || jumppenalty > 55))
+	{
+		Vector viewOffset;
+//		Vector const prevoffset = (player->GetViewOffset() - temp.z * -1);
+		Vector const penaltyVector = Vector(0, 0, min(max(jumppenalty - 15, 0) / 3, 16));
+
+		//Some math so we can match initial interp speed to initial falling speed
+		float dt = (gpGlobals->curtime - ((CGEMPPlayer*)player)->GetLastJumpTime());
+		float interpcof = (landingforce / penaltyVector.z) / 10;
+		float interpfraction = min(sqrt(dt*interpcof), 1);
+
+		VectorLerp(Vector(0, 0, 0), penaltyVector, interpfraction, viewOffset);
+
+		temp.z -= viewOffset.z * (1 - duckFraction * 0.75);
+	}
+	else if (landingforce > 0)
+			((CGEMPPlayer*)player)->SetLastLandingVelocity(0);
+
 	player->SetViewOffset( temp );
 }
+#else
+void CGameMovement::SetDuckedEyeOffset( float duckFraction )
+{
+	Vector vDuckHullMin = GetPlayerMins(true);
+	Vector vStandHullMin = GetPlayerMins(false);
 
+	float fMore = (vDuckHullMin.z - vStandHullMin.z);
+
+	Vector vecDuckViewOffset = GetPlayerViewOffset(true);
+	Vector vecStandViewOffset = GetPlayerViewOffset(false);
+	Vector temp = player->GetViewOffset();
+	temp.z = ((vecDuckViewOffset.z - fMore) * duckFraction) +
+		(vecStandViewOffset.z * (1 - duckFraction));
+	player->SetViewOffset(temp);
+}
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Crop the speed of the player when ducking and on the ground.
 //   Input: bInDuck - is the player already ducking
@@ -4358,9 +4677,8 @@ void CGameMovement::HandleDuckingSpeedCrop( void )
 	{
 		float frac = 0.33333333f;
 	#ifdef GE_DLL
-		// Ducked players actually speed up a little when aimed
-		if ( ToGEPlayer(player)->IsInAimMode() )
-			frac = 0.75f;
+		// Increase ducked speed to be more in line with GE64
+		frac = 0.55f;
 	#endif
 		mv->m_flForwardMove	*= frac;
 		mv->m_flSideMove	*= frac;
@@ -4595,9 +4913,11 @@ void CGameMovement::Duck( void )
 	//
 	// If the player is still alive and not an observer, check to make sure that
 	// his view height is at the standing height.
-	else if ( !IsDead() && !player->IsObserver() && !player->IsInAVehicle() )
+
+#ifdef GE_DLL
+	else if ( !IsDead() && !player->IsObserver() && !player->IsInAVehicle())
 	{
-		if ( ( player->m_Local.m_flDuckJumpTime == 0.0f ) && ( fabs(player->GetViewOffset().z - GetPlayerViewOffset( false ).z) > 0.1 ) )
+		if ((player->m_Local.m_flDuckJumpTime == 0.0f) && ((CGEMPPlayer*)player)->GetJumpPenalty() < 10 && (fabs(player->GetViewOffset().z - GetPlayerViewOffset(false).z) > 0.1))
 		{
 			// we should rarely ever get here, so assert so a coder knows when it happens
 			Assert(0);
@@ -4607,6 +4927,20 @@ void CGameMovement::Duck( void )
 			SetDuckedEyeOffset(0.0f);
 		}
 	}
+#else
+	else if ( !IsDead() && !player->IsObserver() && !player->IsInAVehicle() )
+	{
+		if ((player->m_Local.m_flDuckJumpTime == 0.0f) && (fabs(player->GetViewOffset().z - GetPlayerViewOffset(false).z) > 0.1))
+		{
+			// we should rarely ever get here, so assert so a coder knows when it happens
+			Assert(0);
+			DevMsg(1, "Restoring player view height\n");
+
+			// set the eye height to the non-ducked height
+			SetDuckedEyeOffset(0.0f);
+		}
+	}
+#endif
 }
 
 static ConVar sv_optimizedmovement( "sv_optimizedmovement", "1", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY );

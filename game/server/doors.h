@@ -36,7 +36,9 @@
 #define SF_DOOR_SILENT_TO_NPCS		16384	// Does not alert NPC's when opened.
 #define SF_DOOR_IGNORE_USE			32768	// Completely ignores player +use commands.
 #define SF_DOOR_NEW_USE_RULES		65536	// For func_door entities, behave more like prop_door_rotating with respect to +USE (changelist 242482)
-
+#ifdef GE_DLL
+#define SF_DOOR_LOCKSOUNDORIGIN		131072	// Have the sound origin play at the starting location of the door all the time.
+#endif
 
 enum FuncDoorSpawnPos_t
 {
@@ -81,6 +83,17 @@ public:
 
 	virtual bool IsRotatingDoor() { return false; }
 	virtual bool ShouldSavePhysics();
+#ifdef GE_DLL
+	// used to selectivly override defaults
+	virtual void DoorTouch( CBaseEntity *pOther );
+
+	// local functions
+	virtual int DoorActivate( );
+	virtual void DoorGoUp(void);
+	virtual void DoorGoDown(void);
+	virtual void DoorHitTop(void);
+	virtual void DoorHitBottom(void);
+#else
 	// used to selectivly override defaults
 	void DoorTouch( CBaseEntity *pOther );
 
@@ -90,17 +103,26 @@ public:
 	void DoorGoDown( void );
 	void DoorHitTop( void );
 	void DoorHitBottom( void );
+#endif
 	void UpdateAreaPortals( bool isOpen );
 	void Unlock( void );
 	void Lock( void );
 	int GetDoorMovementGroup( CBaseDoor *pDoorList[], int listMax );
 
 	// Input handlers
+#ifdef GE_DLL
+	virtual void InputClose( inputdata_t &inputdata );
+	virtual void InputLock(inputdata_t &inputdata);
+	virtual void InputOpen(inputdata_t &inputdata);
+	virtual void InputToggle(inputdata_t &inputdata);
+	virtual void InputUnlock(inputdata_t &inputdata);
+#else
 	void InputClose( inputdata_t &inputdata );
-	void InputLock( inputdata_t &inputdata );
-	void InputOpen( inputdata_t &inputdata );
-	void InputToggle( inputdata_t &inputdata );
-	void InputUnlock( inputdata_t &inputdata );
+	void InputLock(inputdata_t &inputdata);
+	void InputOpen(inputdata_t &inputdata);
+	void InputToggle(inputdata_t &inputdata);
+	void InputUnlock(inputdata_t &inputdata);
+#endif
 	void InputSetSpeed( inputdata_t &inputdata );
 
 	Vector m_vecMoveDir;		// The direction of motion for linear moving doors.
@@ -117,6 +139,10 @@ public:
 	bool	m_bIgnoreNonPlayerEntsOnBlock;	// Non-player entities should never block.  This variable needs more letters.
 	
 	FuncDoorSpawnPos_t m_eSpawnPosition;
+
+#ifdef GE_DLL
+	CBaseEntity *m_pSoundOrigin;
+#endif
 
 	float	m_flBlockDamage;		// Damage inflicted when blocked.
 	string_t	m_NoiseMoving;		//Start/Looping sound

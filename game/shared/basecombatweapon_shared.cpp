@@ -24,6 +24,10 @@
 #include "tf_shareddefs.h"
 #endif
 
+#ifdef GE_DLL
+#include "ge_weapon.h"
+#endif
+
 #if !defined( CLIENT_DLL )
 
 // Game DLL Headers
@@ -53,6 +57,10 @@
 
 extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer );
 
+#if defined(GE_DLL) && defined(CLIENT_DLL)
+ConVar cl_ge_weapon_switchempty("cl_ge_weapon_switchempty", "1", FCVAR_ARCHIVE | FCVAR_USERINFO, "Automatically switch off of a weapon you have no more ammo for.");
+#endif
+
 #if defined ( TF_CLIENT_DLL ) || defined ( TF_DLL )
 #ifdef _DEBUG
 ConVar tf_weapon_criticals_force_random( "tf_weapon_criticals_force_random", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
@@ -74,6 +82,10 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 	m_fMaxRange2		= 1024;
 
 	m_bReloadsSingly	= false;
+
+#ifdef GE_DLL
+	m_bEmptySwitch = true;
+#endif
 
 	// Defaults to zero
 	m_nViewModelIndex	= 0;
@@ -1372,10 +1384,29 @@ bool CBaseCombatWeapon::ReloadOrSwitchWeapons( void )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	Assert( pOwner );
-
+#ifndef GE_DLL
 	m_bFireOnEmpty = false;
+#endif
+	// If we don't have any ammo, switch to the next best weapon
+#ifdef GE_DLL
 
 	// If we don't have any ammo, switch to the next best weapon
+	// we do a check for the empty fire sound so we don't reload right after dryfiring.  Reusing the primary attack timer for that caused problems
+	// probably because it was getting reset somewhere else in this labrynth of weapon code.
+
+	if (!((!m_bFireOnEmpty && m_flNextPrimaryAttack < gpGlobals->curtime && m_flNextSecondaryAttack < gpGlobals->curtime) || (m_bFireOnEmpty && m_flNextEmptySoundTime < gpGlobals->curtime)))
+		return false;
+
+	if (!HasAnyAmmo())
+	{
+		// Same rules as before, but now we will keep the weapon out if it both allows us to switch to it on empty, and we have that option selected.
+		if (((GetWeaponFlags() & ITEM_FLAG_NOAUTOSWITCHEMPTY) == false) && m_bEmptySwitch && (g_pGameRules->SwitchToNextBestWeapon(pOwner, this)))
+		{
+			m_flNextPrimaryAttack = gpGlobals->curtime + 0.3;
+			return true;
+		}
+	}
+#else
 	if ( !HasAnyAmmo() && m_flNextPrimaryAttack < gpGlobals->curtime && m_flNextSecondaryAttack < gpGlobals->curtime )
 	{
 		// weapon isn't useable, switch.
@@ -1385,14 +1416,18 @@ bool CBaseCombatWeapon::ReloadOrSwitchWeapons( void )
 			return true;
 		}
 	}
+#endif
 	else
 	{
 		// Weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
-		if ( UsesClipsForAmmo1() && !AutoFiresFullClip() && 
+		if ( UsesClipsForAmmo1() && 
 			 (m_iClip1 == 0) && 
-			 (GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) == false && 
-			 m_flNextPrimaryAttack < gpGlobals->curtime && 
-			 m_flNextSecondaryAttack < gpGlobals->curtime )
+			 (GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) == false 
+#ifndef GE_DLL 
+			 && m_flNextPrimaryAttack < gpGlobals->curtime && 
+			 m_flNextSecondaryAttack < gpGlobals->curtime 
+#endif
+			 )
 		{
 			// if we're successfully reloading, we're done
 			if ( Reload() )
@@ -1438,6 +1473,33 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 		SendWeaponAnim( iActivity );
 
 		pOwner->SetNextAttack( gpGlobals->curtime + SequenceDuration() );
+
+#ifdef GE_DLL
+		if (!HasAnyAmmo())
+		{
+			m_bEmptySwitch = false;
+		}
+		else
+		{
+			int clAutoswitch;
+
+			if (GetWeaponFlags() & ITEM_FLAG_SELECTONEMPTY) // If the weapon doesn't allow us to select it when it's empty, we should always switch away if it has no ammo.
+			{
+#ifdef GAME_DLL
+				clAutoswitch = atoi(engine->GetClientConVarValue(pOwner->entindex(), "cl_ge_weapon_switchempty"));
+#else
+				clAutoswitch = cl_ge_weapon_switchempty.GetInt();
+#endif
+			}
+			else
+				clAutoswitch = 1;
+
+			if (clAutoswitch != 0)
+				m_bEmptySwitch = true;
+			else
+				m_bEmptySwitch = false;
+		}
+#endif
 	}
 
 	// Can't shoot again until we've finished deploying
@@ -1766,7 +1828,7 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 	{
 		// Clip empty? Or out of ammo on a no-clip weapon?
 		if ( !IsMeleeWeapon() &&  
-			(( UsesClipsForAmmo1() && m_iClip1 <= 0) || ( !UsesClipsForAmmo1() && pOwner->GetAmmoCount(m_iPrimaryAmmoType)<=0 )) )
+			(( UsesClipsForAmmo1() && m_iClip1 <= 0) || ( !UsesClipsForAmmo1() && pOwner->GetAmmoCount(m_iPrimaryAmmoType)<= 0 )) )
 		{
 			HandleFireOnEmpty();
 		}
@@ -1807,7 +1869,11 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 	// -----------------------
 	//  Reload pressed / Clip Empty
 	// -----------------------
-	if ( ( pOwner->m_nButtons & IN_RELOAD ) && m_flNextPrimaryAttack <= gpGlobals->curtime && UsesClipsForAmmo1() && !m_bInReload ) 
+#ifdef GE_DLL
+	if ( pOwner->m_nButtons & IN_RELOAD && UsesClipsForAmmo1() && !m_bInReload && m_flNextEmptySoundTime < gpGlobals->curtime )
+#else
+	if ( pOwner->m_nButtons & IN_RELOAD && UsesClipsForAmmo1() && !m_bInReload ) 
+#endif
 	{
 		// reload when reload is pressed, or if no buttons are down and weapon is empty.
 		Reload();
@@ -1817,7 +1883,11 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 	// -----------------------
 	//  No buttons down
 	// -----------------------
-	if (!((pOwner->m_nButtons & IN_ATTACK) || (pOwner->m_nButtons & IN_ATTACK2) || (CanReload() && pOwner->m_nButtons & IN_RELOAD)))
+#ifdef GE_DLL
+	if ( !((pOwner->m_nButtons & IN_ATTACK) || (pOwner->m_nButtons & IN_RELOAD)) )
+#else
+	if (!((pOwner->m_nButtons & IN_ATTACK) || (pOwner->m_nButtons & IN_ATTACK2) || (pOwner->m_nButtons & IN_RELOAD)))
+#endif
 	{
 		// no fire buttons down or reloading
 		if ( !ReloadOrSwitchWeapons() && ( m_bInReload == false ) )
@@ -1829,6 +1899,7 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 
 void CBaseCombatWeapon::HandleFireOnEmpty()
 {
+#ifndef GE_DLL
 	// If we're already firing on empty, reload if we can
 	if ( m_bFireOnEmpty )
 	{
@@ -1844,6 +1915,24 @@ void CBaseCombatWeapon::HandleFireOnEmpty()
 		}
 		m_bFireOnEmpty = true;
 	}
+#else
+	// If we can't switch to this weapon when it has no ammo then we shouldn't be able to continiously dryfire it.
+	// prevents nonsense with weapons like grenades and mines.
+	if (!(GetWeaponFlags() & ITEM_FLAG_SELECTONEMPTY))
+	{
+		ReloadOrSwitchWeapons();
+		return;
+	}
+
+	m_bFireOnEmpty = true;
+
+	if (m_flNextEmptySoundTime <= gpGlobals->curtime)
+	{
+		WeaponSound( EMPTY );
+		m_flNextEmptySoundTime = gpGlobals->curtime + max( GetFireRate(), 0.25 );
+	}
+#endif
+
 }
 
 //-----------------------------------------------------------------------------
@@ -2041,10 +2130,13 @@ bool CBaseCombatWeapon::DefaultReload( int iClipSize1, int iClipSize2, int iActi
 
 	if ( !bReload )
 		return false;
-
+#ifdef GE_DLL
+	WeaponSound(RELOAD);
+#else
 #ifdef CLIENT_DLL
 	// Play reload
-	WeaponSound( RELOAD );
+	WeaponSound(RELOAD);
+#endif
 #endif
 	SendWeaponAnim( iActivity );
 
@@ -2222,6 +2314,29 @@ void CBaseCombatWeapon::FinishReload( void )
 		{
 			m_bInReload = false;
 		}
+
+#ifdef GE_DLL
+		// Now we can autoswitch away and fire normal shots again.
+		m_bFireOnEmpty = false;
+
+		int clAutoswitch;
+
+		if (GetWeaponFlags() & ITEM_FLAG_SELECTONEMPTY) // If the weapon doesn't allow us to select it when it's empty, we should always switch away if it has no ammo.
+		{
+#ifdef GAME_DLL
+			clAutoswitch = atoi(engine->GetClientConVarValue(pOwner->entindex(), "cl_ge_weapon_switchempty"));
+#else
+			clAutoswitch = cl_ge_weapon_switchempty.GetInt();
+#endif
+		}
+		else
+			clAutoswitch = 1;
+
+		if (clAutoswitch != 0)
+			m_bEmptySwitch = true;
+		else
+			m_bEmptySwitch = false;
+#endif
 	}
 }
 

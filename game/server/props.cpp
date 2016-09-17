@@ -232,6 +232,18 @@ void CBaseProp::Spawn( void )
 	m_flAnimTime = gpGlobals->curtime;
 	m_flPlaybackRate = 0.0;
 	SetCycle( 0 );
+
+#ifdef GE_DLL
+	// If RGB is 0 then the prop was recently destroyed and we should reset the color
+	// otherwise record the current color for later use as this is the first spawn.
+	if (m_bShouldTint)
+	{
+		if (m_col32basecolor.r == 0 && m_col32basecolor.g == 0 && m_col32basecolor.b == 0)
+			m_col32basecolor = GetRenderColor();
+		else
+			SetRenderColor(m_col32basecolor.r, m_col32basecolor.g, m_col32basecolor.b);
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -816,6 +828,10 @@ BEGIN_DATADESC( CBreakableProp )
 	DEFINE_FIELD( m_hLastAttacker, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_hFlareEnt,	FIELD_EHANDLE ),
 
+#ifdef GE_DLL
+	DEFINE_KEYFIELD(m_bShouldTint, FIELD_BOOLEAN, "ShouldTint"),
+#endif
+
 END_DATADESC()
 
 
@@ -832,6 +848,10 @@ CBreakableProp::CBreakableProp()
 	
 	// This defaults to on. Most times mapmakers won't specify a punt sound to play.
 	m_bUsePuntSound = true;
+
+#ifdef GE_DLL
+	m_bShouldTint = true;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1066,6 +1086,9 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	}
 
 	float flPropDamage = GetBreakableDamage( info, assert_cast<IBreakableWithPropData*>(this) );
+#ifdef GE_DLL
+	flPropDamage *= 1.5; // Quick fix for super robust props caused by weapon damage adjustments.
+#endif
 	info.SetDamage( flPropDamage );
 
 	// UNDONE: Do this?
@@ -1140,6 +1163,7 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		bDeadly = info.GetDamage() >= m_iHealth;
 	}
 
+#ifndef GE_DLL
 	if( !bDeadly && (info.GetDamageType() & DMG_BLAST) )
 	{
 		Ignite( random->RandomFloat( 10, 15 ), false );
@@ -1167,6 +1191,11 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			}
 		}
 	}
+#else
+	// Make explosive chains a little more common
+	if (m_iHealth - info.GetDamage() <= m_iMaxHealth * 0.25 && (info.GetDamageType() & DMG_BLAST))
+		info.ScaleDamage(m_iHealth / info.GetDamage());
+#endif
 
 	int ret = BaseClass::OnTakeDamage( info );
 
@@ -1174,6 +1203,12 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	float flRatio = clamp( (float)m_iHealth / (float)m_iMaxHealth, 0.f, 1.f );
 	m_OnHealthChanged.Set( flRatio, info.GetAttacker(), this );
 	m_OnTakeDamage.FireOutput( info.GetAttacker(), this );
+#ifdef GE_DLL
+	float flCRatio = (flRatio + 0.25) * 0.8;
+
+	if (m_takedamage == DAMAGE_YES && m_bShouldTint)
+		SetRenderColor(m_col32basecolor.r * flCRatio, m_col32basecolor.g * flCRatio, m_col32basecolor.b * flCRatio);
+#endif
 
 	return ret;
 }
@@ -5726,6 +5761,12 @@ private:
 	Vector m_vOriginalMaxs;
 
 	float m_flRespawnTime;
+
+#ifdef GE_DLL
+	bool m_bStartedAsleep;
+
+	COutputEvent m_Respawn;	// Triggered when the prop respawns
+#endif
 };
 
 LINK_ENTITY_TO_CLASS( prop_physics_respawnable, CPhysicsPropRespawnable );
@@ -5737,16 +5778,32 @@ BEGIN_DATADESC( CPhysicsPropRespawnable )
 	DEFINE_FIELD( m_vOriginalSpawnAngles, FIELD_VECTOR ),
 	DEFINE_FIELD( m_vOriginalMins, FIELD_VECTOR ),
 	DEFINE_FIELD( m_vOriginalMaxs, FIELD_VECTOR ),
+#ifdef GE_DLL
+	DEFINE_OUTPUT(m_Respawn, "OnRespawn"),
+#endif
 END_DATADESC()
 
 CPhysicsPropRespawnable::CPhysicsPropRespawnable( void )
 {
 	m_flRespawnTime = 0.0f;
+#ifdef GE_DLL
+	m_bStartedAsleep = false;
+#endif
 }
 
 void CPhysicsPropRespawnable::Spawn( void )
 {
 	BaseClass::Spawn();
+
+#ifdef GE_DLL
+	if (HasSpawnFlags(SF_PHYSPROP_START_ASLEEP))
+		m_bStartedAsleep = true; //We have to do this because it forgets the spawnflag after the first spawn.
+
+	// If we started asleep, respawn asleep.
+	IPhysicsObject *pPhysicsObject = VPhysicsGetObject();
+	if (pPhysicsObject != NULL && m_bStartedAsleep)
+		pPhysicsObject->Sleep();
+#endif
 
 	m_vOriginalSpawnOrigin = GetAbsOrigin();
 	m_vOriginalSpawnAngles = GetAbsAngles();
@@ -5827,6 +5884,9 @@ void CPhysicsPropRespawnable::Materialize( void )
 	}
 	// Destory our physics object again because we recreate it on spawn
 	VPhysicsDestroyObject();
+
+    //GE_DLL
+	m_Respawn.FireOutput(this, this);
 #else
 	trace_t tr;
 	UTIL_TraceHull( m_vOriginalSpawnOrigin, m_vOriginalSpawnOrigin, m_vOriginalMins, m_vOriginalMaxs, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );

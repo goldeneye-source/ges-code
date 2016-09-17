@@ -348,7 +348,42 @@ bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer )
 	// For now, always allow a vehicle riding player to pick up things they're driving over
 	if ( pPlayer->IsInAVehicle() )
 		return true;
+#ifdef GE_DLL
+	// Trying a different method of finding pickups as the previous one was prone to exploits and failure.
 
+	// Get our test positions
+	Vector vecStartPos, vecEndPos;
+	IPhysicsObject *pPhysObj = pItem->VPhysicsGetObject();
+	if ( pPhysObj != NULL )
+	{
+		// Use the physics hull's center
+		QAngle vecAngles;
+		pPhysObj->GetPosition(&vecEndPos, &vecAngles);
+	}
+	else
+	{
+		// Use the generic bbox center
+		vecEndPos = pItem->CollisionProp()->WorldSpaceCenter();
+	}
+
+	vecStartPos = pPlayer->GetAbsOrigin() + Vector(0, 0, 6);
+
+	// Trace between to see if we're occluded
+	trace_t tr;
+	UTIL_TraceLine(vecStartPos, vecEndPos, MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+	if (tr.m_pEnt != pItem)
+	{
+		// We didn't hit the item, retrace from the eye posistion in case the item is on a desk or something.
+		vecStartPos = pPlayer->EyePosition();
+
+		UTIL_TraceLine(vecStartPos, vecEndPos, MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+		if (tr.m_pEnt != pItem) // We still didn't hit it.  Give up.
+		{
+			return false;
+		}
+	}
+#else
 	// Get our test positions
 	Vector vecStartPos;
 	IPhysicsObject *pPhysObj = pItem->VPhysicsGetObject();
@@ -371,13 +406,14 @@ bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer )
 
 	// Trace between to see if we're occluded
 	trace_t tr;
-	CTraceFilterSkipTwoEntities filter( pPlayer, pItem, COLLISION_GROUP_PLAYER_MOVEMENT );
-	UTIL_TraceLine( vecStartPos, vecEndPos, MASK_SOLID, &filter, &tr );
+	CTraceFilterSkipTwoEntities filter(pPlayer, pItem, COLLISION_GROUP_PLAYER_MOVEMENT);
+	UTIL_TraceLine(vecStartPos, vecEndPos, MASK_SOLID, &filter, &tr);
 
 	// Occluded
 	// FIXME: For now, we exclude starting in solid because there are cases where this doesn't matter
-	if ( tr.fraction < 1.0f )
+	if (tr.fraction < 1.0f)
 		return false;
+#endif
 
 	return true;
 }

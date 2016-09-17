@@ -201,6 +201,7 @@ public:
 #ifdef GE_DLL
 	// Base this so it can be used by NPC's as well
 	virtual void					HandleBulletPenetration( C_BaseCombatWeapon *pBaseWeapon, const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+	inline const Vector				ApplySpreadGauss(const Vector &vecSpread, const Vector &vecShotDir, int gfactor, int pseed);
 	virtual void					HandleShotImpactingGlass( const FireBulletsInfo_t &info, trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
 #endif
 	virtual bool					HandleShotImpactingWater( const FireBulletsInfo_t &info, 

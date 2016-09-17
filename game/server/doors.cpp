@@ -287,6 +287,13 @@ void CBaseDoor::Spawn()
 		m_bLocked = true;
 	}
 
+#ifdef GE_DLL
+	if (HasSpawnFlags(SF_DOOR_LOCKSOUNDORIGIN))
+		m_pSoundOrigin = Create("info_target", m_vecPosition1, GetAbsAngles());
+	else
+		m_pSoundOrigin = NULL;
+#endif
+
 	SetMoveType( MOVETYPE_PUSH );
 	
 	if (m_flSpeed == 0)
@@ -350,7 +357,11 @@ void CBaseDoor::Spawn()
 
 void CBaseDoor::MovingSoundThink( void )
 {
-	CPASAttenuationFilter filter( this );
+#ifdef GE_DLL
+	CPASAttenuationFilter filter(m_pSoundOrigin ? m_pSoundOrigin : this);
+#else
+	CPASAttenuationFilter filter(this);
+#endif
 	filter.MakeReliable();
 
 	EmitSound_t ep;
@@ -365,7 +376,11 @@ void CBaseDoor::MovingSoundThink( void )
 	}
 	ep.m_flVolume = 1;
 	ep.m_SoundLevel = SNDLVL_NORM;
-
+#ifdef GE_DLL
+	if (m_pSoundOrigin)
+		EmitSound(filter, m_pSoundOrigin->entindex(), ep);
+	else
+#endif
 	EmitSound( filter, entindex(), ep );
 
 	//Only loop sounds in HL1 to maintain HL2 behavior
@@ -396,7 +411,20 @@ void CBaseDoor::StartMovingSound( void )
 
 void CBaseDoor::StopMovingSound(void)
 {
-	SetContextThink( NULL, gpGlobals->curtime, "MovingSound" );
+	SetContextThink(NULL, gpGlobals->curtime, "MovingSound");
+#ifdef GE_DLL
+	// We have to always stop both sounds because we can change direction mid motion and have the wrong sound be playing when we stop.
+	if (m_pSoundOrigin)
+	{
+		StopSound(m_pSoundOrigin->entindex(), CHAN_STATIC, (char*)STRING(m_NoiseMoving));
+		StopSound(m_pSoundOrigin->entindex(), CHAN_STATIC, (char*)STRING(m_NoiseMovingClosed));
+	}
+	else
+	{
+		StopSound( entindex(), CHAN_STATIC, (char*)STRING(m_NoiseMoving) );
+		StopSound( entindex(), CHAN_STATIC, (char*)STRING(m_NoiseMovingClosed) );
+	}
+#else
 	char *pSoundName;
 	if ( m_NoiseMovingClosed == NULL_STRING || m_toggle_state == TS_GOING_UP || m_toggle_state == TS_AT_TOP )
 	{
@@ -407,6 +435,7 @@ void CBaseDoor::StopMovingSound(void)
 		pSoundName = (char*)STRING(m_NoiseMovingClosed);
 	}
 	StopSound( entindex(), CHAN_STATIC, pSoundName );
+#endif
 }
  
 
@@ -962,7 +991,7 @@ void CBaseDoor::DoorGoUp( void )
 	SetMoveDone( &CBaseDoor::DoorHitTop );
 	if ( IsRotatingDoor() )		// !!! BUGBUG Triggered doors don't work with this yet
 	{
-		float	sign = 1.0;
+		float	sign = 1.0f;
 
 		if ( m_hActivator != NULL )
 		{
@@ -975,12 +1004,12 @@ void CBaseDoor::DoorGoUp( void )
 				//					So you can't look at the door's facing to determine which way to open.
 
 			#ifdef GE_DLL
-				// This code block attempts to fix doors opening in your face
-				
 				Vector nearestPoint;
+				// This code block attempts to fix doors opening in your face
 				Vector activatorToNearestPoint = GetAbsOrigin() - m_hActivator->GetAbsOrigin();
 				activatorToNearestPoint.z = 0;
 
+				//Vector activatorToOrigin = GetAbsOrigin() - m_hActivator->GetAbsOrigin();
 				Vector activatorToOrigin;
 				AngleVectors( m_hActivator->EyeAngles(), &activatorToOrigin );
 				activatorToOrigin.z = 0;
@@ -988,24 +1017,9 @@ void CBaseDoor::DoorGoUp( void )
 				// Point right hand at door hinge, curl hand towards closest spot on door, if thumb
 				// is up, open door CW.  -- Department of Basic Cross Product Understanding for Noobs
 				Vector cross = activatorToOrigin.Cross( activatorToNearestPoint );
-				if( cross.z < 0.0f )
-				{
-					sign = -1.0f;	
-				}
-			#else
-				Vector nearestPoint;
-				CollisionProp()->CalcNearestPoint( m_hActivator->GetAbsOrigin(), &nearestPoint );
-				Vector activatorToNearestPoint = nearestPoint - m_hActivator->GetAbsOrigin();
-				activatorToNearestPoint.z = 0;
-
-				Vector activatorToOrigin = GetAbsOrigin() - m_hActivator->GetAbsOrigin();
-				activatorToOrigin.z = 0;
 
 				// Point right hand at door hinge, curl hand towards closest spot on door, if thumb
-				// is up, open door CW.  -- Department of Basic Cross Product Understanding for Noobs
-				Vector cross = activatorToOrigin.Cross( activatorToNearestPoint );
-
-				if( cross.z > 0.0f )
+				if( cross.z < 0.0f )
 				{
 					sign = -1.0f;	
 				}
@@ -1032,7 +1046,11 @@ void CBaseDoor::DoorHitTop( void )
 {
 	if ( !HasSpawnFlags( SF_DOOR_SILENT ) )
 	{
+#ifdef GE_DLL
+		CPASAttenuationFilter filter( m_pSoundOrigin ? m_pSoundOrigin : this );
+#else
 		CPASAttenuationFilter filter( this );
+#endif
 		filter.MakeReliable();
 		StopMovingSound();
 
@@ -1041,7 +1059,11 @@ void CBaseDoor::DoorHitTop( void )
 		ep.m_pSoundName = (char*)STRING(m_NoiseArrived);
 		ep.m_flVolume = 1;
 		ep.m_SoundLevel = SNDLVL_NORM;
-
+#ifdef GE_DLL
+		if (m_pSoundOrigin)
+			EmitSound(filter, m_pSoundOrigin->entindex(), ep);
+		else
+#endif
 		EmitSound( filter, entindex(), ep );
 	}
 
@@ -1114,7 +1136,11 @@ void CBaseDoor::DoorHitBottom( void )
 {
 	if ( !HasSpawnFlags( SF_DOOR_SILENT ) )
 	{
-		CPASAttenuationFilter filter( this );
+#ifdef GE_DLL
+		CPASAttenuationFilter filter(m_pSoundOrigin ? m_pSoundOrigin : this);
+#else
+		CPASAttenuationFilter filter(this);
+#endif
 		filter.MakeReliable();
 
 		StopMovingSound();
@@ -1127,7 +1153,11 @@ void CBaseDoor::DoorHitBottom( void )
 			ep.m_pSoundName = (char*)STRING(m_NoiseArrivedClosed);
 		ep.m_flVolume = 1;
 		ep.m_SoundLevel = SNDLVL_NORM;
-
+#ifdef GE_DLL
+		if (m_pSoundOrigin)
+			EmitSound(filter, m_pSoundOrigin->entindex(), ep);
+		else
+#endif
 		EmitSound( filter, entindex(), ep );
 	}
 

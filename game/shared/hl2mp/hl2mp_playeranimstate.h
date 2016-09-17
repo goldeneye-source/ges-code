@@ -38,6 +38,9 @@ public:
 
 	void	DoAnimationEvent( PlayerAnimEvent_t event, int nData = 0 );
 
+#ifdef GE_DLL
+	bool	HandleDying( Activity &idealActivity );
+#endif
 	bool	HandleMoving( Activity &idealActivity );
 	bool	HandleJumping( Activity &idealActivity );
 	bool	HandleDucking( Activity &idealActivity );

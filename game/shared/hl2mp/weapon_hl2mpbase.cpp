@@ -120,18 +120,24 @@ void CWeaponHL2MPBase::WeaponSound( WeaponSound_t sound_type, float soundtime /*
 {
 #ifdef CLIENT_DLL
 
-		// If we have some sounds from the weapon classname.txt file, play a random one of them
-		const char *shootsound = GetWpnData().aShootSounds[ sound_type ]; 
-		if ( !shootsound || !shootsound[0] )
-			return;
+	// If we have some sounds from the weapon classname.txt file, play a random one of them
+	const char *shootsound = GetWpnData().aShootSounds[sound_type];
+	if (!shootsound || !shootsound[0])
+		return;
 
-		CBroadcastRecipientFilter filter; // this is client side only
-		if ( !te->CanPredict() )
-			return;
+	CBroadcastRecipientFilter filter; // this is client side only
 				
-		CBaseEntity::EmitSound( filter, GetPlayerOwner()->entindex(), shootsound, &GetPlayerOwner()->GetAbsOrigin() ); 
+	if (!te->CanPredict())
+		return;
+
+	CBaseEntity::EmitSound(filter, GetPlayerOwner()->entindex(), shootsound, &GetPlayerOwner()->GetAbsOrigin());
 #else
-		BaseClass::WeaponSound( sound_type, soundtime );
+#ifdef GE_DLL
+	if (sound_type == SINGLE)
+		sound_type = SINGLE_NPC; // So we can have attenuated weapon fire sounds.
+#endif
+
+	BaseClass::WeaponSound(sound_type, soundtime);
 #endif
 }
 

@@ -43,6 +43,12 @@ public:
 	// Don't treat as a live target
 	virtual bool IsAlive( void ) { return false; }
 	virtual bool OverridePropdata() { return true; }
+
+#ifdef GE_DLL
+protected:
+	color32		m_col32basecolor;
+	bool		m_bShouldTint;
+#endif
 };
 
 

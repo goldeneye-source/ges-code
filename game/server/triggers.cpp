@@ -173,6 +173,13 @@ void CBaseTrigger::Spawn()
 		AddSpawnFlags( SF_TRIGGER_ALLOW_CLIENTS );
 	}
 
+#ifdef GE_DLL
+	if (HasSpawnFlags(SF_TRIGGER_ALLOW_CLIENTS))
+	{
+		AddSpawnFlags(SF_TRIGGER_ALLOW_NPCS);
+	}
+#endif
+
 	BaseClass::Spawn();
 }
 
@@ -2307,12 +2314,20 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 			{
 				vecPush = vecPush + pOther->GetBaseVelocity();
 			}
+#ifdef GE_DLL
+			if ( vecPush.z > sv_gravity.GetInt() && (pOther->GetFlags() & FL_ONGROUND) )
+#else
 			if ( vecPush.z > 0 && (pOther->GetFlags() & FL_ONGROUND) )
+#endif
 			{
 				pOther->SetGroundEntity( NULL );
 				Vector origin = pOther->GetAbsOrigin();
+#ifdef GE_DLL
+				origin.z += sv_stepsize.GetFloat() + 1.0f;
+#else
 				origin.z += 1.0f;
-				pOther->SetAbsOrigin( origin );
+#endif
+				pOther->SetAbsOrigin(origin);
 			}
 
 #ifdef HL1_DLL

@@ -21,6 +21,9 @@
 #ifdef TF_CLIENT_DLL
 	#include "tf_weaponbase.h"
 #endif
+#ifdef GE_DLL
+#include "ge_weapon.h"
+#endif
 
 #if defined( REPLAY_ENABLED )
 #include "replay/replaycamera.h"
@@ -150,8 +153,10 @@ void C_BaseViewModel::FireEvent( const Vector& origin, const QAngle& angles, int
 void C_BaseViewModel::ProcessMuzzleFlashEvent()
 {
 	// Hand the muzzle flash off to the weapon so that it can be virtualized easily
-	if ( GetWeapon() )
+	if ( ToGEWeapon(GetWeapon()) && ToGEWeapon(GetWeapon())->GetWeaponID() == WEAPON_MOONRAKER )
 		GetWeapon()->ProcessMuzzleFlashEvent();
+	else // Otherwise just use the viewmodel so that muzzle flashes are properly trasmitted.  For whatever reason the above method breaks them.
+		BaseClass::ProcessMuzzleFlashEvent();
 }
 #endif
 

@@ -1664,7 +1664,7 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 
 #ifdef GE_DLL
 	// Fail safe
-	GetLoadingScreen()->SetMapImage( pMapName );
+	// GetLoadingScreen()->SetMapImage( pMapName );
 #endif
 
 	// Check low violence settings for this map

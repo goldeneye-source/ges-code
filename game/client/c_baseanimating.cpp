@@ -3415,6 +3415,7 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 			dl->radius = random->RandomInt( 32, 64 ); 
 			dl->decay = el->radius / 0.05f;
 			dl->die = gpGlobals->curtime + 0.05f;
+			dl->flags |= DLIGHT_NO_MODEL_ILLUMINATION;
 			dl->color.r = 255;
 			dl->color.g = 192;
 			dl->color.b = 64;

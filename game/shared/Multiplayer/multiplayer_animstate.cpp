@@ -796,6 +796,11 @@ bool CMultiPlayerAnimState::HandleJumping( Activity &idealActivity )
 	}
 	if ( m_bJumping )
 	{
+#ifdef GE_DLL
+		if (GetBasePlayer()->GetFlags() & FL_DUCKING)
+			idealActivity = ACT_GES_CJUMP;
+		else
+#endif
 		idealActivity = ACT_MP_JUMP;
 		return true;
 	}

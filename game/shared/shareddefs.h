@@ -368,6 +368,7 @@ enum PLAYER_ANIM
 	PLAYER_LEAVE_AIMING,
 };
 
+#ifndef GE_DLL
 #ifdef HL2_DLL
 // HL2 has 600 gravity by default
 // NOTE: The discrete ticks can have quantization error, so these numbers are biased a little to
@@ -384,10 +385,14 @@ enum PLAYER_ANIM
 #define PLAYER_MIN_BOUNCE_SPEED		200
 #define PLAYER_FALL_PUNCH_THRESHOLD (float)350 // won't punch player's screen/make scrape noise unless player falling at least this fast.
 #endif
-#ifdef GE_DLL
-#define DAMAGE_FOR_FALL_SPEED		160.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
-#else
 #define DAMAGE_FOR_FALL_SPEED		100.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
+#else
+#define PLAYER_FATAL_FALL_SPEED		1024 // approx 750 units sqrt( 2 * 700 * 700 )
+#define PLAYER_MAX_SAFE_FALL_SPEED	750 // approx 400 units sqrt( 2 * 700 * 400 )
+#define PLAYER_LAND_ON_FLOATING_OBJECT	200 // Can go another 200 units without getting hurt
+#define PLAYER_MIN_BOUNCE_SPEED		300 // WHY DID YOU TAKE OUT BOUNCE, VALVE???
+#define PLAYER_FALL_PUNCH_THRESHOLD (float)120 // won't punch player's screen/make scrape noise unless player falling at least this fast.
+#define DAMAGE_FOR_FALL_SPEED		160.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
 #endif
 
 
@@ -707,6 +712,7 @@ struct FireBulletsInfo_t
 		m_bUseServerRandomSeed = false;
 	#ifdef GE_DLL
 		m_flPenetrateDepth = 0;
+		m_iGaussFactor = 1;
 	#endif
 	}
 
@@ -729,6 +735,7 @@ struct FireBulletsInfo_t
 		m_bUseServerRandomSeed = false;
 	#ifdef GE_DLL
 		m_flPenetrateDepth = 0;
+		m_iGaussFactor = 1;
 	#endif
 	}
 
@@ -749,6 +756,7 @@ struct FireBulletsInfo_t
 	bool m_bUseServerRandomSeed;
 #ifdef GE_DLL
 	float m_flPenetrateDepth;
+	int m_iGaussFactor;
 #endif
 };
 

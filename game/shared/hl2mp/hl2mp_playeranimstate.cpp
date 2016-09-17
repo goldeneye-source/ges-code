@@ -17,6 +17,10 @@
 #include "hl2mp_player.h"
 #endif
 
+#ifdef GE_DLL
+#include "ge_shareddefs.h"
+#endif
+
 #define HL2MP_RUN_SPEED				320.0f
 #define HL2MP_WALK_SPEED			75.0f
 #define HL2MP_CROUCHWALK_SPEED		110.0f
@@ -131,7 +135,7 @@ void CHL2MPPlayerAnimState::Update( float eyeYaw, float eyePitch )
 		return;
 
 	// Check to see if we should be updating the animation state - dead, ragdolled?
-	if ( !ShouldUpdateAnimState() )
+	if ( !m_bDying && !ShouldUpdateAnimState() )
 	{
 		ClearAnimationState();
 		return;
@@ -171,6 +175,9 @@ void CHL2MPPlayerAnimState::Update( float eyeYaw, float eyePitch )
 void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 {
 	Activity iGestureActivity = ACT_INVALID;
+	CBasePlayer *pPlayer = GetBasePlayer();
+	if ( !pPlayer )
+		return;
 
 	switch( event )
 	{
@@ -179,6 +186,10 @@ void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData
 			// Weapon primary fire.
 			if ( m_pHL2MPPlayer->GetFlags() & FL_DUCKING )
 				RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_ATTACK_CROUCH_PRIMARYFIRE );
+		#ifdef GE_DLL
+			else if ( GetOuterXYSpeed() > MOVING_MINIMUM_SPEED )
+				RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GES_ATTACK_RUN_PRIMARYFIRE );
+		#endif
 			else
 				RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_ATTACK_STAND_PRIMARYFIRE );
 
@@ -254,6 +265,35 @@ void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData
 				RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_RELOAD_STAND_END );
 			break;
 		}
+#ifdef GE_DLL
+	case PLAYERANIMEVENT_DIE:
+		{
+			// Start playing the death animation
+			m_bDying = true;
+			RestartMainSequence();
+			break;
+		}
+	case PLAYERANIMEVENT_GES_DRAW:
+		{
+			RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GES_DRAW );
+			break;
+		}
+	case PLAYERANIMEVENT_GES_HOLSTER:
+		{
+			RestartGesture( GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GES_HOLSTER );
+			break;
+		}
+	case PLAYERANIMEVENT_GES_AIMMODE_START:
+		{
+			RestartGesture( GESTURE_SLOT_CUSTOM, ACT_GES_AIMMODE_START, false );
+			break;
+		}
+	case PLAYERANIMEVENT_GES_AIMMODE_END:
+		{
+			RestartGesture( GESTURE_SLOT_CUSTOM, ACT_GES_AIMMODE_END );
+			break;
+		}
+#endif
 	default:
 		{
 			BaseClass::DoAnimationEvent( event, nData );
@@ -263,15 +303,18 @@ void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData
 
 #ifdef CLIENT_DLL
 	// Make the weapon play the animation as well
-	if ( iGestureActivity != ACT_INVALID )
+#ifdef GE_DLL
+	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+	if ( iGestureActivity != ACT_INVALID && GetBasePlayer() != pLocalPlayer && GetBasePlayer() != pLocalPlayer->GetObserverTarget() )
+#endif
 	{
 		CBaseCombatWeapon *pWeapon = GetHL2MPPlayer()->GetActiveWeapon();
 		if ( pWeapon )
 		{
-//			pWeapon->EnsureCorrectRenderingModel();
+			pWeapon->EnsureCorrectRenderingModel();
 			pWeapon->SendWeaponAnim( iGestureActivity );
-//			// Force animation events!
-//			pWeapon->ResetEventsParity();		// reset event parity so the animation events will occur on the weapon. 
+			// Force animation events!
+			pWeapon->ResetEventsParity();		// reset event parity so the animation events will occur on the weapon. 
 			pWeapon->DoAnimationEvents( pWeapon->GetModelPtr() );
 		}
 	}
@@ -284,9 +327,13 @@ void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData
 //-----------------------------------------------------------------------------
 bool CHL2MPPlayerAnimState::HandleSwimming( Activity &idealActivity )
 {
+#ifdef GE_DLL
+	return false;
+#else
 	bool bInWater = BaseClass::HandleSwimming( idealActivity );
 
 	return bInWater;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -296,8 +343,62 @@ bool CHL2MPPlayerAnimState::HandleSwimming( Activity &idealActivity )
 //-----------------------------------------------------------------------------
 bool CHL2MPPlayerAnimState::HandleMoving( Activity &idealActivity )
 {
+#ifdef GE_DLL
+	float flSpeed = GetOuterXYSpeed();
+	if ( flSpeed > MOVING_MINIMUM_SPEED )
+	{
+		if (flSpeed <= (float)(GE_NORM_SPEED*GE_AIM_SPEED_MULT) + 20.0f)
+			idealActivity = ACT_MP_WALK;
+		else
+			idealActivity = ACT_MP_RUN;
+	}
+
+	return true;
+#else
 	return BaseClass::HandleMoving( idealActivity );
+#endif
 }
+
+#ifdef GE_DLL
+bool CHL2MPPlayerAnimState::HandleDying( Activity &idealActivity )
+{
+	if ( m_bDying )
+	{
+		if ( m_bFirstDyingFrame )
+		{
+			// Reset the animation.
+			RestartMainSequence();	
+			m_bFirstDyingFrame = false;
+		}
+
+#ifdef GAME_DLL
+		int lastHitGroup = GetBasePlayer() ? GetBasePlayer()->LastHitGroup() : HITGROUP_GENERIC;
+		switch ( lastHitGroup ) {
+		case HITGROUP_CHEST:
+		case HITGROUP_STOMACH:
+			idealActivity = ACT_GES_DEATH_KNEE3_HAND;
+			break;
+		case HITGROUP_HEAD:
+			idealActivity = ACT_GES_DEATH_SPIN1;
+			break;
+		default:
+			idealActivity = ACT_DIESIMPLE;
+			break;
+		}
+#endif
+		return true;
+	}
+	else
+	{
+		if ( !m_bFirstDyingFrame )
+		{
+			m_bFirstDyingFrame = true;
+		}
+	}
+
+	return false;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -378,6 +479,11 @@ bool CHL2MPPlayerAnimState::HandleJumping( Activity &idealActivity )
 			}
 			else
 			{
+#ifdef GE_DLL
+				if (m_pHL2MPPlayer->GetFlags() & FL_DUCKING)
+					idealActivity = ACT_GES_CJUMP;
+				else
+#endif
 				idealActivity = ACT_MP_JUMP;
 			}
 		}
@@ -538,8 +644,12 @@ void CHL2MPPlayerAnimState::ComputePoseParam_MoveYaw( CStudioHdr *pStudioHdr )
 	// view direction relative to movement
 	float flYaw;	 
 
+#ifdef GE_DLL
+	float ang = m_flEyeYaw;
+#else
 	QAngle	angles = GetBasePlayer()->GetLocalAngles();
 	float ang = angles[ YAW ];
+#endif
 	if ( ang > 180.0f )
 	{
 		ang -= 360.0f;
@@ -601,6 +711,9 @@ void CHL2MPPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	{
 		// The feet match the eye direction when moving - the move yaw takes care of the rest.
 		m_flGoalFeetYaw = m_flEyeYaw;
+	#ifdef GE_DLL
+		m_flCurrentFeetYaw = m_flEyeYaw;
+	#endif
 	}
 	// Else if we are not moving.
 	else
