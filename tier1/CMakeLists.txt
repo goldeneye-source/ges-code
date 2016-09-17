@@ -44,13 +44,13 @@ set(TIER1_SOURCES
 )
 
 if(CMAKE_HOST_UNIX)
-  set(TIER1_SOURCES $TIER1_SOURCES
+  list(APPEND ${TIER1_SOURCES}
     processor_detect_linux.cpp
     qsort_s.cpp
     pathmatch.cpp
   )
 elseif(CMAKE_HOST_WIN32)
-  set(TIER1_SOURCES $TIER1_SOURCES
+  list(APPEND ${TIER1_SOURCES}
     processor_detect.cpp
   )
 endif()

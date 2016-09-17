@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -141,8 +141,9 @@ __extension__ ({                                                              \
 
 /* To define a new warning, use _CURL_WARNING(identifier, "message") */
 #define _CURL_WARNING(id, message)                                            \
-  static void __attribute__((warning(message))) __attribute__((unused))       \
-  __attribute__((noinline)) id(void) { __asm__(""); }
+  static void __attribute__((__warning__(message)))                           \
+  __attribute__((__unused__)) __attribute__((__noinline__))                   \
+  id(void) { __asm__(""); }
 
 _CURL_WARNING(_curl_easy_setopt_err_long,
   "curl_easy_setopt expects a long argument for this option")
@@ -217,52 +218,67 @@ _CURL_WARNING(_curl_easy_getinfo_err_curl_slist,
 
 /* evaluates to true if option takes a char* argument */
 #define _curl_is_string_option(option)                                        \
-  ((option) == CURLOPT_URL ||                                                 \
-   (option) == CURLOPT_PROXY ||                                               \
-   (option) == CURLOPT_INTERFACE ||                                           \
-   (option) == CURLOPT_NETRC_FILE ||                                          \
-   (option) == CURLOPT_USERPWD ||                                             \
-   (option) == CURLOPT_USERNAME ||                                            \
-   (option) == CURLOPT_PASSWORD ||                                            \
-   (option) == CURLOPT_PROXYUSERPWD ||                                        \
-   (option) == CURLOPT_PROXYUSERNAME ||                                       \
-   (option) == CURLOPT_PROXYPASSWORD ||                                       \
-   (option) == CURLOPT_NOPROXY ||                                             \
-   (option) == CURLOPT_ACCEPT_ENCODING ||                                     \
-   (option) == CURLOPT_REFERER ||                                             \
-   (option) == CURLOPT_USERAGENT ||                                           \
+  ((option) == CURLOPT_ACCEPT_ENCODING ||                                     \
+   (option) == CURLOPT_CAINFO ||                                              \
+   (option) == CURLOPT_CAPATH ||                                              \
    (option) == CURLOPT_COOKIE ||                                              \
    (option) == CURLOPT_COOKIEFILE ||                                          \
    (option) == CURLOPT_COOKIEJAR ||                                           \
    (option) == CURLOPT_COOKIELIST ||                                          \
-   (option) == CURLOPT_FTPPORT ||                                             \
-   (option) == CURLOPT_FTP_ALTERNATIVE_TO_USER ||                             \
-   (option) == CURLOPT_FTP_ACCOUNT ||                                         \
-   (option) == CURLOPT_RANGE ||                                               \
-   (option) == CURLOPT_CUSTOMREQUEST ||                                       \
-   (option) == CURLOPT_SSLCERT ||                                             \
-   (option) == CURLOPT_SSLCERTTYPE ||                                         \
-   (option) == CURLOPT_SSLKEY ||                                              \
-   (option) == CURLOPT_SSLKEYTYPE ||                                          \
-   (option) == CURLOPT_KEYPASSWD ||                                           \
-   (option) == CURLOPT_SSLENGINE ||                                           \
-   (option) == CURLOPT_CAINFO ||                                              \
-   (option) == CURLOPT_CAPATH ||                                              \
-   (option) == CURLOPT_RANDOM_FILE ||                                         \
-   (option) == CURLOPT_EGDSOCKET ||                                           \
-   (option) == CURLOPT_SSL_CIPHER_LIST ||                                     \
-   (option) == CURLOPT_KRBLEVEL ||                                            \
-   (option) == CURLOPT_SSH_HOST_PUBLIC_KEY_MD5 ||                             \
-   (option) == CURLOPT_SSH_PUBLIC_KEYFILE ||                                  \
-   (option) == CURLOPT_SSH_PRIVATE_KEYFILE ||                                 \
    (option) == CURLOPT_CRLFILE ||                                             \
+   (option) == CURLOPT_CUSTOMREQUEST ||                                       \
+   (option) == CURLOPT_DEFAULT_PROTOCOL ||                                    \
+   (option) == CURLOPT_DNS_INTERFACE ||                                       \
+   (option) == CURLOPT_DNS_LOCAL_IP4 ||                                       \
+   (option) == CURLOPT_DNS_LOCAL_IP6 ||                                       \
+   (option) == CURLOPT_DNS_SERVERS ||                                         \
+   (option) == CURLOPT_EGDSOCKET ||                                           \
+   (option) == CURLOPT_FTPPORT ||                                             \
+   (option) == CURLOPT_FTP_ACCOUNT ||                                         \
+   (option) == CURLOPT_FTP_ALTERNATIVE_TO_USER ||                             \
+   (option) == CURLOPT_INTERFACE ||                                           \
    (option) == CURLOPT_ISSUERCERT ||                                          \
-   (option) == CURLOPT_SOCKS5_GSSAPI_SERVICE ||                               \
-   (option) == CURLOPT_SSH_KNOWNHOSTS ||                                      \
+   (option) == CURLOPT_KEYPASSWD ||                                           \
+   (option) == CURLOPT_KRBLEVEL ||                                            \
+   (option) == CURLOPT_LOGIN_OPTIONS ||                                       \
+   (option) == CURLOPT_MAIL_AUTH ||                                           \
    (option) == CURLOPT_MAIL_FROM ||                                           \
+   (option) == CURLOPT_NETRC_FILE ||                                          \
+   (option) == CURLOPT_NOPROXY ||                                             \
+   (option) == CURLOPT_PASSWORD ||                                            \
+   (option) == CURLOPT_PINNEDPUBLICKEY ||                                     \
+   (option) == CURLOPT_PROXY ||                                               \
+   (option) == CURLOPT_PROXYPASSWORD ||                                       \
+   (option) == CURLOPT_PROXYUSERNAME ||                                       \
+   (option) == CURLOPT_PROXYUSERPWD ||                                        \
+   (option) == CURLOPT_PROXY_SERVICE_NAME ||                                  \
+   (option) == CURLOPT_RANDOM_FILE ||                                         \
+   (option) == CURLOPT_RANGE ||                                               \
+   (option) == CURLOPT_REFERER ||                                             \
    (option) == CURLOPT_RTSP_SESSION_ID ||                                     \
    (option) == CURLOPT_RTSP_STREAM_URI ||                                     \
    (option) == CURLOPT_RTSP_TRANSPORT ||                                      \
+   (option) == CURLOPT_SERVICE_NAME ||                                        \
+   (option) == CURLOPT_SOCKS5_GSSAPI_SERVICE ||                               \
+   (option) == CURLOPT_SSH_HOST_PUBLIC_KEY_MD5 ||                             \
+   (option) == CURLOPT_SSH_KNOWNHOSTS ||                                      \
+   (option) == CURLOPT_SSH_PRIVATE_KEYFILE ||                                 \
+   (option) == CURLOPT_SSH_PUBLIC_KEYFILE ||                                  \
+   (option) == CURLOPT_SSLCERT ||                                             \
+   (option) == CURLOPT_SSLCERTTYPE ||                                         \
+   (option) == CURLOPT_SSLENGINE ||                                           \
+   (option) == CURLOPT_SSLKEY ||                                              \
+   (option) == CURLOPT_SSLKEYTYPE ||                                          \
+   (option) == CURLOPT_SSL_CIPHER_LIST ||                                     \
+   (option) == CURLOPT_TLSAUTH_PASSWORD ||                                    \
+   (option) == CURLOPT_TLSAUTH_TYPE ||                                        \
+   (option) == CURLOPT_TLSAUTH_USERNAME ||                                    \
+   (option) == CURLOPT_UNIX_SOCKET_PATH ||                                    \
+   (option) == CURLOPT_URL ||                                                 \
+   (option) == CURLOPT_USERAGENT ||                                           \
+   (option) == CURLOPT_USERNAME ||                                            \
+   (option) == CURLOPT_USERPWD ||                                             \
+   (option) == CURLOPT_XOAUTH2_BEARER ||                                      \
    0)
 
 /* evaluates to true if option takes a curl_write_callback argument */
@@ -278,21 +294,22 @@ _CURL_WARNING(_curl_easy_getinfo_err_curl_slist,
 
 /* evaluates to true if option takes a data argument to pass to a callback */
 #define _curl_is_cb_data_option(option)                                       \
-  ((option) == CURLOPT_WRITEDATA ||                                           \
-   (option) == CURLOPT_READDATA ||                                            \
-   (option) == CURLOPT_IOCTLDATA ||                                           \
-   (option) == CURLOPT_SOCKOPTDATA ||                                         \
-   (option) == CURLOPT_OPENSOCKETDATA ||                                      \
-   (option) == CURLOPT_PROGRESSDATA ||                                        \
-   (option) == CURLOPT_WRITEHEADER ||                                         \
+  ((option) == CURLOPT_CHUNK_DATA ||                                          \
+   (option) == CURLOPT_CLOSESOCKETDATA ||                                     \
    (option) == CURLOPT_DEBUGDATA ||                                           \
-   (option) == CURLOPT_SSL_CTX_DATA ||                                        \
-   (option) == CURLOPT_SEEKDATA ||                                            \
-   (option) == CURLOPT_PRIVATE ||                                             \
-   (option) == CURLOPT_SSH_KEYDATA ||                                         \
-   (option) == CURLOPT_INTERLEAVEDATA ||                                      \
-   (option) == CURLOPT_CHUNK_DATA ||                                          \
    (option) == CURLOPT_FNMATCH_DATA ||                                        \
+   (option) == CURLOPT_HEADERDATA ||                                          \
+   (option) == CURLOPT_INTERLEAVEDATA ||                                      \
+   (option) == CURLOPT_IOCTLDATA ||                                           \
+   (option) == CURLOPT_OPENSOCKETDATA ||                                      \
+   (option) == CURLOPT_PRIVATE ||                                             \
+   (option) == CURLOPT_PROGRESSDATA ||                                        \
+   (option) == CURLOPT_READDATA ||                                            \
+   (option) == CURLOPT_SEEKDATA ||                                            \
+   (option) == CURLOPT_SOCKOPTDATA ||                                         \
+   (option) == CURLOPT_SSH_KEYDATA ||                                         \
+   (option) == CURLOPT_SSL_CTX_DATA ||                                        \
+   (option) == CURLOPT_WRITEDATA ||                                           \
    0)
 
 /* evaluates to true if option takes a POST data argument (void* or char*) */
@@ -303,13 +320,15 @@ _CURL_WARNING(_curl_easy_getinfo_err_curl_slist,
 
 /* evaluates to true if option takes a struct curl_slist * argument */
 #define _curl_is_slist_option(option)                                         \
-  ((option) == CURLOPT_HTTPHEADER ||                                          \
-   (option) == CURLOPT_HTTP200ALIASES ||                                      \
-   (option) == CURLOPT_QUOTE ||                                               \
+  ((option) == CURLOPT_HTTP200ALIASES ||                                      \
+   (option) == CURLOPT_HTTPHEADER ||                                          \
+   (option) == CURLOPT_MAIL_RCPT ||                                           \
    (option) == CURLOPT_POSTQUOTE ||                                           \
    (option) == CURLOPT_PREQUOTE ||                                            \
+   (option) == CURLOPT_PROXYHEADER ||                                         \
+   (option) == CURLOPT_QUOTE ||                                               \
+   (option) == CURLOPT_RESOLVE ||                                             \
    (option) == CURLOPT_TELNETOPTIONS ||                                       \
-   (option) == CURLOPT_MAIL_RCPT ||                                           \
    0)
 
 /* groups of curl_easy_getinfo infos that take the same type of argument */
@@ -392,7 +411,8 @@ _CURL_WARNING(_curl_easy_getinfo_err_curl_slist,
 /* evaluates to true if expr is abuffer suitable for CURLOPT_ERRORBUFFER */
 /* XXX: also check size of an char[] array? */
 #define _curl_is_error_buffer(expr)                                           \
-  (__builtin_types_compatible_p(__typeof__(expr), char *) ||                  \
+  (_curl_is_NULL(expr) ||                                                     \
+   __builtin_types_compatible_p(__typeof__(expr), char *) ||                  \
    __builtin_types_compatible_p(__typeof__(expr), char[]))
 
 /* evaluates to true if expr is of type (const) void* or (const) FILE* */
@@ -521,7 +541,11 @@ typedef int (_curl_progress_callback2)(const void *,
    _curl_callback_compatible((expr), _curl_debug_callback1) ||                \
    _curl_callback_compatible((expr), _curl_debug_callback2) ||                \
    _curl_callback_compatible((expr), _curl_debug_callback3) ||                \
-   _curl_callback_compatible((expr), _curl_debug_callback4))
+   _curl_callback_compatible((expr), _curl_debug_callback4) ||                \
+   _curl_callback_compatible((expr), _curl_debug_callback5) ||                \
+   _curl_callback_compatible((expr), _curl_debug_callback6) ||                \
+   _curl_callback_compatible((expr), _curl_debug_callback7) ||                \
+   _curl_callback_compatible((expr), _curl_debug_callback8))
 typedef int (_curl_debug_callback1) (CURL *,
     curl_infotype, char *, size_t, void *);
 typedef int (_curl_debug_callback2) (CURL *,
@@ -530,6 +554,14 @@ typedef int (_curl_debug_callback3) (CURL *,
     curl_infotype, const char *, size_t, void *);
 typedef int (_curl_debug_callback4) (CURL *,
     curl_infotype, const char *, size_t, const void *);
+typedef int (_curl_debug_callback5) (CURL *,
+    curl_infotype, unsigned char *, size_t, void *);
+typedef int (_curl_debug_callback6) (CURL *,
+    curl_infotype, unsigned char *, size_t, const void *);
+typedef int (_curl_debug_callback7) (CURL *,
+    curl_infotype, const unsigned char *, size_t, void *);
+typedef int (_curl_debug_callback8) (CURL *,
+    curl_infotype, const unsigned char *, size_t, const void *);
 
 /* evaluates to true if expr is of type curl_ssl_ctx_callback or "similar" */
 /* this is getting even messier... */

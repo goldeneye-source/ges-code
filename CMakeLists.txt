@@ -1,8 +1,10 @@
 project(gesource)
 
 cmake_minimum_required(VERSION 2.8.12)
-
 set(GESOURCE_VERSION "5.0.0")
+
+include("cmake/ucm.cmake")
+include("ExternalProject")
 
 # Default to a release build
 if(NOT CMAKE_BUILD_TYPE)
@@ -12,13 +14,21 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # Global definitions
-add_definitions(-DVPROF_LEVEL=1 -DSWDS -D_snprintf=use_Q_snprintf_instead -Dstricmp=strcasecmp -D_stricmp=strcasecmp
-  -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp -D_vsnprintf=vsnprintf -Dstrcmpi=strcasecmp -D_USRDLL -DVECTOR)
+add_definitions(-DVPROF_LEVEL=1 -DSWDS -D_snprintf=use_Q_snprintf_instead -DRAD_TELEMETRY_DISABLED -D_USRDLL -DVECTOR)
 
 # Platform specific definitions
 if (CMAKE_HOST_UNIX)
-  add_definitions(-D_LINUX -DLINUX -D_alloca=alloca -DARCH=i486)
-  add_compile_options(--std=c++11 -w -ffast-math -fpermissive -msse4)
+  add_definitions(-D_LINUX -DLINUX -D_POSIX -DPOSIX -DGNUC -DCOMPILER_GCC -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC
+    -DNO_MALLOC_OVERRIDE)
+
+  add_compile_options(-std=gnu++0x -fpermissive -fno-strict-aliasing -ffast-math -fno-omit-frame-pointer
+  -ftree-vectorize -fpredictive-commoning -funswitch-loops -m32 -march=core2 -mtune=core2 -msse2 -mfpmath=sse)
+
+  add_compile_options(-Wall -Wno-invalid-offsetof -Wno-multichar -Wno-overloaded-virtual -Wno-narrowing -Wno-write-strings
+  	-Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-result
+    -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wignored-attributes
+    -Wno-sign-compare -Wno-reorder -Wno-invalid-offsetof -Wno-float-equal -Werror=return-type
+    -fdiagnostics-show-option -Wformat -Wformat-security)
 else()
   add_definitions(-DWIN32 -D_WIN32 -D_WINDOWS -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE)
 endif()
@@ -34,24 +44,19 @@ else()
   message(FATAL_ERROR "Could not find Boost libraries. Download and install at least version 1.54.0 to continue.")
 endif()
 
-# Python defines
-set(PYTHON_VERSION 3.5.2 CACHE INTERNAL "")
-set(BUILD_EXTENSIONS_AS_BUILTIN ON CACHE INTERNAL "")
-set(ENABLE_CTYPES OFF CACHE INTERNAL "")
-set(ENABLE_CTYPES_TEST OFF CACHE INTERNAL "")
-set(ENABLE_CURSES OFF CACHE INTERNAL "")
-set(ENABLE_CURSES_PANEL OFF CACHE INTERNAL "")
-set(ENABLE_BZ2 OFF CACHE INTERNAL "")
-set(ENABLE_SSL OFF CACHE INTERNAL "")
-set(ENABLE_HASHLIB OFF CACHE INTERNAL "")
-set(ENABLE_CRYPT OFF CACHE INTERNAL "")
-set(INSTALL_MANUAL OFF CACHE INTERNAL "")
-set(INSTALL_TEST OFF CACHE INTERNAL "")
-set(WITH_THREAD OFF CACHE INTERNAL "")
+# Configure, build, and "install" Python
+ExternalProject_Add(python
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/python"
+    CMAKE_ARGS "-C${CMAKE_SOURCE_DIR}/cmake/ges_python.cmake" "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/python/"
+      "-DCMAKE_C_FLAGS=-m32"
+    BINARY_DIR "python"
+    )
+
+include_directories("${CMAKE_BINARY_DIR}/python/include/python3.5/")
+link_directories("${CMAKE_BINARY_DIR}/python/lib/")
 
 # Add in the projects
-add_subdirectory("thirdparty/python")
 add_subdirectory("thirdparty/boost-python")
-#add_subdirectory("mathlib")
-#add_subdirectory("tier1")
-#add_subdirectory("game")
+add_subdirectory("mathlib")
+add_subdirectory("tier1")
+add_subdirectory("game")

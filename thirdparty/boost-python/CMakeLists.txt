@@ -32,6 +32,7 @@ set(BP_SOURCES
 )
 
 add_library(boost_python STATIC ${BP_SOURCES})
+add_dependencies(boost_python python)
 
 target_include_directories(boost_python PRIVATE "${CMAKE_SOURCE_DIR}/thirdparty/")
 
@@ -43,4 +44,6 @@ target_compile_definitions(boost_python PUBLIC
   BOOST_PYTHON_MAX_ARITY=20
 )
 
-target_compile_options(boost_python PRIVATE "-fPIC")
+if(CMAKE_HOST_UNIX)
+  target_compile_options(boost_python PRIVATE "-fPIC")
+endif()

@@ -31,23 +31,10 @@ set(SERVER_LIBS
 )
 
 # Call these out separately for precompiled header on windows
-set(GEPY_SOURCES
-  ges/server/py/ge_pyai.cpp
-  ges/server/py/ge_pyaiconstants.cpp
-  ges/server/py/ge_pyammocrate.cpp
-  ges/server/py/ge_pyentity.cpp
-  ges/server/py/ge_pyfuncs.cpp
-  ges/server/py/ge_pygameplay.cpp
-  ges/server/py/ge_pygamerules.cpp
-  ges/server/py/ge_pyglobal.cpp
-  ges/server/py/ge_pymanager.cpp
-  ges/server/py/ge_pymodules.cpp
-  ges/server/py/ge_pyplayer.cpp
-  ges/server/py/ge_pyutil.cpp
-  ges/server/py/ge_pyweapon.cpp
-)
+ucm_add_dirs("server/ges/py" TO GEPY_SOURCES NO_HEADERS)
 
-set(SHARED_SOURCES
+ucm_add_dirs("shared" TO SHARED_SOURCES NO_HEADERS RECURSIVE)
+ucm_add_files(
   ../common/randoverride.cpp
   ../public/ScratchPadUtils.cpp
   ../public/SoundParametersInternal.cpp
@@ -63,135 +50,11 @@ set(SHARED_SOURCES
   ../public/stringregistry.cpp
   ../public/studio.cpp
   ../public/tier0/memoverride.cpp
-  ges/shared/ge_achievement.cpp
-  ges/shared/ge_bloodscreenvm.cpp
-  ges/shared/ge_character_data.cpp
-  ges/shared/ge_game_timer.cpp
-  ges/shared/ge_gamerules.cpp
-  ges/shared/ge_generictoken.cpp
-  ges/shared/ge_player_shared.cpp
-  ges/shared/ge_utils.cpp
-  ges/shared/ge_weapon.cpp
-  ges/shared/ge_weapon_parse.cpp
-  ges/shared/ge_weaponautomatic.cpp
-  ges/shared/ge_weaponmelee.cpp
-  ges/shared/ge_weaponpistol.cpp
-  ges/shared/ge_webrequest.cpp
-  ges/shared/mp/gemp_gamerules.cpp
-  ges/shared/mp/gemp_player_shared.cpp
-  ges/shared/script_parser.cpp
-  ges/shared/weapon_ar33.cpp
-  ges/shared/weapon_autoshotgun.cpp
-  ges/shared/weapon_cmag.cpp
-  ges/shared/weapon_d5k.cpp
-  ges/shared/weapon_dd44.cpp
-  ges/shared/weapon_goldengun.cpp
-  ges/shared/weapon_grenade.cpp
-  ges/shared/weapon_grenade_launcher.cpp
-  ges/shared/weapon_kf7.cpp
-  ges/shared/weapon_klobb.cpp
-  ges/shared/weapon_knife.cpp
-  ges/shared/weapon_knife_throwing.cpp
-  ges/shared/weapon_mines.cpp
-  ges/shared/weapon_moonraker.cpp
-  ges/shared/weapon_phantom.cpp
-  ges/shared/weapon_pp7.cpp
-  ges/shared/weapon_pp7_silenced.cpp
-  ges/shared/weapon_rcp90.cpp
-  ges/shared/weapon_rocket_launcher.cpp
-  ges/shared/weapon_shotgun.cpp
-  ges/shared/weapon_slappers.cpp
-  ges/shared/weapon_sniperrifle.cpp
-  ges/shared/weapon_zmg.cpp
-  sdk/shared/EntityParticleTrail_Shared.cpp
-  sdk/shared/GameStats.cpp
-  sdk/shared/Multiplayer/multiplayer_animstate.cpp
-  sdk/shared/SoundEmitterSystem.cpp
-  sdk/shared/Sprite.cpp
-  sdk/shared/SpriteTrail.cpp
-  sdk/shared/achievement_saverestore.cpp
-  sdk/shared/achievementmgr.cpp
-  sdk/shared/achievements_hlx.cpp
-  sdk/shared/activitylist.cpp
-  sdk/shared/ammodef.cpp
-  sdk/shared/animation.cpp
-  sdk/shared/base_playeranimstate.cpp
-  sdk/shared/baseachievement.cpp
-  sdk/shared/basecombatcharacter_shared.cpp
-  sdk/shared/basecombatweapon_shared.cpp
-  sdk/shared/baseentity_shared.cpp
-  sdk/shared/basegrenade_shared.cpp
-  sdk/shared/baseparticleentity.cpp
-  sdk/shared/baseplayer_shared.cpp
-  sdk/shared/baseviewmodel_shared.cpp
-  sdk/shared/beam_shared.cpp
-  sdk/shared/collisionproperty.cpp
-  sdk/shared/death_pose.cpp
-  sdk/shared/debugoverlay_shared.cpp
-  sdk/shared/decals.cpp
-  sdk/shared/effect_dispatch_data.cpp
-  sdk/shared/ehandle.cpp
-  sdk/shared/entitylist_base.cpp
-  sdk/shared/env_detail_controller.cpp
-  sdk/shared/env_wind_shared.cpp
-  sdk/shared/eventlist.cpp
-  sdk/shared/func_ladder.cpp
-  sdk/shared/gamemovement.cpp
-  sdk/shared/gamerules.cpp
-  sdk/shared/gamerules_register.cpp
-  sdk/shared/gamestringpool.cpp
-  sdk/shared/gamevars_shared.cpp
-  sdk/shared/hintmessage.cpp
-  sdk/shared/hintsystem.cpp
-  sdk/shared/hl2/basehlcombatweapon_shared.cpp
-  sdk/shared/hl2/hl2_usermessages.cpp
-  sdk/shared/hl2/hl_gamemovement.cpp
-  sdk/shared/hl2mp/hl2mp_player_shared.cpp
-  sdk/shared/hl2mp/hl2mp_playeranimstate.cpp
-  sdk/shared/hl2mp/hl2mp_weapon_parse.cpp
-  sdk/shared/hl2mp/weapon_hl2mpbase.cpp
-  sdk/shared/hl2mp/weapon_hl2mpbasehlmpcombatweapon.cpp
-  sdk/shared/igamesystem.cpp
-  sdk/shared/interval.cpp
-  sdk/shared/mapentities_shared.cpp
-  sdk/shared/movevars_shared.cpp
-  sdk/shared/mp_shareddefs.cpp
-  sdk/shared/multiplay_gamerules.cpp
-  sdk/shared/obstacle_pushaway.cpp
-  sdk/shared/particle_parse.cpp
-  sdk/shared/particlesystemquery.cpp
-  sdk/shared/physics_main_shared.cpp
-  sdk/shared/physics_saverestore.cpp
-  sdk/shared/physics_shared.cpp
-  sdk/shared/point_bonusmaps_accessor.cpp
-  sdk/shared/point_posecontroller.cpp
-  sdk/shared/precache_register.cpp
-  sdk/shared/predictableid.cpp
-  sdk/shared/predicted_viewmodel.cpp
-  sdk/shared/props_shared.cpp
-  sdk/shared/ragdoll_shared.cpp
-  sdk/shared/rope_helpers.cpp
-  sdk/shared/saverestore.cpp
-  sdk/shared/sceneentity_shared.cpp
-  sdk/shared/script_intro_shared.cpp
-  sdk/shared/sequence_Transitioner.cpp
-  sdk/shared/sheetsimulator.cpp
-  sdk/shared/simtimer.cpp
-  sdk/shared/singleplay_gamerules.cpp
-  sdk/shared/soundenvelope.cpp
-  sdk/shared/studio_shared.cpp
-  sdk/shared/takedamageinfo.cpp
-  sdk/shared/teamplay_gamerules.cpp
-  sdk/shared/test_ehandle.cpp
-  sdk/shared/usercmd.cpp
-  sdk/shared/usermessages.cpp
-  sdk/shared/util_shared.cpp
-  sdk/shared/vehicle_viewblend_shared.cpp
-  sdk/shared/weapon_parse.cpp
-  sdk/shared/weapon_parse_default.cpp
-)
+TO SHARED_SOURCES)
 
-set(SERVER_SOURCES
+ucm_add_dirs("server" TO SERVER_SOURCES NO_HEADERS RECURSIVE)
+ucm_remove_directories("server/ges/py" FROM SERVER_SOURCES)
+ucm_add_files(
   ../public/dt_send.cpp
   ../public/dt_utlvector_send.cpp
   ../public/editor_sendcommand.cpp
@@ -199,415 +62,11 @@ set(SERVER_SOURCES
   ../public/map_utils.cpp
   ../public/registry.cpp
   ../public/server_class.cpp
-  ${SHARED_SOURCES}
-  sdk/shared/ModelSoundsCache.cpp
-  sdk/shared/SceneCache.cpp
-  sdk/shared/hl2/survival_gamerules.cpp
-  sdk/shared/voice_gamemgr.cpp
-  sdk/shared/weapon_proficiency.cpp
-  ges/server/ai/ge_ai.cpp
-  ges/server/ai/ge_ai_concommands.cpp
-  ges/server/ai/npc_gebase_aiming.cpp
-  ges/server/ent_capturearea.cpp
-  ges/server/ge_ammocrate.cpp
-  ges/server/ge_armorvest.cpp
-  ges/server/ge_bot.cpp
-  ges/server/ge_brush.cpp
-  ges/server/ge_client.cpp
-  ges/server/ge_door.cpp
-  ges/server/ge_door_interp.cpp
-  ges/server/ge_func_rebreakable.cpp
-  ges/server/ge_func_rebreakable_surf.cpp
-  ges/server/ge_gameinterface.cpp
-  ges/server/ge_gameplayinfo.cpp
-  ges/server/ge_logic_bitflag.cpp
-  ges/server/ge_logic_gate.cpp
-  ges/server/ge_md5util.cpp
-  ges/server/ge_player.cpp
-  ges/server/ge_point_follower.cpp
-  ges/server/ge_recipientfilter.cpp
-  ges/server/ge_stats_recorder.cpp
-  ges/server/ge_triggers.cpp
-  ges/server/grenade_ge.cpp
-  ges/server/grenade_mine.cpp
-  ges/server/grenade_rocket.cpp
-  ges/server/grenade_shell.cpp
-  ges/server/mp/ge_ammospawner.cpp
-  ges/server/mp/ge_gameplay.cpp
-  ges/server/mp/ge_gameplayresource.cpp
-  ges/server/mp/ge_loadout.cpp
-  ges/server/mp/ge_loadoutmanager.cpp
-  ges/server/mp/ge_mapmanager.cpp
-  ges/server/mp/ge_playerresource.cpp
-  ges/server/mp/ge_playerspawn.cpp
-  ges/server/mp/ge_radarresource.cpp
-  ges/server/mp/ge_spawner.cpp
-  ges/server/mp/ge_tokenmanager.cpp
-  ges/server/mp/ge_weaponspawner.cpp
-  ges/server/mp/gebot_player.cpp
-  ges/server/mp/gemp_player.cpp
-  ges/server/npc_tknife.cpp
-  ges/server/prop_ge_dynamic.cpp
-  ges/server/sp/ent_envexplosion.cpp
-  ges/server/sp/ent_geexplosion.cpp
-  ges/server/sp/ent_hat.cpp
-  ges/server/sp/npc_gebase.cpp
-  sdk/server/AI_Criteria.cpp
-  sdk/server/AI_Interest_Target.cpp
-  sdk/server/AI_ResponseSystem.cpp
-  sdk/server/BaseAnimatingOverlay.cpp
-  sdk/server/CRagdollMagnet.cpp
-  sdk/server/CommentarySystem.cpp
-  sdk/server/EffectsServer.cpp
-  sdk/server/EntityDissolve.cpp
-  sdk/server/EntityFlame.cpp
-  sdk/server/EntityParticleTrail.cpp
-  sdk/server/EnvBeam.cpp
-  sdk/server/EnvFade.cpp
-  sdk/server/EnvHudHint.cpp
-  sdk/server/EnvLaser.cpp
-  sdk/server/EnvMessage.cpp
-  sdk/server/EnvShake.cpp
-  sdk/server/EnvSpark.cpp
-  sdk/server/EventLog.cpp
-  sdk/server/GameStats_BasicStatsFunctions.cpp
-  sdk/server/MaterialModifyControl.cpp
-  sdk/server/PointAngularVelocitySensor.cpp
-  sdk/server/RagdollBoogie.cpp
-  sdk/server/ServerNetworkProperty.cpp
-  sdk/server/SkyCamera.cpp
-  sdk/server/TemplateEntities.cpp
-  sdk/server/WaterLODControl.cpp
-  sdk/server/ai_activity.cpp
-  sdk/server/ai_baseactor.cpp
-  sdk/server/ai_basehumanoid.cpp
-  sdk/server/ai_basenpc.cpp
-  sdk/server/ai_basenpc_flyer.cpp
-  sdk/server/ai_basenpc_flyer_new.cpp
-  sdk/server/ai_basenpc_movement.cpp
-  sdk/server/ai_basenpc_physicsflyer.cpp
-  sdk/server/ai_basenpc_schedule.cpp
-  sdk/server/ai_basenpc_squad.cpp
-  sdk/server/ai_behavior.cpp
-  sdk/server/ai_behavior_assault.cpp
-  sdk/server/ai_behavior_fear.cpp
-  sdk/server/ai_behavior_follow.cpp
-  sdk/server/ai_behavior_lead.cpp
-  sdk/server/ai_behavior_rappel.cpp
-  sdk/server/ai_behavior_standoff.cpp
-  sdk/server/ai_blended_movement.cpp
-  sdk/server/ai_concommands.cpp
-  sdk/server/ai_condition.cpp
-  sdk/server/ai_default.cpp
-  sdk/server/ai_dynamiclink.cpp
-  sdk/server/ai_event.cpp
-  sdk/server/ai_eventresponse.cpp
-  sdk/server/ai_goalentity.cpp
-  sdk/server/ai_hint.cpp
-  sdk/server/ai_hull.cpp
-  sdk/server/ai_initutils.cpp
-  sdk/server/ai_link.cpp
-  sdk/server/ai_localnavigator.cpp
-  sdk/server/ai_looktarget.cpp
-  sdk/server/ai_memory.cpp
-  sdk/server/ai_motor.cpp
-  sdk/server/ai_moveprobe.cpp
-  sdk/server/ai_moveshoot.cpp
-  sdk/server/ai_movesolver.cpp
-  sdk/server/ai_namespaces.cpp
-  sdk/server/ai_navigator.cpp
-  sdk/server/ai_network.cpp
-  sdk/server/ai_networkmanager.cpp
-  sdk/server/ai_node.cpp
-  sdk/server/ai_pathfinder.cpp
-  sdk/server/ai_planesolver.cpp
-  sdk/server/ai_playerally.cpp
-  sdk/server/ai_relationship.cpp
-  sdk/server/ai_route.cpp
-  sdk/server/ai_saverestore.cpp
-  sdk/server/ai_schedule.cpp
-  sdk/server/ai_scriptconditions.cpp
-  sdk/server/ai_senses.cpp
-  sdk/server/ai_sentence.cpp
-  sdk/server/ai_speech.cpp
-  sdk/server/ai_speechfilter.cpp
-  sdk/server/ai_squad.cpp
-  sdk/server/ai_squadslot.cpp
-  sdk/server/ai_tacticalservices.cpp
-  sdk/server/ai_task.cpp
-  sdk/server/ai_trackpather.cpp
-  sdk/server/ai_utils.cpp
-  sdk/server/ai_waypoint.cpp
-  sdk/server/base_gameinterface.cpp
-  sdk/server/base_transmit_proxy.cpp
-  sdk/server/baseanimating.cpp
-  sdk/server/basebludgeonweapon.cpp
-  sdk/server/basecombatcharacter.cpp
-  sdk/server/basecombatweapon.cpp
-  sdk/server/baseentity.cpp
-  sdk/server/baseflex.cpp
-  sdk/server/basegrenade_concussion.cpp
-  sdk/server/basegrenade_contact.cpp
-  sdk/server/basegrenade_timed.cpp
-  sdk/server/basemultiplayerplayer.cpp
-  sdk/server/basetempentity.cpp
-  sdk/server/baseviewmodel.cpp
-  sdk/server/bitstring.cpp
-  sdk/server/bmodels.cpp
-  sdk/server/buttons.cpp
-  sdk/server/cbase.cpp
-  sdk/server/client.cpp
-  sdk/server/colorcorrection.cpp
-  sdk/server/colorcorrectionvolume.cpp
-  sdk/server/controlentities.cpp
-  sdk/server/cplane.cpp
-  sdk/server/damagemodifier.cpp
-  sdk/server/doors.cpp
-  sdk/server/dynamiclight.cpp
-  sdk/server/effects.cpp
-  sdk/server/entity_tools_server.cpp
-  sdk/server/entityblocker.cpp
-  sdk/server/entitylist.cpp
-  sdk/server/env_debughistory.cpp
-  sdk/server/env_effectsscript.cpp
-  sdk/server/env_entity_maker.cpp
-  sdk/server/env_particlescript.cpp
-  sdk/server/env_player_surface_trigger.cpp
-  sdk/server/env_projectedtexture.cpp
-  sdk/server/env_screenoverlay.cpp
-  sdk/server/env_texturetoggle.cpp
-  sdk/server/env_tonemap_controller.cpp
-  sdk/server/env_zoom.cpp
-  sdk/server/envmicrophone.cpp
-  sdk/server/event_tempentity_tester.cpp
-  sdk/server/explode.cpp
-  sdk/server/filters.cpp
-  sdk/server/fire.cpp
-  sdk/server/fire_smoke.cpp
-  sdk/server/fish.cpp
-  sdk/server/fogcontroller.cpp
-  sdk/server/fourwheelvehiclephysics.cpp
-  sdk/server/func_areaportal.cpp
-  sdk/server/func_areaportalbase.cpp
-  sdk/server/func_areaportalwindow.cpp
-  sdk/server/func_break.cpp
-  sdk/server/func_breakablesurf.cpp
-  sdk/server/func_dust.cpp
-  sdk/server/func_ladder_endpoint.cpp
-  sdk/server/func_lod.cpp
-  sdk/server/func_movelinear.cpp
-  sdk/server/func_occluder.cpp
-  sdk/server/func_reflective_glass.cpp
-  sdk/server/func_smokevolume.cpp
-  sdk/server/game.cpp
-  sdk/server/game_ui.cpp
-  sdk/server/gamehandle.cpp
-  sdk/server/gameinterface.cpp
-  sdk/server/gametrace_dll.cpp
-  sdk/server/gameweaponmanager.cpp
-  sdk/server/genericactor.cpp
-  sdk/server/genericmonster.cpp
-  sdk/server/gib.cpp
-  sdk/server/globals.cpp
-  sdk/server/globalstate.cpp
-  sdk/server/grenadethrown.cpp
-  sdk/server/guntarget.cpp
-  sdk/server/h_ai.cpp
-  sdk/server/h_cycler.cpp
-  sdk/server/h_export.cpp
-  sdk/server/hierarchy.cpp
-  sdk/server/hl2/Func_Monitor.cpp
-  sdk/server/hl2/ai_behavior_actbusy.cpp
-  sdk/server/hl2/ai_behavior_holster.cpp
-  sdk/server/hl2/ai_behavior_operator.cpp
-  sdk/server/hl2/ai_spotlight.cpp
-  sdk/server/hl2/basehlcombatweapon.cpp
-  sdk/server/hl2/cbasehelicopter.cpp
-  sdk/server/hl2/cbasespriteprojectile.cpp
-  sdk/server/hl2/env_speaker.cpp
-  sdk/server/hl2/env_starfield.cpp
-  sdk/server/hl2/hl2_ai_network.cpp
-  sdk/server/hl2/hl2_client.cpp
-  sdk/server/hl2/hl2_eventlog.cpp
-  sdk/server/hl2/hl2_gamestats.cpp
-  sdk/server/hl2/hl2_player.cpp
-  sdk/server/hl2/hl2_playerlocaldata.cpp
-  sdk/server/hl2/hl2_triggers.cpp
-  sdk/server/hl2/hl_playermove.cpp
-  sdk/server/hl2/info_darknessmode_lightsource.cpp
-  sdk/server/hl2/item_suit.cpp
-  sdk/server/hl2/look_door.cpp
-  sdk/server/hl2/monster_dummy.cpp
-  sdk/server/hl2/npc_bullseye.cpp
-  sdk/server/hl2/npc_crow.cpp
-  sdk/server/hl2/npc_playercompanion.cpp
-  sdk/server/hl2/npc_turret_ceiling.cpp
-  sdk/server/hl2/npc_turret_floor.cpp
-  sdk/server/hl2/npc_turret_ground.cpp
-  sdk/server/hl2/rotorwash.cpp
-  sdk/server/hl2/script_intro.cpp
-  sdk/server/hl2/te_gaussexplosion.cpp
-  sdk/server/hl2/vehicle_viewcontroller.cpp
-  sdk/server/hl2mp/hl2mp_player.cpp
-  sdk/server/hltvdirector.cpp
-  sdk/server/info_camera_link.cpp
-  sdk/server/info_overlay_accessor.cpp
-  sdk/server/init_factory.cpp
-  sdk/server/intermission.cpp
-  sdk/server/item_world.cpp
-  sdk/server/lightglow.cpp
-  sdk/server/lights.cpp
-  sdk/server/logic_achievement.cpp
-  sdk/server/logic_measure_movement.cpp
-  sdk/server/logic_navigation.cpp
-  sdk/server/logicauto.cpp
-  sdk/server/logicentities.cpp
-  sdk/server/logicrelay.cpp
-  sdk/server/mapentities.cpp
-  sdk/server/maprules.cpp
-  sdk/server/message_entity.cpp
-  sdk/server/modelentities.cpp
-  sdk/server/monstermaker.cpp
-  sdk/server/movehelper_server.cpp
-  sdk/server/movement.cpp
-  sdk/server/movie_explosion.cpp
-  sdk/server/nav_area.cpp
-  sdk/server/nav_colors.cpp
-  sdk/server/nav_edit.cpp
-  sdk/server/nav_file.cpp
-  sdk/server/nav_generate.cpp
-  sdk/server/nav_ladder.cpp
-  sdk/server/nav_mesh.cpp
-  sdk/server/nav_node.cpp
-  sdk/server/ndebugoverlay.cpp
-  sdk/server/npc_talker.cpp
-  sdk/server/npc_vehicledriver.cpp
-  sdk/server/particle_fire.cpp
-  sdk/server/particle_light.cpp
-  sdk/server/particle_smokegrenade.cpp
-  sdk/server/particle_system.cpp
-  sdk/server/pathcorner.cpp
-  sdk/server/pathtrack.cpp
-  sdk/server/phys_controller.cpp
-  sdk/server/physconstraint.cpp
-  sdk/server/physics.cpp
-  sdk/server/physics_bone_follower.cpp
-  sdk/server/physics_cannister.cpp
-  sdk/server/physics_fx.cpp
-  sdk/server/physics_impact_damage.cpp
-  sdk/server/physics_main.cpp
-  sdk/server/physics_npc_solver.cpp
-  sdk/server/physics_prop_ragdoll.cpp
-  sdk/server/physobj.cpp
-  sdk/server/plasma.cpp
-  sdk/server/player.cpp
-  sdk/server/player_command.cpp
-  sdk/server/player_lagcompensation.cpp
-  sdk/server/player_pickup.cpp
-  sdk/server/player_resource.cpp
-  sdk/server/playerinfomanager.cpp
-  sdk/server/playerlocaldata.cpp
-  sdk/server/plugin_check.cpp
-  sdk/server/point_camera.cpp
-  sdk/server/point_devshot_camera.cpp
-  sdk/server/point_playermoveconstraint.cpp
-  sdk/server/point_spotlight.cpp
-  sdk/server/point_template.cpp
-  sdk/server/pointanglesensor.cpp
-  sdk/server/pointhurt.cpp
-  sdk/server/pointteleport.cpp
-  sdk/server/props.cpp
-  sdk/server/ragdoll_manager.cpp
-  sdk/server/recipientfilter.cpp
-  sdk/server/rope.cpp
-  sdk/server/saverestore_gamedll.cpp
-  sdk/server/sceneentity.cpp
-  sdk/server/scratchpad_gamedll_helpers.cpp
-  sdk/server/scripted.cpp
-  sdk/server/scriptedtarget.cpp
-  sdk/server/sendproxy.cpp
-  sdk/server/serverbenchmark_base.cpp
-  sdk/server/shadowcontrol.cpp
-  sdk/server/slideshow_display.cpp
-  sdk/server/smoke_trail.cpp
-  sdk/server/smokestack.cpp
-  sdk/server/sound.cpp
-  sdk/server/soundent.cpp
-  sdk/server/soundscape.cpp
-  sdk/server/soundscape_system.cpp
-  sdk/server/spotlightend.cpp
-  sdk/server/sprite_perfmonitor.cpp
-  sdk/server/steamjet.cpp
-  sdk/server/subs.cpp
-  sdk/server/sun.cpp
-  sdk/server/tanktrain.cpp
-  sdk/server/te.cpp
-  sdk/server/te_armorricochet.cpp
-  sdk/server/te_basebeam.cpp
-  sdk/server/te_beamentpoint.cpp
-  sdk/server/te_beaments.cpp
-  sdk/server/te_beamfollow.cpp
-  sdk/server/te_beamlaser.cpp
-  sdk/server/te_beampoints.cpp
-  sdk/server/te_beamring.cpp
-  sdk/server/te_beamringpoint.cpp
-  sdk/server/te_beamspline.cpp
-  sdk/server/te_bloodsprite.cpp
-  sdk/server/te_bloodstream.cpp
-  sdk/server/te_breakmodel.cpp
-  sdk/server/te_bspdecal.cpp
-  sdk/server/te_bubbles.cpp
-  sdk/server/te_bubbletrail.cpp
-  sdk/server/te_clientprojectile.cpp
-  sdk/server/te_decal.cpp
-  sdk/server/te_dynamiclight.cpp
-  sdk/server/te_effect_dispatch.cpp
-  sdk/server/te_energysplash.cpp
-  sdk/server/te_explosion.cpp
-  sdk/server/te_fizz.cpp
-  sdk/server/te_footprintdecal.cpp
-  sdk/server/te_glassshatter.cpp
-  sdk/server/te_glowsprite.cpp
-  sdk/server/te_impact.cpp
-  sdk/server/te_killplayerattachments.cpp
-  sdk/server/te_largefunnel.cpp
-  sdk/server/te_muzzleflash.cpp
-  sdk/server/te_particlesystem.cpp
-  sdk/server/te_physicsprop.cpp
-  sdk/server/te_playerdecal.cpp
-  sdk/server/te_projecteddecal.cpp
-  sdk/server/te_showline.cpp
-  sdk/server/te_smoke.cpp
-  sdk/server/te_sparks.cpp
-  sdk/server/te_sprite.cpp
-  sdk/server/te_spritespray.cpp
-  sdk/server/te_worlddecal.cpp
-  sdk/server/team.cpp
-  sdk/server/team_spawnpoint.cpp
-  sdk/server/tempmonster.cpp
-  sdk/server/tesla.cpp
-  sdk/server/test_proxytoggle.cpp
-  sdk/server/test_stressentities.cpp
-  sdk/server/testfunctions.cpp
-  sdk/server/testtraceline.cpp
-  sdk/server/textstatsmgr.cpp
-  sdk/server/timedeventmgr.cpp
-  sdk/server/toolframework_server.cpp
-  sdk/server/trains.cpp
-  sdk/server/triggers.cpp
-  sdk/server/util.cpp
-  sdk/server/variant_t.cpp
-  sdk/server/vehicle_base.cpp
-  sdk/server/vehicle_baseserver.cpp
-  sdk/server/vehicle_choreo_generic.cpp
-  sdk/server/vguiscreen.cpp
-  sdk/server/waterbullet.cpp
-  sdk/server/wcedit.cpp
-  sdk/server/weight_button.cpp
-  sdk/server/world.cpp
-)
+TO SERVER_SOURCES)
+LIST(APPEND SERVER_SOURCES ${SHARED_SOURCES})
 
-set(CLIENT_SOURCES
+ucm_add_dirs("client" TO CLIENT_SOURCES NO_HEADERS RECURSIVE)
+ucm_add_files(
   ../common/compiledcaptionswap.cpp
   ../public/bone_accessor.cpp
   ../public/client_class.cpp
@@ -620,449 +79,57 @@ set(CLIENT_SOURCES
   ../public/tools/bonelist.cpp
   ../public/vallocator.cpp
   ../public/vgui_controls/vgui_controls.cpp
-  ${SHARED_SOURCES}
-  sdk/shared/hl2/achievements_hl2.cpp
-  sdk/shared/hl2/hl2_gamerules.cpp
-  sdk/shared/particle_property.cpp
-  sdk/shared/predictioncopy.cpp
-  sdk/shared/teamplayroundbased_gamerules.cpp
-  sdk/shared/voice_banmgr.cpp
-  sdk/shared/voice_status.cpp
-  v5_achievements.cpp
-  ges/shared/b314_achievements.cpp
-  ges/shared/b3_achievements.cpp
-  ges/shared/b4_achievements.cpp
-  ges/client/HUD/ge_hudammo.cpp
-  ges/client/HUD/ge_hudbloodscreen.cpp
-  ges/client/HUD/ge_hudchat.cpp
-  ges/client/HUD/ge_huddeathnotice.cpp
-  ges/client/HUD/ge_huddebugscreen.cpp
-  ges/client/HUD/ge_hudgameplay.cpp
-  ges/client/HUD/ge_hudlifebars.cpp
-  ges/client/HUD/ge_hudobjectives.cpp
-  ges/client/HUD/ge_hudpopupmsg.cpp
-  ges/client/HUD/ge_hudprogressbars.cpp
-  ges/client/HUD/ge_hudradar.cpp
-  ges/client/HUD/ge_hudroundtimer.cpp
-  ges/client/HUD/ge_hudtargetid.cpp
-  ges/client/HUD/ge_hudteamscores.cpp
-  ges/client/HUD/ge_hudweaponselection.cpp
-  ges/client/VGUI/ge_CreditsText.cpp
-  ges/client/VGUI/ge_HorzListPanel.cpp
-  ges/client/VGUI/ge_ImageButton.cpp
-  ges/client/VGUI/ge_VertListPanel.cpp
-  ges/client/VGUI/ge_achievementnotification.cpp
-  ges/client/VGUI/ge_awardpanel.cpp
-  ges/client/VGUI/ge_charPanel.cpp
-  ges/client/VGUI/ge_charselectgui.cpp
-  ges/client/VGUI/ge_createserver.cpp
-  ges/client/VGUI/ge_creditsvgui.cpp
-  ges/client/VGUI/ge_introvideo.cpp
-  ges/client/VGUI/ge_loadingscreen.cpp
-  ges/client/VGUI/ge_panelhelper.cpp
-  ges/client/VGUI/ge_roundreport.cpp
-  ges/client/VGUI/ge_scenariohelp.cpp
-  ges/client/VGUI/ge_scoreboard.cpp
-  ges/client/VGUI/ge_spectatorgui.cpp
-  ges/client/VGUI/ge_teammenu.cpp
-  ges/client/VGUI/ge_updatechecker.cpp
-  ges/client/c_ge_capturearea.cpp
-  ges/client/c_ge_door_interp.cpp
-  ges/client/c_ge_player.cpp
-  ges/client/c_ge_point_follower.cpp
-  ges/client/c_npc_gebase.cpp
-  ges/client/clientmode_ge.cpp
-  ges/client/ge_materialproxies.cpp
-  ges/client/ge_musicmanager.cpp
-  ges/client/ge_screeneffects.cpp
-  ges/client/ge_vieweffects.cpp
-  ges/client/mp/c_ge_gameplayresource.cpp
-  ges/client/mp/c_ge_playerresource.cpp
-  ges/client/mp/c_ge_radarresource.cpp
-  ges/client/mp/c_gebot_player.cpp
-  ges/client/mp/c_gemp_player.cpp
-  sdk/client/AnimateSpecificTextureProxy.cpp
-  sdk/client/C_MaterialModifyControl.cpp
-  sdk/client/C_WaterLODControl.cpp
-  sdk/client/EffectsClient.cpp
-  sdk/client/IsNPCProxy.cpp
-  sdk/client/ProxyHealth.cpp
-  sdk/client/ScreenSpaceEffects.cpp
-  sdk/client/ShaderEditor/SEdit_ModelRender.cpp
-  sdk/client/ShaderEditor/ShaderEditorSystem.cpp
-  sdk/client/ViewConeImage.cpp
-  sdk/client/WaterLODMaterialProxy.cpp
-  sdk/client/WorldDimsProxy.cpp
-  sdk/client/achievement_notification_panel.cpp
-  sdk/client/alphamaterialproxy.cpp
-  sdk/client/animatedentitytextureproxy.cpp
-  sdk/client/animatedoffsettextureproxy.cpp
-  sdk/client/animatedtextureproxy.cpp
-  sdk/client/baseanimatedtextureproxy.cpp
-  sdk/client/baseclientrendertargets.cpp
-  sdk/client/basepresence.cpp
-  sdk/client/beamdraw.cpp
-  sdk/client/bone_merge_cache.cpp
-  sdk/client/c_ai_basehumanoid.cpp
-  sdk/client/c_ai_basenpc.cpp
-  sdk/client/c_baseanimating.cpp
-  sdk/client/c_baseanimatingoverlay.cpp
-  sdk/client/c_basecombatcharacter.cpp
-  sdk/client/c_basecombatweapon.cpp
-  sdk/client/c_basedoor.cpp
-  sdk/client/c_baseentity.cpp
-  sdk/client/c_baseflex.cpp
-  sdk/client/c_baseplayer.cpp
-  sdk/client/c_basetempentity.cpp
-  sdk/client/c_baseviewmodel.cpp
-  sdk/client/c_breakableprop.cpp
-  sdk/client/c_colorcorrection.cpp
-  sdk/client/c_colorcorrectionvolume.cpp
-  sdk/client/c_dynamiclight.cpp
-  sdk/client/c_effects.cpp
-  sdk/client/c_entitydissolve.cpp
-  sdk/client/c_entityparticletrail.cpp
-  sdk/client/c_env_fog_controller.cpp
-  sdk/client/c_env_particlescript.cpp
-  sdk/client/c_env_projectedtexture.cpp
-  sdk/client/c_env_screenoverlay.cpp
-  sdk/client/c_env_tonemap_controller.cpp
-  sdk/client/c_fire_smoke.cpp
-  sdk/client/c_fish.cpp
-  sdk/client/c_func_areaportalwindow.cpp
-  sdk/client/c_func_breakablesurf.cpp
-  sdk/client/c_func_conveyor.cpp
-  sdk/client/c_func_dust.cpp
-  sdk/client/c_func_lod.cpp
-  sdk/client/c_func_occluder.cpp
-  sdk/client/c_func_reflective_glass.cpp
-  sdk/client/c_func_rotating.cpp
-  sdk/client/c_func_smokevolume.cpp
-  sdk/client/c_func_tracktrain.cpp
-  sdk/client/c_gib.cpp
-  sdk/client/c_hairball.cpp
-  sdk/client/c_impact_effects.cpp
-  sdk/client/c_info_overlay_accessor.cpp
-  sdk/client/c_lightglow.cpp
-  sdk/client/c_movie_explosion.cpp
-  sdk/client/c_particle_fire.cpp
-  sdk/client/c_particle_smokegrenade.cpp
-  sdk/client/c_particle_system.cpp
-  sdk/client/c_physbox.cpp
-  sdk/client/c_physicsprop.cpp
-  sdk/client/c_physmagnet.cpp
-  sdk/client/c_pixel_visibility.cpp
-  sdk/client/c_plasma.cpp
-  sdk/client/c_playerresource.cpp
-  sdk/client/c_point_camera.cpp
-  sdk/client/c_point_commentary_node.cpp
-  sdk/client/c_prop_vehicle.cpp
-  sdk/client/c_props.cpp
-  sdk/client/c_ragdoll_manager.cpp
-  sdk/client/c_recipientfilter.cpp
-  sdk/client/c_rope.cpp
-  sdk/client/c_rumble.cpp
-  sdk/client/c_sceneentity.cpp
-  sdk/client/c_shadowcontrol.cpp
-  sdk/client/c_slideshow_display.cpp
-  sdk/client/c_smoke_trail.cpp
-  sdk/client/c_smokestack.cpp
-  sdk/client/c_soundscape.cpp
-  sdk/client/c_spotlight_end.cpp
-  sdk/client/c_sprite.cpp
-  sdk/client/c_sprite_perfmonitor.cpp
-  sdk/client/c_steamjet.cpp
-  sdk/client/c_stickybolt.cpp
-  sdk/client/c_sun.cpp
-  sdk/client/c_te.cpp
-  sdk/client/c_te_armorricochet.cpp
-  sdk/client/c_te_basebeam.cpp
-  sdk/client/c_te_beamentpoint.cpp
-  sdk/client/c_te_beaments.cpp
-  sdk/client/c_te_beamfollow.cpp
-  sdk/client/c_te_beamlaser.cpp
-  sdk/client/c_te_beampoints.cpp
-  sdk/client/c_te_beamring.cpp
-  sdk/client/c_te_beamringpoint.cpp
-  sdk/client/c_te_beamspline.cpp
-  sdk/client/c_te_bloodsprite.cpp
-  sdk/client/c_te_bloodstream.cpp
-  sdk/client/c_te_breakmodel.cpp
-  sdk/client/c_te_bspdecal.cpp
-  sdk/client/c_te_bubbles.cpp
-  sdk/client/c_te_bubbletrail.cpp
-  sdk/client/c_te_clientprojectile.cpp
-  sdk/client/c_te_decal.cpp
-  sdk/client/c_te_dynamiclight.cpp
-  sdk/client/c_te_effect_dispatch.cpp
-  sdk/client/c_te_energysplash.cpp
-  sdk/client/c_te_explosion.cpp
-  sdk/client/c_te_fizz.cpp
-  sdk/client/c_te_footprint.cpp
-  sdk/client/c_te_glassshatter.cpp
-  sdk/client/c_te_glowsprite.cpp
-  sdk/client/c_te_impact.cpp
-  sdk/client/c_te_killplayerattachments.cpp
-  sdk/client/c_te_largefunnel.cpp
-  sdk/client/c_te_legacytempents.cpp
-  sdk/client/c_te_muzzleflash.cpp
-  sdk/client/c_te_particlesystem.cpp
-  sdk/client/c_te_physicsprop.cpp
-  sdk/client/c_te_playerdecal.cpp
-  sdk/client/c_te_projecteddecal.cpp
-  sdk/client/c_te_showline.cpp
-  sdk/client/c_te_smoke.cpp
-  sdk/client/c_te_sparks.cpp
-  sdk/client/c_te_sprite.cpp
-  sdk/client/c_te_spritespray.cpp
-  sdk/client/c_te_worlddecal.cpp
-  sdk/client/c_team.cpp
-  sdk/client/c_team_objectiveresource.cpp
-  sdk/client/c_tesla.cpp
-  sdk/client/c_test_proxytoggle.cpp
-  sdk/client/c_testtraceline.cpp
-  sdk/client/c_tracer.cpp
-  sdk/client/c_user_message_register.cpp
-  sdk/client/c_vehicle_choreo_generic.cpp
-  sdk/client/c_vehicle_jeep.cpp
-  sdk/client/c_vguiscreen.cpp
-  sdk/client/c_world.cpp
-  sdk/client/camomaterialproxy.cpp
-  sdk/client/cdll_bounded_cvars.cpp
-  sdk/client/cdll_client_int.cpp
-  sdk/client/cdll_util.cpp
-  sdk/client/cl_mat_stub.cpp
-  sdk/client/classmap.cpp
-  sdk/client/client_factorylist.cpp
-  sdk/client/client_thinklist.cpp
-  sdk/client/clienteffectprecachesystem.cpp
-  sdk/client/cliententitylist.cpp
-  sdk/client/clientleafsystem.cpp
-  sdk/client/clientmode_shared.cpp
-  sdk/client/clientshadowmgr.cpp
-  sdk/client/clientsideeffects.cpp
-  sdk/client/clientsideeffects_test.cpp
-  sdk/client/colorcorrectionmgr.cpp
-  sdk/client/commentary_modelviewer.cpp
-  sdk/client/detailobjectsystem.cpp
-  sdk/client/dummyproxy.cpp
-  sdk/client/entity_client_tools.cpp
-  sdk/client/entityoriginmaterialproxy.cpp
-  sdk/client/flashlighteffect.cpp
-  sdk/client/functionproxy.cpp
-  sdk/client/fx.cpp
-  sdk/client/fx_blood.cpp
-  sdk/client/fx_cube.cpp
-  sdk/client/fx_discreetline.cpp
-  sdk/client/fx_envelope.cpp
-  sdk/client/fx_explosion.cpp
-  sdk/client/fx_fleck.cpp
-  sdk/client/fx_impact.cpp
-  sdk/client/fx_interpvalue.cpp
-  sdk/client/fx_line.cpp
-  sdk/client/fx_quad.cpp
-  sdk/client/fx_shelleject.cpp
-  sdk/client/fx_sparks.cpp
-  sdk/client/fx_staticline.cpp
-  sdk/client/fx_tracer.cpp
-  sdk/client/fx_trail.cpp
-  sdk/client/fx_water.cpp
-  sdk/client/game_controls/ClientScoreBoardDialog.cpp
-  sdk/client/game_controls/IconPanel.cpp
-  sdk/client/game_controls/NavProgress.cpp
-  sdk/client/game_controls/SpectatorGUI.cpp
-  sdk/client/game_controls/basemodelpanel.cpp
-  sdk/client/game_controls/baseviewport.cpp
-  sdk/client/game_controls/commandmenu.cpp
-  sdk/client/game_controls/vguitextwindow.cpp
-  sdk/client/gametrace_client.cpp
-  sdk/client/geiger.cpp
-  sdk/client/glow_overlay.cpp
-  sdk/client/history_resource.cpp
-  sdk/client/hl2/C_Func_Monitor.cpp
-  sdk/client/hl2/c_basehelicopter.cpp
-  sdk/client/hl2/c_basehlcombatweapon.cpp
-  sdk/client/hl2/c_basehlplayer.cpp
-  sdk/client/hl2/c_corpse.cpp
-  sdk/client/hl2/c_env_starfield.cpp
-  sdk/client/hl2/c_hl2_playerlocaldata.cpp
-  sdk/client/hl2/c_plasma_beam_node.cpp
-  sdk/client/hl2/c_rotorwash.cpp
-  sdk/client/hl2/c_script_intro.cpp
-  sdk/client/hl2/c_te_concussiveexplosion.cpp
-  sdk/client/hl2/c_te_flare.cpp
-  sdk/client/hl2/c_waterbullet.cpp
-  sdk/client/hl2/c_weapon__stubs_hl2.cpp
-  sdk/client/hl2/fx_hl2_impacts.cpp
-  sdk/client/hl2/fx_hl2_tracers.cpp
-  sdk/client/hl2/hl2_clientmode.cpp
-  sdk/client/hl2/hl_in_main.cpp
-  sdk/client/hl2/hl_prediction.cpp
-  sdk/client/hl2/hud_ammo.cpp
-  sdk/client/hl2/hud_autoaim.cpp
-  sdk/client/hl2/hud_battery.cpp
-  sdk/client/hl2/hud_blood.cpp
-  sdk/client/hl2/hud_credits.cpp
-  sdk/client/hl2/hud_damageindicator.cpp
-  sdk/client/hl2/hud_filmdemo.cpp
-  sdk/client/hl2/hud_flashlight.cpp
-  sdk/client/hl2/hud_hdrdemo.cpp
-  sdk/client/hl2/hud_health.cpp
-  sdk/client/hl2/hud_poisondamageindicator.cpp
-  sdk/client/hl2/hud_quickinfo.cpp
-  sdk/client/hl2/hud_suitpower.cpp
-  sdk/client/hl2/hud_zoom.cpp
-  sdk/client/hl2/shieldproxy.cpp
-  sdk/client/hl2/vgui_rootpanel_hl2.cpp
-  sdk/client/hl2mp/c_hl2mp_player.cpp
-  sdk/client/hl2mp/hud_deathnotice.cpp
-  sdk/client/hl2mp/ui/backgroundpanel.cpp
-  sdk/client/hl2mp/ui/hl2mptextwindow.cpp
-  sdk/client/hltvcamera.cpp
-  sdk/client/hud.cpp
-  sdk/client/hud_animationinfo.cpp
-  sdk/client/hud_basechat.cpp
-  sdk/client/hud_basetimer.cpp
-  sdk/client/hud_bitmapnumericdisplay.cpp
-  sdk/client/hud_closecaption.cpp
-  sdk/client/hud_crosshair.cpp
-  sdk/client/hud_element_helper.cpp
-  sdk/client/hud_hintdisplay.cpp
-  sdk/client/hud_lcd.cpp
-  sdk/client/hud_msg.cpp
-  sdk/client/hud_numericdisplay.cpp
-  sdk/client/hud_pdump.cpp
-  sdk/client/hud_posture.cpp
-  sdk/client/hud_redraw.cpp
-  sdk/client/hud_squadstatus.cpp
-  sdk/client/hud_vehicle.cpp
-  sdk/client/hud_voicestatus.cpp
-  sdk/client/hud_weapon.cpp
-  sdk/client/in_camera.cpp
-  sdk/client/in_joystick.cpp
-  sdk/client/in_main.cpp
-  sdk/client/in_mouse.cpp
-  sdk/client/initializer.cpp
-  sdk/client/interpolatedvar.cpp
-  sdk/client/lampbeamproxy.cpp
-  sdk/client/lamphaloproxy.cpp
-  sdk/client/mathproxy.cpp
-  sdk/client/matrixproxy.cpp
-  sdk/client/menu.cpp
-  sdk/client/message.cpp
-  sdk/client/movehelper_client.cpp
-  sdk/client/mp3player.cpp
-  sdk/client/panelmetaclassmgr.cpp
-  sdk/client/particle_collision.cpp
-  sdk/client/particle_litsmokeemitter.cpp
-  sdk/client/particle_proxies.cpp
-  sdk/client/particle_simple3d.cpp
-  sdk/client/particlemgr.cpp
-  sdk/client/particles_attractor.cpp
-  sdk/client/particles_ez.cpp
-  sdk/client/particles_localspace.cpp
-  sdk/client/particles_new.cpp
-  sdk/client/particles_simple.cpp
-  sdk/client/particlesphererenderer.cpp
-  sdk/client/perfvisualbenchmark.cpp
-  sdk/client/physics.cpp
-  sdk/client/physics_main_client.cpp
-  sdk/client/physpropclientside.cpp
-  sdk/client/playerandobjectenumerator.cpp
-  sdk/client/prediction.cpp
-  sdk/client/proxyentity.cpp
-  sdk/client/proxyplayer.cpp
-  sdk/client/proxypupil.cpp
-  sdk/client/ragdoll.cpp
-  sdk/client/recvproxy.cpp
-  sdk/client/rendertexture.cpp
-  sdk/client/simple_keys.cpp
-  sdk/client/smoke_fog_overlay.cpp
-  sdk/client/splinepatch.cpp
-  sdk/client/spritemodel.cpp
-  sdk/client/text_message.cpp
-  sdk/client/texturescrollmaterialproxy.cpp
-  sdk/client/timematerialproxy.cpp
-  sdk/client/toggletextureproxy.cpp
-  sdk/client/toolframework_client.cpp
-  sdk/client/train.cpp
-  sdk/client/vgui_avatarimage.cpp
-  sdk/client/vgui_basepanel.cpp
-  sdk/client/vgui_bitmapbutton.cpp
-  sdk/client/vgui_bitmapimage.cpp
-  sdk/client/vgui_bitmappanel.cpp
-  sdk/client/vgui_centerstringpanel.cpp
-  sdk/client/vgui_consolepanel.cpp
-  sdk/client/vgui_debugoverlaypanel.cpp
-  sdk/client/vgui_fpspanel.cpp
-  sdk/client/vgui_game_viewport.cpp
-  sdk/client/vgui_grid.cpp
-  sdk/client/vgui_int.cpp
-  sdk/client/vgui_loadingdiscpanel.cpp
-  sdk/client/vgui_messagechars.cpp
-  sdk/client/vgui_netgraphpanel.cpp
-  sdk/client/vgui_slideshow_display_screen.cpp
-  sdk/client/vgui_video.cpp
-  sdk/client/view.cpp
-  sdk/client/view_beams.cpp
-  sdk/client/view_effects.cpp
-  sdk/client/view_scene.cpp
-  sdk/client/viewangleanim.cpp
-  sdk/client/viewdebug.cpp
-  sdk/client/viewpostprocess.cpp
-  sdk/client/viewrender.cpp
-  sdk/client/warp_overlay.cpp
-  sdk/client/weapon_selection.cpp
-  sdk/client/weapons_resource.cpp
-)
+TO CLIENT_SOURCES)
+LIST(APPEND CLIENT_SOURCES ${SHARED_SOURCES})
 
-ADD_MSVC_PRECOMPILED_HEADER("sdk/server/stdafx.h" "sdk/server/stdafx.cpp" SERVER_SOURCES)
-ADD_MSVC_PRECOMPILED_HEADER("sdk/client/stdafx.h" "sdk/client/stdafx.cpp" CLIENT_SOURCES)
+ADD_MSVC_PRECOMPILED_HEADER("server/stdafx.h" "server/stdafx.cpp" SERVER_SOURCES)
+ADD_MSVC_PRECOMPILED_HEADER("client/stdafx.h" "client/stdafx.cpp" CLIENT_SOURCES)
 
 # Add the GE:S Python Sources to the server source list
-ADD_MSVC_PRECOMPILED_HEADER("ges/server/py/ge_pyprecom.h" "ges/server/py/ge_pyprecom.cpp" GEPY_SOURCES)
+ADD_MSVC_PRECOMPILED_HEADER("server/ges/py/ge_pyprecom.h" "server/ges/py/ge_pyprecom.cpp" GEPY_SOURCES)
 LIST(APPEND SERVER_SOURCES ${GEPY_SOURCES})
 
 # Shared definitions
 add_definitions(-DHL2MP -DVERSION_SAFE_STEAM_API_INTERFACES -DGE_DLL -DGE_USE_ROLLINGEXP -DCURL_STATICLIB)
 
 # Shared include directories
-include_directories("../common" "../public" "../public/tier0" "../public/tier1" "../utils/common" "../public/curl"
-  "ges/shared" "ges/shared/mp" "ges/shared/sp" "sdk/shared" "sdk/shared/hl2" "sdk/shared/hl2mp")
+include_directories("../common" "../public" "../public/tier0" "../public/tier1" "../utils/common" "../thirdparty/curl"
+  "shared/ges" "shared" "shared/hl2" "shared/hl2mp")
 
 #######
 # SERVER LIBRARY
 #######
 add_library(server SHARED ${SERVER_SOURCES})
+add_dependencies(server python)
 
 target_link_libraries(server ${SERVER_LIBS} ${SHARED_LIBS})
 target_compile_definitions(server PUBLIC GAME_DLL HL2_DLL Py_ENABLE_SHARED GE_AI)
-target_include_directories(server PUBLIC "ges/server" "ges/server/mp" "ges/server/ai" "ges/server/py" "ges/server/sp")
-target_include_directories(server PUBLIC "sdk/server" "sdk/server/hl2" "sdk/server/hl2mp" "../public/python")
+target_include_directories(server PUBLIC "server" "server/hl2" "server/hl2mp" "server/ges" "server/ges/ai")
+target_include_directories(server PUBLIC "server/ges/py")
 
 if(CMAKE_HOST_UNIX)
-  # Linux library name is server_i486.so
+  # Linux library name is server.so
   set_target_properties(server PROPERTIES PREFIX "")
-  set_target_properties(server PROPERTIES OUTPUT_NAME server_i486)
+  set_target_properties(server PROPERTIES OUTPUT_NAME server)
 
   # Link to pre-built libraries
-  file(COPY "${CMAKE_SOURCE_DIR}/lib/link/steam_api_i486.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
+  file(COPY "${CMAKE_SOURCE_DIR}/lib/public/linux32/libsteam_api.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
   add_library(steam_api SHARED IMPORTED)
   set_target_properties(steam_api PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/steam_api_i486.so"
-    IMPORTED_SONAME "steam_api_i486.so")
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/libsteam_api.so"
+    IMPORTED_SONAME "libsteam_api.so")
 
-  file(COPY "${CMAKE_SOURCE_DIR}/lib/link/tier0_i486.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
+  file(COPY "${CMAKE_SOURCE_DIR}/lib/public/linux32/libtier0.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
   add_library(tier0 SHARED IMPORTED)
   set_target_properties(tier0 PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/tier0_i486.so"
-    IMPORTED_SONAME "tier0_i486.so")
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/libtier0.so"
+  IMPORTED_SONAME "libtier0.so")
 
-  file(COPY "${CMAKE_SOURCE_DIR}/lib/link/vstdlib_i486.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
+  file(COPY "${CMAKE_SOURCE_DIR}/lib/public/linux32/libvstdlib.so" DESTINATION "${CMAKE_BINARY_DIR}/game/")
   add_library(vstdlib SHARED IMPORTED)
   set_target_properties(vstdlib PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/vstdlib_i486.so"
-    IMPORTED_SONAME "vstdlib_i486.so")
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/game/libvstdlib.so"
+  IMPORTED_SONAME "libvstdlib.so")
 
   target_link_libraries(server steam_api tier0 vstdlib)
 endif()
@@ -1072,14 +139,16 @@ install(TARGETS server LIBRARY DESTINATION "bin")
 #######
 # CLIENT LIBRARY
 #######
-if(CMAKE_HOST_WIN32)
-  # Windows builds the client as well
-  add_library(client SHARED ${CLIENT_SOURCES})
-  target_link_libraries(client ${SHARED_LIBS})
-  target_compile_definitions(client PUBLIC CLIENT_DLL HL2_CLIENT_DLL ENABLE_HTMLWINDOW)
-  target_include_directories(client PUBLIC "ges/client" "ges/client/sp" "ges/client/mp" "ges/client/sdk" "ges/client/vgui" "ges/client/hud")
-  target_include_directories(client PUBLIC "sdk/client" "sdk/client/game_controls" "sdk/client/hl2mp" "sdk/client/hl2mp/UI"
-    "sdk/client/hl2" "sdk/client/hl2/elements" "../vgui2/include" "../vgui2/controls")
+add_library(client SHARED ${CLIENT_SOURCES})
+target_link_libraries(client ${SHARED_LIBS})
+target_compile_definitions(client PUBLIC CLIENT_DLL HL2_CLIENT_DLL ENABLE_HTMLWINDOW)
+target_include_directories(client PUBLIC "client" "client/game_controls" "client/hl2mp" "client/hl2mp/ui" "client/ges")
+target_include_directories(client PUBLIC "client/ges/hud" "client/ges/vgui" "../vgui2/include" "../vgui2/controls")
 
-  install(TARGETS client LIBRARY DESTINATION "bin")
+if(CMAKE_HOST_UNIX)
+  # Linux library name is client.so
+  set_target_properties(server PROPERTIES PREFIX "")
+  set_target_properties(server PROPERTIES OUTPUT_NAME client)
 endif()
+
+install(TARGETS client LIBRARY DESTINATION "bin")
