@@ -14,8 +14,6 @@
 static Vector CAM_HULL_MIN(-CAM_HULL_OFFSET,-CAM_HULL_OFFSET,-CAM_HULL_OFFSET);
 static Vector CAM_HULL_MAX( CAM_HULL_OFFSET, CAM_HULL_OFFSET, CAM_HULL_OFFSET);
 
-#ifdef CLIENT_DLL
-
 #include "input.h"
 
 
@@ -45,8 +43,6 @@ void ThirdPersonChange( IConVar *pConVar, const char *pOldValue, float flOldValu
 
 ConVar cl_thirdperson( "cl_thirdperson", "0", FCVAR_NOT_CONNECTED | FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_DEVELOPMENTONLY, "Enables/Disables third person", ThirdPersonChange  );
 
-#endif
-
 CThirdPersonManager::CThirdPersonManager( void )
 {
 }
@@ -71,8 +67,6 @@ void CThirdPersonManager::Init( void )
 
 void CThirdPersonManager::Update( void )
 {
-
-#ifdef CLIENT_DLL
 	if ( !sv_cheats )
 	{
 		sv_cheats = cvar->FindVar( "sv_cheats" );
@@ -95,8 +89,6 @@ void CThirdPersonManager::Update( void )
 			ToggleThirdPerson( m_bForced || cl_thirdperson.GetBool() );
 		}
 	}
-#endif
-
 }
 
 Vector CThirdPersonManager::GetFinalCameraOffset( void )

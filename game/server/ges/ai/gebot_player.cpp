@@ -485,14 +485,6 @@ void CGEBotPlayer::DropAllTokens( void )
 	}
 }
 
-void CGEBotPlayer::Event_Dying( void )
-{
-	BaseClass::Event_Dying();
-
-//	SetThink( &CGEBotPlayer::PlayerDeathThink );
-//	SetNextThink( gpGlobals->curtime + 0.1f );
-}
-
 void CGEBotPlayer::CreateRagdollEntity()
 {
 	// Bot's don't participate in the HL2MP ragdoll

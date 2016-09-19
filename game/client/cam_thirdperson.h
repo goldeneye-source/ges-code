@@ -11,11 +11,7 @@
 #pragma once
 #endif
 
-#ifdef CLIENT_DLL
-	#include "c_baseplayer.h"
-#else
-	#include "baseplayer.h"
-#endif
+#include "c_baseplayer.h"
 
 #define DIST_FORWARD 0
 #define DIST_RIGHT 1

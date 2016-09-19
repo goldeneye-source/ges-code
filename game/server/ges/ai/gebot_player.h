@@ -57,7 +57,6 @@ public:
 	virtual void FireBullets( const FireBulletsInfo_t &info );
 	virtual int  OnTakeDamage( const CTakeDamageInfo &info );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
-	virtual void Event_Dying();
 	virtual void DropAllTokens();
 	virtual void PlayerDeathThink();
 	virtual void CreateRagdollEntity( void );

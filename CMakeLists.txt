@@ -26,8 +26,8 @@ if (CMAKE_HOST_UNIX)
 
   add_compile_options(-Wall -Wno-invalid-offsetof -Wno-multichar -Wno-overloaded-virtual -Wno-narrowing -Wno-write-strings
   	-Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-local-typedefs -Wno-unused-result
-    -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wignored-attributes
-    -Wno-sign-compare -Wno-reorder -Wno-invalid-offsetof -Wno-float-equal -Werror=return-type
+    -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers
+    -Wno-sign-compare -Wno-reorder -Wno-invalid-offsetof -Wno-float-equal -Werror=return-type -Wno-attributes
     -fdiagnostics-show-option -Wformat -Wformat-security)
 else()
   add_definitions(-DWIN32 -D_WIN32 -D_WINDOWS -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE)

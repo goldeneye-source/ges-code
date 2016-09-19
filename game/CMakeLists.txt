@@ -17,14 +17,21 @@ ENDMACRO(ADD_MSVC_PRECOMPILED_HEADER)
 
 set(SHARED_LIBS m z dl ldap rt util nsl)
 
+if (${CMAKE_HOST_UNIX})
+  link_directories("${CMAKE_SOURCE_DIR}/lib/public/linux32" "${CMAKE_SOURCE_DIR}/lib/common/linux32" "${CMAKE_SOURCE_DIR}/lib/ges/linux32")
+else()
+  link_directories("${CMAKE_SOURCE_DIR}/lib/public" "${CMAKE_SOURCE_DIR}/lib/common" "${CMAKE_SOURCE_DIR}/lib/ges")
+endif()
+
+set(CLIENT_LIBS fmod)
+
 set(SERVER_LIBS
-  ${CMAKE_SOURCE_DIR}/lib/linux/choreoobjects_486.a
-  ${CMAKE_SOURCE_DIR}/lib/linux/particles_486.a
-  ${CMAKE_SOURCE_DIR}/lib/linux/dmxloader_486.a
-  ${CMAKE_SOURCE_DIR}/lib/linux/tier3_486.a
-  ${CMAKE_SOURCE_DIR}/lib/linux/tier2_486.a
-  ${CMAKE_SOURCE_DIR}/lib/curl/libcurl.a
-  ${CMAKE_SOURCE_DIR}/lib/python/libpython3.4m.a
+  choreoobjects
+  particles
+  dmxloader
+  tier3
+  tier2
+  curl
   mathlib
   tier1
   boost_python
@@ -34,6 +41,7 @@ set(SERVER_LIBS
 ucm_add_dirs("server/ges/py" TO GEPY_SOURCES NO_HEADERS)
 
 ucm_add_dirs("shared" TO SHARED_SOURCES NO_HEADERS RECURSIVE)
+ucm_remove_directories("shared/sdk" "shared/episodic" FROM SHARED_SOURCES)
 ucm_add_files(
   ../common/randoverride.cpp
   ../public/ScratchPadUtils.cpp
@@ -53,7 +61,7 @@ ucm_add_files(
 TO SHARED_SOURCES)
 
 ucm_add_dirs("server" TO SERVER_SOURCES NO_HEADERS RECURSIVE)
-ucm_remove_directories("server/ges/py" FROM SERVER_SOURCES)
+ucm_remove_directories("server/ges/py" "server/sdk" FROM SERVER_SOURCES)
 ucm_add_files(
   ../public/dt_send.cpp
   ../public/dt_utlvector_send.cpp
@@ -66,6 +74,7 @@ TO SERVER_SOURCES)
 LIST(APPEND SERVER_SOURCES ${SHARED_SOURCES})
 
 ucm_add_dirs("client" TO CLIENT_SOURCES NO_HEADERS RECURSIVE)
+ucm_remove_directories("client/sdk" FROM CLIENT_SOURCES)
 ucm_add_files(
   ../common/compiledcaptionswap.cpp
   ../public/bone_accessor.cpp
@@ -102,10 +111,10 @@ include_directories("../common" "../public" "../public/tier0" "../public/tier1" 
 add_library(server SHARED ${SERVER_SOURCES})
 add_dependencies(server python)
 
-target_link_libraries(server ${SERVER_LIBS} ${SHARED_LIBS})
+target_link_libraries(server -m32 ${SERVER_LIBS} ${SHARED_LIBS})
 target_compile_definitions(server PUBLIC GAME_DLL HL2_DLL Py_ENABLE_SHARED GE_AI)
-target_include_directories(server PUBLIC "server" "server/hl2" "server/hl2mp" "server/ges" "server/ges/ai")
-target_include_directories(server PUBLIC "server/ges/py")
+target_include_directories(server PUBLIC "server" "server/hl2" "server/hl2mp")
+target_include_directories(server PUBLIC "server/ges" "server/ges/ai" "server/ges/py" "server/ges/ent")
 
 if(CMAKE_HOST_UNIX)
   # Linux library name is server.so
@@ -140,15 +149,15 @@ install(TARGETS server LIBRARY DESTINATION "bin")
 # CLIENT LIBRARY
 #######
 add_library(client SHARED ${CLIENT_SOURCES})
-target_link_libraries(client ${SHARED_LIBS})
+target_link_libraries(client -m32 ${SHARED_LIBS} ${CLIENT_LIBS})
 target_compile_definitions(client PUBLIC CLIENT_DLL HL2_CLIENT_DLL ENABLE_HTMLWINDOW)
-target_include_directories(client PUBLIC "client" "client/game_controls" "client/hl2mp" "client/hl2mp/ui" "client/ges")
-target_include_directories(client PUBLIC "client/ges/hud" "client/ges/vgui" "../vgui2/include" "../vgui2/controls")
+target_include_directories(client PUBLIC "client" "client/game_controls" "client/hl2" "client/hl2mp" "client/hl2mp/ui")
+target_include_directories(client PUBLIC "client/ges" "client/ges/hud" "client/ges/vgui" "../vgui2/include" "../vgui2/controls")
 
 if(CMAKE_HOST_UNIX)
   # Linux library name is client.so
-  set_target_properties(server PROPERTIES PREFIX "")
-  set_target_properties(server PROPERTIES OUTPUT_NAME client)
+  set_target_properties(client PROPERTIES PREFIX "")
+  set_target_properties(client PROPERTIES OUTPUT_NAME client)
 endif()
 
 install(TARGETS client LIBRARY DESTINATION "bin")

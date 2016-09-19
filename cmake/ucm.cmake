@@ -454,7 +454,11 @@ macro(ucm_add_dir_impl result rec noh trim dirs_in)
             "${cur_dir}*.i"
             "${cur_dir}*.ii"
             ${additional_file_extensions})
-        SET(${result} ${${result}} ${found_sources})
+        LIST(SORT found_sources)
+
+        LIST(APPEND ${result} ${found_sources})
+        LIST(SORT ${result})
+        #SET(${result} ${${result}} ${found_sources})
 
         # set the proper filters
         ucm_trim_front_words("${cur_dir}" cur_dir "${trim}")
