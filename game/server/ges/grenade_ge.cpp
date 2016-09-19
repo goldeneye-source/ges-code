@@ -68,7 +68,7 @@ void CGEGrenade::Precache( void )
 
 void CGEGrenade::SetTimer( float detonateDelay )
 {
-	m_flDetonateTime = gpGlobals->curtime + detonateDelay / max(phys_timescale.GetFloat(), 0.01);
+	m_flDetonateTime = gpGlobals->curtime + detonateDelay / MAX(phys_timescale.GetFloat(), 0.01);
 
 	SetThink( &CGEGrenade::DelayThink );
 	SetNextThink( gpGlobals->curtime );

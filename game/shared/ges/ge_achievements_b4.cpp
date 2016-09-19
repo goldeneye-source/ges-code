@@ -13,7 +13,7 @@
 #include "ge_achievement.h"
 
 // Define our client's manager so that they can recieve updates when they achieve things
-//#ifdef CLIENT_DLL
+#ifdef CLIENT_DLL
 
 #include "clientmode_shared.h"
 #include "c_ge_player.h"
@@ -982,4 +982,4 @@ protected:
 };
 DECLARE_GE_ACHIEVEMENT( CAchTargetPractice, ACHIEVEMENT_GES_TARGET_PRACTICE, "GES_TARGET_PRACTICE", 100, GE_ACH_UNLOCKED );
 
-//#endif // CLIENT_DLL
+#endif // CLIENT_DLL

@@ -271,7 +271,7 @@ void CGELoadoutManager::GetRecentLoadouts(CUtlVector<CGELoadout*> &loadouts)
 {
 	loadouts.RemoveAll();
 
-	int buffercount = min(ge_loadouts_loadoutbuffercount.GetInt(), m_pRecentLoadouts.Count());
+	int buffercount = MIN(ge_loadouts_loadoutbuffercount.GetInt(), m_pRecentLoadouts.Count());
 
 	for (int i = 0; i < buffercount; i++)
 	{
@@ -401,7 +401,7 @@ bool CGELoadoutManager::SpawnWeapons( void )
 
 			if (recentsets.Count())
 			{
-				int recentsetcount = min(recentsets.Count(), names.Count() - 3);
+				int recentsetcount = MIN(recentsets.Count(), names.Count() - 3);
 
 				for (int b = 0; b < recentsetcount; b++)
 				{
@@ -502,7 +502,7 @@ bool CGELoadoutManager::SpawnWeapons( void )
 
 			if (recentsets.Count())
 			{
-				int recentsetcount = min(recentsets.Count(), loadouts.Count() - 3);
+				int recentsetcount = MIN(recentsets.Count(), loadouts.Count() - 3);
 
 				for (int b = 0; b < recentsetcount; b++)
 				{

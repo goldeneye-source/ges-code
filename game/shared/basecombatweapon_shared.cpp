@@ -1929,7 +1929,7 @@ void CBaseCombatWeapon::HandleFireOnEmpty()
 	if (m_flNextEmptySoundTime <= gpGlobals->curtime)
 	{
 		WeaponSound( EMPTY );
-		m_flNextEmptySoundTime = gpGlobals->curtime + max( GetFireRate(), 0.25 );
+		m_flNextEmptySoundTime = gpGlobals->curtime + MAX( GetFireRate(), 0.25 );
 	}
 #endif
 

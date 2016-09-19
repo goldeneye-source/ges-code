@@ -62,7 +62,7 @@ float CGEGameTimer::GetTimeRemaining()
 	else
 		seconds_remaining = m_flEndTime - gpGlobals->curtime;
 
-	return max( seconds_remaining, 0 );
+	return MAX( seconds_remaining, 0 );
 }
 
 #ifdef GAME_DLL

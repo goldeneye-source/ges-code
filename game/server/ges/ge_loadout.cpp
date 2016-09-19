@@ -232,7 +232,7 @@ int CGELoadout::PickGroupWeapon(CUtlVector<int> &weapons, CUtlVector<int> &weigh
 	else
 		desiredstrength = basegroup + 2;
 
-	desiredstrength = min(desiredstrength, 8);
+	desiredstrength = MIN(desiredstrength, 8);
 
 	// Go through and create a new weapon list with only weapons that have our desired strength
 	for (int i = 0; i < weapons.Count(); i++)

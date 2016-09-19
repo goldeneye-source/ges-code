@@ -74,6 +74,7 @@ public:
 	virtual void SpawnHat( const char* hatModel, bool canBeRemoved = true );
 
 	void HideBloodScreen( void );
+	void ShowBloodScreen( void );
 
 	// Functions for Python
 	void  SetSpeedMultiplier(float mult);
@@ -114,7 +115,7 @@ public:
 	// Used to setup invul time
 	virtual int  OnTakeDamage( const CTakeDamageInfo &inputInfo );
 	virtual int	 OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator = NULL );
 	
 	// Custom Pain Sounds
 	virtual void OnDamagedByExplosion( const CTakeDamageInfo &info ) { }

@@ -98,7 +98,7 @@ public:
 	virtual bool	HasWeapon(CBaseEntity *pEnt);
 	CBaseEntity*	GiveNamedItem( const char *pszName, int iSubType = 0 );
 	
-	virtual void	TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr );
+	virtual void	TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator = NULL );
 	virtual int		OnTakeDamage( const CTakeDamageInfo &info );
 	virtual int		OnTakeArmorDamage( const CTakeDamageInfo &inputinfo );
 	virtual bool	IsHeavyDamage( const CTakeDamageInfo &info );

@@ -196,12 +196,12 @@ void CWeaponCMag::FireWeapon( void )
 	// Make sure we don't fire more than the amount in the clip
 	if ( UsesClipsForAmmo1() )
 	{
-		info.m_iShots = min( info.m_iShots, m_iClip1 );
+		info.m_iShots = MIN( info.m_iShots, m_iClip1 );
 		m_iClip1 -= info.m_iShots;
 	}
 	else
 	{
-		info.m_iShots = min( info.m_iShots, pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) );
+		info.m_iShots = MIN( info.m_iShots, pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) );
 		pPlayer->RemoveAmmo( info.m_iShots, m_iPrimaryAmmoType );
 	}
 

@@ -390,7 +390,7 @@ void CGEDoor::MoveThink(void)
 	float calctime = (gpGlobals->curtime - m_flLastMoveCalc);
 	m_flLastMoveCalc = gpGlobals->curtime;
 	float accelspeed = m_flAccelSpeed;
-	covereddist = max(m_flMoveDistance - remainingdist, 0);
+	covereddist = MAX(m_flMoveDistance - remainingdist, 0);
 
 	// If direction metric is negative then the two vectors point in opposite directions.  Only works because there are only two possible directions for them to point in.
 	// If they point in opposite directions then we have moved past our objective.
@@ -432,9 +432,9 @@ void CGEDoor::MoveThink(void)
 	if (remainingdist < m_flDeccelDist && framespeed >= 0) //Make sure we're actually moving towards the destination while also being within range of it.
 		framespeed = clamp(sqrt(2 * remainingdist * accelspeed), m_flMinSpeed, framespeed + accelspeed *calctime); //Make sure we don't suddenly speed up or pass our minimum speed.
 	else if (covereddist < m_flDeccelDist && framespeed < -accelspeed * calctime) //The opposite case, where we're moving towards the other end posistion and risk going past it.  Use an equation here too to prevent that.
-		framespeed = max(framespeed + accelspeed * calctime, -sqrt(2 * covereddist * accelspeed)); //Make sure we can't randomly speed up.  Both values are negative here so we use max instead of min.
+		framespeed = MAX(framespeed + accelspeed * calctime, -sqrt(2 * covereddist * accelspeed)); //Make sure we can't randomly speed up.  Both values are negative here so we use max instead of min.
 	else
-		framespeed = min(framespeed + accelspeed *calctime, m_flSpeed); //Cap it so the door will move at max speed once it hits it.
+		framespeed = MIN(framespeed + accelspeed *calctime, m_flSpeed); //Cap it so the door will move at max speed once it hits it.
 
 	if (remainingdist > 0) // Still has distance to move so keep integrating
 	{
@@ -465,7 +465,7 @@ void CGEDoor::MoveThink(void)
 		}
 		else
 		{
-			SetLocalVelocity(0);
+			SetLocalVelocity(vec3_origin);
 			SetLocalOrigin(m_vecFinalDest);
 		}
 
@@ -569,12 +569,12 @@ void CGEDoor::Blocked(CBaseEntity *pOther)
 		return;
 	}
 
-	SetLocalVelocity(0);
+	SetLocalVelocity(vec3_origin);
 	SetLocalAngularVelocity(QAngle(0, 0, 0));
 
 	for (int i = 0; i < m_pPartnerEnts.Count(); i++)
 	{
-		m_pPartnerEnts[i]->SetLocalVelocity(0);
+		m_pPartnerEnts[i]->SetLocalVelocity(vec3_origin);
 		m_pPartnerEnts[i]->SetLocalAngularVelocity(QAngle(0, 0, 0));
 	}
 

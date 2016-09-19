@@ -728,8 +728,8 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 	return BaseClass::ShouldTransmit( pInfo );
 }
 
-
-bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+// GE_DLL: changed first paramter to CBaseEntity to support bots
+bool CBasePlayer::WantsLagCompensationOnEntity( const CBaseEntity *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
 	// Team members shouldn't be adjusted unless friendly fire is on.
 	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )

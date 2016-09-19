@@ -169,22 +169,19 @@ public:
 	
 	CBaseCombatWeapon		*GetWeapon() const { return m_hWeapon.Get(); }
 
-#ifdef CLIENT_DLL
 	virtual bool			ShouldResetSequenceOnNewModel( void ) { return false; }
 
 	// Attachments
-	virtual int				LookupAttachment( const char *pAttachmentName );
+	virtual int			LookupAttachment( const char *pAttachmentName );
 	virtual bool			GetAttachment( int number, matrix3x4_t &matrix );
 	virtual bool			GetAttachment( int number, Vector &origin );
-	virtual	bool			GetAttachment( int number, Vector &origin, QAngle &angles );
+	virtual bool			GetAttachment( int number, Vector &origin, QAngle &angles );
 	virtual bool			GetAttachmentVelocity( int number, Vector &originVel, Quaternion &angleVel );
-#endif
-
+	
 private:
 	CBaseViewModel( const CBaseViewModel & ); // not defined, not accessible
 
-#endif
-
+#endif // CLIENT_DLL
 private:
 	CNetworkVar( int, m_nViewModelIndex );		// Which viewmodel is it?
 	CNetworkHandle( CBaseEntity, m_hOwner );				// Player or AI carrying this weapon

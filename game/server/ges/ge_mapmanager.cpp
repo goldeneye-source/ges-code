@@ -465,7 +465,7 @@ void CGEMapManager::GetRecentMaps(CUtlVector<const char*> &mapnames)
 {
 	mapnames.RemoveAll();
 
-	int buffercount = min(ge_mapchooser_mapbuffercount.GetInt(), m_pRecentMaps.Count());
+	int buffercount = MIN(ge_mapchooser_mapbuffercount.GetInt(), m_pRecentMaps.Count());
 
 	for (int i = 0; i < buffercount; i++)
 	{
@@ -499,7 +499,7 @@ void CGEMapManager::GetViableMapList(int iNumPlayers, CUtlVector<char*> &mapname
 		int upperbound = m_pSelectionData[i]->maxplayers + 1; // and also smoothly tapers off in weight with our formula.
 
 		if (ge_mapchooser_avoidteamplay.GetBool()) // If we want to avoid teamplay our playercount has to come in below the teamthresh.
-			upperbound = min(m_pSelectionData[i]->teamthreshold, m_pSelectionData[i]->maxplayers + 1);
+			upperbound = MIN(m_pSelectionData[i]->teamthreshold, m_pSelectionData[i]->maxplayers + 1);
 
 		DevMsg("Looking at %s, with high %d, low %d\n", m_pSelectionData[i]->mapname, upperbound, lowerbound);
 		if (lowerbound < iNumPlayers && upperbound > iNumPlayers && engine->IsMapValid(m_pSelectionData[i]->mapname)) //It's within range, calculate weight adjustment.
@@ -561,7 +561,7 @@ void CGEMapManager::GetViableMapList(int iNumPlayers, CUtlVector<char*> &mapname
 	if ( recentmaps.Count() > 0 )
 	{
 		int validmapcount = mapnames.Count();
-		int recentmapcount = min(recentmaps.Count(), validmapcount - 2);
+		int recentmapcount = MIN(recentmaps.Count(), validmapcount - 2);
 
 		for (int r = 0; r < recentmapcount; r++)
 		{

@@ -1948,8 +1948,8 @@ void CGameMovement::WalkMove( void )
 	
 	float jumppenalty = ((CGEMPPlayer*)player)->GetJumpPenalty();
 
-	fmove = mv->m_flForwardMove * (1 - max(jumppenalty - 20, 0) / 160);
-	smove = mv->m_flSideMove * (1 - max(jumppenalty - 20, 0) / 160);
+	fmove = mv->m_flForwardMove * (1 - MAX(jumppenalty - 20, 0) / 160);
+	smove = mv->m_flSideMove * (1 - MAX(jumppenalty - 20, 0) / 160);
 	
 	#else
 	// Copy movement amounts
@@ -2054,7 +2054,7 @@ void CGameMovement::WalkMove( void )
 	}
 	
 	if (fcode * scode == 0)
-		runtime = min(runtime, 0); //Don't let runtime become positive when not strafing.  Otherwise acceleration is possible.
+		runtime = MIN(runtime, 0); //Don't let runtime become positive when not strafing.  Otherwise acceleration is possible.
 
 	if (runtime >= 0)
 		strafeboost = clamp(runtime * 0.4 + 0.8, 1, 1.4);
@@ -2246,7 +2246,7 @@ void CGameMovement::FullWalkMove( )
 			// and cap out the penalty so it doesn't send jumppenalty above 50
 			if (jumppenalty < 50)
 			{
-				((CGEMPPlayer*)player)->SetJumpPenalty(min(jumppenalty + 15, 50));
+				((CGEMPPlayer*)player)->SetJumpPenalty(MIN(jumppenalty + 15, 50));
 				//DevMsg("Added extra penalty, jumppenalty is now %f \n", ((CGEMPPlayer*)player)->GetJumpPenalty());
 			}
 
@@ -2282,7 +2282,7 @@ void CGameMovement::FullWalkMove( )
 
 		//If the player is on the ground, start reducing their jumppenalty
 		if (jumppenalty > 0 && player->GetGroundEntity() != NULL)
-			((CGEMPPlayer*)player)->SetJumpPenalty(max(jumppenalty - gpGlobals->frametime* (3600 / (jumppenalty + 40)), 0)); //The lower it is the faster it decays
+			((CGEMPPlayer*)player)->SetJumpPenalty(MAX(jumppenalty - gpGlobals->frametime* (3600 / (jumppenalty + 40)), 0)); //The lower it is the faster it decays
 	#endif
 
 		// Was jump button pressed?
@@ -2612,7 +2612,7 @@ bool CGameMovement::CheckJumpButton( void )
 		{
 			//If significant height change, don't be as harsh on crouch jump reduction
 			if (heightdelta < 30)
-				jumpCap -= player->IsDucked() ? (max(jumpPenalty - 20, 0) * 5) : max(jumpPenalty - 20, 0); //Max value reduces cap to 180 on crouch, 220 otherwise
+				jumpCap -= player->IsDucked() ? (MAX(jumpPenalty - 20, 0) * 5) : MAX(jumpPenalty - 20, 0); //Max value reduces cap to 180 on crouch, 220 otherwise
 			else
 				jumpCap -= player->IsDucked() ? (jumpPenalty - 20) : (jumpPenalty - 20); //Max value reduces cap to 220 on crouch, 220 otherwise
 		}
@@ -4235,7 +4235,7 @@ void CGameMovement::CheckFalling( void )
 			if (player->IsDucked()) // Landing while ducked squares our fall penalty.
 				fallvalue *= 1.22; //sqrt(1.5) since it gets squared later and we only want to multiply the final value by 1.5
 
-			((CGEMPPlayer*)player)->SetJumpPenalty(min(((CGEMPPlayer*)player)->GetJumpPenalty() + fallvalue*fallvalue / 4624, 100)); //vel^2 / ((800-120)^2/100)
+			((CGEMPPlayer*)player)->SetJumpPenalty(MIN(((CGEMPPlayer*)player)->GetJumpPenalty() + fallvalue*fallvalue / 4624, 100)); //vel^2 / ((800-120)^2/100)
 			((CGEMPPlayer*)player)->SetLastLandingVelocity(player->m_Local.m_flFallVelocity);
 
 			// Only reset landing time if it is greater than the previous one, a given threshold, or the player has landed from a jump
@@ -4268,7 +4268,7 @@ void CGameMovement::CheckFalling( void )
 			}
 
 			#ifdef GE_DLL
-			fvol = min((player->m_Local.m_flFallVelocity - PLAYER_MIN_BOUNCE_SPEED) / (PLAYER_MAX_SAFE_FALL_SPEED - PLAYER_MIN_BOUNCE_SPEED), 1.0);
+			fvol = MIN((player->m_Local.m_flFallVelocity - PLAYER_MIN_BOUNCE_SPEED) / (PLAYER_MAX_SAFE_FALL_SPEED - PLAYER_MIN_BOUNCE_SPEED), 1.0);
 			#endif
 
 		}
@@ -4633,12 +4633,12 @@ void CGameMovement::SetDuckedEyeOffset( float duckFraction )
 	{
 		Vector viewOffset;
 //		Vector const prevoffset = (player->GetViewOffset() - temp.z * -1);
-		Vector const penaltyVector = Vector(0, 0, min(max(jumppenalty - 15, 0) / 3, 16));
+		Vector const penaltyVector = Vector(0, 0, MIN(MAX(jumppenalty - 15, 0) / 3, 16));
 
 		//Some math so we can match initial interp speed to initial falling speed
 		float dt = (gpGlobals->curtime - ((CGEMPPlayer*)player)->GetLastJumpTime());
 		float interpcof = (landingforce / penaltyVector.z) / 10;
-		float interpfraction = min(sqrt(dt*interpcof), 1);
+		float interpfraction = MIN(sqrt(dt*interpcof), 1);
 
 		VectorLerp(Vector(0, 0, 0), penaltyVector, interpfraction, viewOffset);
 

@@ -423,12 +423,16 @@ enum Collision_Group_t
 	COLLISION_GROUP_NPC_SCRIPTED,	// USed for NPCs in scripts that should not collide with each other
 
 #ifdef GE_DLL
-	COLLISION_GROUP_MINE,
+	COLLISION_GROUP_MINE, // If you add anything to this list, be sure to do it at the end otherwise you'll mess up maps that use func_ge_brush.
 	COLLISION_GROUP_GRENADE,
 	COLLISION_GROUP_TKNIFE,
+	COLLISION_GROUP_DROPPEDWEAPON,
+	COLLISION_GROUP_BLOCKWEAPONS, // This one -really- needs to stay in this exact posistion, the other ones not as much.
 	COLLISION_GROUP_CAPAREA,
 	COLLISION_GROUP_MI6,
 	COLLISION_GROUP_JANUS,
+	COLLISION_GROUP_GRENADE_MI6,
+	COLLISION_GROUP_GRENADE_JANUS,
 #endif
 
 	LAST_SHARED_COLLISION_GROUP

@@ -98,9 +98,9 @@ public:
 	virtual void UpdateCampingTime();
 	virtual int  GetCampingPercent();
 
-	virtual int			 GetSteamHash()			{ return m_iSteamIDHash; }
-	virtual int			 GetDevStatus()			{ return m_iDevStatus; }
-	virtual int			 GetSkinsCode()			{ return m_iSkinsCode; }
+	virtual int      GetSteamHash()  { return m_iSteamIDHash; }
+	virtual int      GetDevStatus()   { return m_iDevStatus; }
+	virtual uint64  GetSkinsCode()   { return m_iSkinsCode; }
 
 	virtual void		 SetPlayerName( const char *name );
 	virtual const char  *GetCleanPlayerName()	{ return m_szCleanName; }

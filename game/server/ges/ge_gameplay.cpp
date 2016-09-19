@@ -255,7 +255,7 @@ void CGEBaseGameplayManager::GetRecentModes(CUtlVector<const char*> &modenames)
 {
 	modenames.RemoveAll();
 
-	int buffercount = min(ge_gameplay_modebuffercount.GetInt(), m_vRecentScenarioList.Count());
+	int buffercount = MIN(ge_gameplay_modebuffercount.GetInt(), m_vRecentScenarioList.Count());
 
 	for (int i = 0; i < buffercount; i++)
 	{
@@ -475,7 +475,7 @@ const char *CGEBaseGameplayManager::GetNextScenario()
 	}
 
 	// Consider bots too.
-	iNumConnections = max(iNumConnections, ge_bot_threshold.GetInt());
+	iNumConnections = MAX(iNumConnections, ge_bot_threshold.GetInt());
 
 	if (ge_teamplay.GetInt() != 1)
 	{
@@ -519,7 +519,7 @@ const char *CGEBaseGameplayManager::GetNextScenario()
 				{
 					if (!Q_strcmp(gamemodes[l], recentgamemodes[b]))
 					{
-						int deduction = min(weights[l], deductionamount);
+						int deduction = MIN(weights[l], deductionamount);
 						weights[l] -= deduction;
 						totalweight -= deduction;
 						break;
@@ -721,7 +721,7 @@ void CGEBaseGameplayManager::StartRound()
 		}
 
 		// If we have the requisite active players, enforce teamplay
-		iNumConnections = max(iNumConnections, ge_bot_threshold.GetInt());
+		iNumConnections = MAX(iNumConnections, ge_bot_threshold.GetInt());
 
 		// If we don't, and ge_teamplay > 1 (ie not set by the player), then deactivate teamplay
 		if ( iNumConnections >= ge_autoteam.GetInt() )
@@ -768,7 +768,7 @@ void CGEBaseGameplayManager::EndRound( bool showreport /*=true*/ )
 
 	if ( showreport )
 		// Delay enough so that the scores don't get reset before the round report is visible
-		m_flIntermissionEndTime = gpGlobals->curtime + max( ge_rounddelay.GetInt(), 0.5f );
+		m_flIntermissionEndTime = gpGlobals->curtime + MAX( ge_rounddelay.GetInt(), 0.5f );
 	else
 		// Only give 3 second delay if we didn't count this round
 		m_flIntermissionEndTime = gpGlobals->curtime + 3.0f;
@@ -818,7 +818,7 @@ void CGEBaseGameplayManager::EndMatch()
 
 float CGEBaseGameplayManager::GetRemainingIntermission()
 {
-	return max(m_flIntermissionEndTime - gpGlobals->curtime, 0 );
+	return MAX(m_flIntermissionEndTime - gpGlobals->curtime, 0 );
 }
 
 bool CGEBaseGameplayManager::ShouldEndRound()
@@ -964,7 +964,7 @@ static void LoadMapList() {
 	while ( pFilename )
 	{
 		file = new char[32];
-		Q_strncpy( file, pFilename, min( Q_strlen(pFilename) - 3, 32 ) );
+		Q_strncpy( file, pFilename, MIN( Q_strlen(pFilename) - 3, 32 ) );
 		gMapList.AddToTail( file );
 
 		pFilename = filesystem->FindNext( findHandle );

@@ -380,7 +380,7 @@ void CEnvExplosion::Smoke( void )
 }
 #else
 
-#include "ent_envexplosion.h"
+#include "ges/ent/ent_geexplosion.h"
 
 #endif // GE_USE_ROLLINGEXP
 

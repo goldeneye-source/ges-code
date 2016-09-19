@@ -55,7 +55,7 @@ void CGEShell::Spawn( void )
 
 	// Detonate after a set amount of time
 	SetThink( &CGEShell::ExplodeThink );
-	SetNextThink( gpGlobals->curtime + GE_SHELL_FUSETIME / max(phys_timescale.GetFloat(), 0.01) );
+	SetNextThink( gpGlobals->curtime + GE_SHELL_FUSETIME / MAX(phys_timescale.GetFloat(), 0.01) );
 
 	// Instantly Explode when we hit a player
 	SetTouch( &CGEShell::PlayerTouch );
@@ -244,7 +244,7 @@ void CGEShell::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 	// Update our bounce count
 	++m_iBounceCount;
 
-	m_flFloorTimeout = min(m_flFloorTimeout, gpGlobals->curtime + 0.2f);
+	m_flFloorTimeout = MIN(m_flFloorTimeout, gpGlobals->curtime + 0.2f);
 }
 
 int CGEShell::OnTakeDamage( const CTakeDamageInfo &inputInfo )

@@ -242,15 +242,20 @@ bool CGenericToken::CanEquip( CBaseCombatCharacter *pOther )
 		return false;
 
 	// If we are a teamplay token don't allow opposite team to pick us up
-	if ( GEMPRules()->IsTeamplay() && GetTeamNumber() )
+	if ( GEMPRules()->IsTeamplay() && GetTeamNumber() > LAST_SHARED_TEAM )
+	{
 		if ( GetTeamNumber() == pOther->GetTeamNumber() )
+		{
+		    // On the same team, allow pickup
 			return true;
+		}
 		else
 		{
 			GEGameplay()->GetScenario()->OnEnemyTokenTouched(this, ToGEPlayer(pOther));
 			return false;
 		}
-
+    }
+    
 	return true;
 }
 

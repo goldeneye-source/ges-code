@@ -114,7 +114,7 @@ void CGEWeaponAutomatic::PrimaryAttack( void )
 	if (!m_iClip1)
 	{
 		m_bFireOnEmpty = true;
-		m_flNextEmptySoundTime = gpGlobals->curtime + max(GetClickFireRate(), 0.25);
+		m_flNextEmptySoundTime = gpGlobals->curtime + MAX(GetClickFireRate(), 0.25);
 	}
 
 	SendWeaponAnim( GetPrimaryAttackActivity() );
@@ -147,8 +147,8 @@ void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy,
 
 	RandomSeed( iSeed );
 
-	float lowYBound = min(vecOldScratch.y, -1);
-	float upperYBound = max(vecOldScratch.y, 1);
+	float lowYBound = MIN(vecOldScratch.y, -1);
+	float upperYBound = MAX(vecOldScratch.y, 1);
 
 	//Wibble left and right, weighted to go towards the normal view vector.
 	if (RandomFloat(lowYBound, upperYBound) >= 0)
@@ -158,8 +158,8 @@ void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy,
 	/*
 	iSeed++;
 
-	float lowZBound = min(vecOldScratch.z, -1);
-	float upperZBound = max(vecOldScratch.z, 1);
+	float lowZBound = MIN(vecOldScratch.z, -1);
+	float upperZBound = MAX(vecOldScratch.z, 1);
 
 	//Wobble up and down, weighted to go towards the normal view vector.
 	if (RandomFloat(lowZBound, upperZBound) >= 0)
@@ -167,8 +167,8 @@ void CGEWeaponAutomatic::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy,
 	*/
 	iSeed++;
 
-	float lowXBound = min(vecOldScratch.x, -1);
-	float upperXBound = max(vecOldScratch.x, 1);
+	float lowXBound = MIN(vecOldScratch.x, -1);
+	float upperXBound = MAX(vecOldScratch.x, 1);
 
 	//Wobble in and out, weighted to go towards the normal view vector.
 	if (RandomFloat(lowXBound, upperXBound) >= 0)

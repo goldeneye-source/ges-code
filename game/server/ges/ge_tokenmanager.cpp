@@ -448,7 +448,7 @@ void CGETokenManager::RemoveTokens( const char *name /*=NULL*/, int count /*=-1*
 			CUtlVector<EHANDLE> tokens;
 			tokens.AddVectorToTail( ttype->vTokens );
 
-			int toRemove = (count > 0) ? min( count, tokens.Count() ) : tokens.Count();
+			int toRemove = (count > 0) ? MIN( count, tokens.Count() ) : tokens.Count();
 			for ( int i=0; i < toRemove; i++ )
 			{
 				// Issue a removal, limits and lists are adjusted elsewhere
@@ -487,7 +487,7 @@ void CGETokenManager::ResetTokenSpawners( const char *name /*=NULL*/, int count 
 			// Calculate how many spawners to reset
 			int toRemove;
 			if ( count > 0 )
-				toRemove = min( count, ttype->vSpawners.Count() );
+				toRemove = MIN( count, ttype->vSpawners.Count() );
 			else
 				toRemove = ttype->vSpawners.Count();
 

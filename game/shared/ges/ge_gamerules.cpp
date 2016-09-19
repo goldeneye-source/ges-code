@@ -37,7 +37,6 @@
 	#include "ge_gameinterface.h"
 	#include "ge_playerresource.h"
 	#include "ge_radarresource.h"
-	#include "ge_bot.h"
 	#include "gebot_player.h"
 	
 	extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
@@ -605,7 +604,7 @@ void CGERules::RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrcIn,
 		else
 		{
 			vecSpot = pEntity->GetAbsOrigin() + Vector(0, 0, 40); // Use the player's center as vecSpot even though we may not calculate damage from there.  Will lead to the most consistent damage forces.
-			dist = min((pEntity->EyePosition() - vecSrc).LengthSqr(), min((pEntity->GetAbsOrigin() + Vector(0, 0, 30) - vecSrc).LengthSqr(), (pEntity->GetAbsOrigin() + Vector(0, 0, 44) - vecSrc).LengthSqr()));
+			dist = MIN((pEntity->EyePosition() - vecSrc).LengthSqr(), MIN((pEntity->GetAbsOrigin() + Vector(0, 0, 30) - vecSrc).LengthSqr(), (pEntity->GetAbsOrigin() + Vector(0, 0, 44) - vecSrc).LengthSqr()));
 			dist = sqrt(dist);
 		}
 
@@ -656,7 +655,7 @@ void CGERules::RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrcIn,
 
 		// Calculate damage force that will always push players away from the explosion.
 
-		float flForce = min(flAdjustedDamage + 100, 500);
+		float flForce = MIN(flAdjustedDamage + 100, 500);
 		Vector vecForce = dir * flForce;
 
 		if (!ge_exp_allowz.GetBool())
@@ -1059,7 +1058,7 @@ bool CGERules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
-		swap(collisionGroup0,collisionGroup1);
+		::V_swap(collisionGroup0,collisionGroup1);
 	}
 
 	//Don't stand on COLLISION_GROUP_WEAPON

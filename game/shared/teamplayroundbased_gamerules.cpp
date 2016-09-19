@@ -1214,6 +1214,7 @@ bool CTeamplayRoundBasedRules::CheckWinLimit( bool bAllowEnd /*= true*/ )
             if ( pTeam->GetMatchScore() >= iWinLimit )
 #else
 			if ( pTeam->GetScore() >= iWinLimit )
+#endif
 			{
 				if ( bAllowEnd )
 				{

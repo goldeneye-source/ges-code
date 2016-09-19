@@ -206,7 +206,7 @@ void CGEMine::MineThink( void )
 					UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin(), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
 					if (tr.fraction != 1.0)
 					{
-						UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin() + 32, MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
+						UTIL_TraceLine(vecMinePos, pEntity->GetAbsOrigin() + Vector(0,0,32), MASK_SHOT_HULL, this, COLLISION_GROUP_DEBRIS, &tr);
 						if (tr.fraction != 1.0)
 							continue;
 					}
@@ -229,7 +229,7 @@ void CGEMine::MineThink( void )
 			Vector entvel, minevel;
 
 			entvel = pEntity->GetAbsVelocity();
-			minevel = Vector(0, 0, 0);
+			minevel = vec3_origin;
 
 			if (entvel.Length() == 0 && pEntity->VPhysicsGetObject())
 				pEntity->VPhysicsGetObject()->GetVelocity(&entvel, NULL);

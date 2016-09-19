@@ -168,7 +168,7 @@ void CGETKnife::DamageTouch( CBaseEntity *pOther )
 	if (tr.m_pEnt != pOther)
 	{
 		Vector TargetVec = pOther->GetAbsOrigin();
-		TargetVec.z = min(GetAbsOrigin().z, pOther->EyePosition().z); //Make sure we don't cast over their head.
+		TargetVec.z = MIN(GetAbsOrigin().z, pOther->EyePosition().z); //Make sure we don't cast over their head.
 		UTIL_TraceLine(GetAbsOrigin(), pOther->GetAbsOrigin(), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
 	}
 

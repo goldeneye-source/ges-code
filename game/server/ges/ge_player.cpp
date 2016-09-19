@@ -24,7 +24,6 @@
 #include "ge_character_data.h"
 #include "ge_stats_recorder.h"
 #include "ge_weapon.h"
-#include "ge_bloodscreenvm.h"
 #include "grenade_gebase.h"
 #include "ent_hat.h"
 #include "gemp_gamerules.h"
@@ -117,7 +116,7 @@ bool CGEPlayer::AddArmor( int amount )
 	// If player can't carry any more armor or the vest is a half vest and the player has more than half armor, return false.
 	if (ArmorValue() < GetMaxArmor() && ( !ge_limithalfarmorpickup.GetBool() || !(amount < MAX_ARMOR && ArmorValue() >= MAX_ARMOR * 0.5)))
 	{
-		GEStats()->Event_PickedArmor(this, min(GetMaxArmor() - ArmorValue(), amount));
+		GEStats()->Event_PickedArmor(this, MIN(GetMaxArmor() - ArmorValue(), amount));
 
 		// Use a different cap depending on which armor it is.
 		if (ge_limithalfarmorpickup.GetBool() && amount < MAX_ARMOR)
@@ -416,7 +415,7 @@ int CGEPlayer::OnTakeDamage( const CTakeDamageInfo &inputinfo )
 		return BaseClass::OnTakeDamage(inputinfo);
 	}
 
-	if (!g_pGameRules->FPlayerCanTakeDamage(this, info.GetAttacker()))
+	if (!g_pGameRules->FPlayerCanTakeDamage(this, info.GetAttacker(), inputinfo))
 		return 0;
 
 	// Make sure that our attacker has us loaded and we have our attacker loaded.
@@ -497,7 +496,7 @@ int CGEPlayer::OnTakeDamage( const CTakeDamageInfo &inputinfo )
 		// we don't want to reset the time here if we're adding to the damage since adding to the damage is essentially adding more time to an already valid timer.
 		if (GetLastAttacker() == inputinfo.GetAttacker())
 			m_iLastAttackedDamage += adjdmg;
-		else if ( inputinfo.GetAttacker() != this && gpGlobals->curtime + min(adjdmg * 0.1, 10) > m_flLastAttackedTime + min(m_iLastAttackedDamage * 0.1, 10)) // We have a different attacker, but let's make sure they will be doing enough damage to extend the timer and take the title.
+		else if ( inputinfo.GetAttacker() != this && gpGlobals->curtime + MIN(adjdmg * 0.1, 10) > m_flLastAttackedTime + MIN(m_iLastAttackedDamage * 0.1, 10)) // We have a different attacker, but let's make sure they will be doing enough damage to extend the timer and take the title.
 		{
 			m_iLastAttackedDamage = adjdmg; // We reset everything and don't add here because even though they extended the timer, they don't deserve extra time for damage they didn't do.
 			m_flLastAttackedTime = gpGlobals->curtime;
@@ -534,7 +533,7 @@ int CGEPlayer::OnTakeDamage( const CTakeDamageInfo &inputinfo )
 		}
 
 		// Print this out when we get damage (developer 1 must be on)
-		DevMsg( "%s took %0.1f damage to hitbox %i, %i HP / %i AP remaining.\n", GetPlayerName(), adjdmg, LastHitGroup(), GetHealth(), ArmorValue() );
+		DevMsg( "%s took %i damage to hitbox %i, %i HP / %i AP remaining.\n", GetPlayerName(), adjdmg, LastHitGroup(), GetHealth(), ArmorValue() );
 
 		// Tell our attacker that they damaged me
 		pGEAttacker->Event_DamagedOther(this, adjdmg, info);
@@ -549,7 +548,7 @@ int CGEPlayer::OnTakeDamage( const CTakeDamageInfo &inputinfo )
 			event->SetInt( "userid", GetUserID() );
 			event->SetInt( "attacker", pGEAttacker->GetUserID() );
 			event->SetInt( "weaponid", weapid );
-			event->SetInt( "health", max(0, GetHealth()) );
+			event->SetInt( "health", MAX(0, GetHealth()) );
 			event->SetInt( "armor", ArmorValue() );
 			event->SetInt( "damage", adjdmg );
 			event->SetInt( "dmgtype", inputinfo.GetDamageType() );
@@ -634,7 +633,7 @@ int CGEPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 }
 
 // This gets called first, then ontakedamage, which can trigger ontakedamage_alive when the baseclass is called.
-void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr )
+void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 	bool doTrace = false;
@@ -728,7 +727,7 @@ void CGEPlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vec
 		SetLastHitGroup( HITGROUP_GENERIC );
 	}
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 void CGEPlayer::HurtSound( const CTakeDamageInfo &info )
@@ -767,7 +766,7 @@ void CGEPlayer::Event_DamagedOther( CGEPlayer *pOther, int dmgTaken, const CTake
 	}
 	else
 	{
-		m_iFrameDamageOutput = max(m_iFrameDamageOutput, 0);  //Get rid of any invuln hit flags.
+		m_iFrameDamageOutput = MAX(m_iFrameDamageOutput, 0);  //Get rid of any invuln hit flags.
 		m_iFrameDamageOutput += dmgTaken;
 	}
 
@@ -786,19 +785,7 @@ ConVar ge_explosiveheadshots("ge_explosiveheadshots", "0", FCVAR_GAMEDLL | FCVAR
 
 void CGEPlayer::Event_Killed( const CTakeDamageInfo &info )
 {
-	if ( !IsBotPlayer() )
-	{
-		CBaseViewModel *pViewModel = GetViewModel( 1 );
-		int noBlood = atoi( engine->GetClientConVarValue( entindex(), "cl_ge_disablebloodscreen" ) );
-		if ( noBlood == 0 && pViewModel )
-		{
-			pViewModel->RemoveEffects( EF_NODRAW );
-			int seq = GERandom<int>(4) + 1;
-			pViewModel->SendViewModelMatchingSequence( seq );
-		}
-	}
-
-
+	ShowBloodScreen();
 
 	// Let the weapon know that the player has died, this is used for stuff like grenades.
 	if (GetActiveWeapon() && ToGEWeapon(GetActiveWeapon()))
@@ -1029,7 +1016,7 @@ void CGEPlayer::InitialSpawn( void )
 	if ( IsBot() )
 		return;
 
-	CGEBloodScreenVM *vm = (CGEBloodScreenVM*)CreateEntityByName( "gebloodscreen" );
+	CBaseViewModel *vm = (CBaseViewModel*)CreateEntityByName( "viewmodel" );
 	if ( vm )
 	{
 		vm->SetAbsOrigin( GetAbsOrigin() );
@@ -1077,17 +1064,31 @@ void CGEPlayer::SetSpeedMultiplier(float mult)
 	SetMaxSpeed(GE_NORM_SPEED * GEMPRules()->GetSpeedMultiplier(this)); 
 }
 
+void CGEPlayer::ShowBloodScreen( void )
+{
+    if ( !IsBotPlayer() )
+	{
+		CBaseViewModel *pViewModel = GetViewModel( 1 );
+		int noBlood = atoi( engine->GetClientConVarValue( entindex(), "cl_ge_disablebloodscreen" ) );
+		if ( noBlood == 0 && pViewModel )
+		{
+			pViewModel->RemoveEffects( EF_NODRAW );
+			int seq = GERandom<int>(4) + 1;
+			pViewModel->SendViewModelMatchingSequence( seq );
+		}
+	}
+}
+
 void CGEPlayer::HideBloodScreen( void )
 {
-	// Bots don't have blood screens
-	if ( IsBot() )
-		return;
-
-	CBaseViewModel *pViewModel = GetViewModel( 1 );
-	if ( pViewModel )
+	if ( !IsBotPlayer() )
 	{
-		pViewModel->SendViewModelMatchingSequence( 0 );
-		pViewModel->AddEffects( EF_NODRAW );
+	    CBaseViewModel *pViewModel = GetViewModel( 1 );
+	    if ( pViewModel )
+	    {
+		    pViewModel->SendViewModelMatchingSequence( 0 );
+		    pViewModel->AddEffects( EF_NODRAW );
+	    }
 	}
 }
 
@@ -1182,7 +1183,7 @@ int CGEPlayer::CalcInvul(int damage, CGEPlayer *pAttacker, int wepID)
 	
 	//Otherwise it's time to add the entry to the list and announce the target has been hit.
 
-	damage = min(damage, damagecap - totaldamage);
+	damage = MIN(damage, damagecap - totaldamage);
 
 	m_iAttackListTimes[emptyid] = gpGlobals->curtime;
 	m_iAttackList[emptyid] = damage;
@@ -1354,7 +1355,7 @@ void CGEPlayer::StripAllWeapons()
 CBaseEntity* CGEPlayer::GetLastAttacker(bool onlyrecent)
 {
 	// If we only want an actually relevant last attacker, compare the last time we were attacked to the amount of damage that attack did.
-	if (onlyrecent && m_flLastAttackedTime + min(m_iLastAttackedDamage * 0.1, 10) < gpGlobals->curtime)// 20 points of damages give 1 second of kill tracking.
+	if (onlyrecent && m_flLastAttackedTime + MIN(m_iLastAttackedDamage * 0.1, 10) < gpGlobals->curtime)// 20 points of damages give 1 second of kill tracking.
 		return NULL;
 	else
 		return m_pLastAttacker;

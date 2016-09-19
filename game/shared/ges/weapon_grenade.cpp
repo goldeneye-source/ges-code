@@ -433,7 +433,7 @@ void CGEWeaponGrenade::ExplodeInHand( void )
 		pGrenade->SetThrower( GetOwner() );
 		pGrenade->SetOwnerEntity( GetOwner() );
 		pGrenade->SetSourceWeapon(this);
-		pGrenade->SetVelocity( 0, NULL );
+		pGrenade->SetVelocity( vec3_origin, AngularImpulse(0,0,0) );
 		pGrenade->m_bHitSomething = true; //I'm not gonna just give it to you!
 
 		pGrenade->SetDamage( GetGEWpnData().m_iDamage );

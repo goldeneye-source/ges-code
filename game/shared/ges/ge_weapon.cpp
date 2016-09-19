@@ -322,7 +322,7 @@ void CGEWeapon::PrimaryAttack(void)
 	if (!m_iClip1)
 	{
 		m_bFireOnEmpty = true;
-		m_flNextEmptySoundTime = gpGlobals->curtime + max(GetClickFireRate(), 0.25);
+		m_flNextEmptySoundTime = gpGlobals->curtime + MAX(GetClickFireRate(), 0.25);
 	}
 }
 
@@ -681,8 +681,8 @@ const Vector& CGEWeapon::GetBulletSpread( void )
 		}
 		else if (pPlayer->IsInAimMode()) //Aim bonus only affects min spread, meaning full auto gets no benefits.
 		{
-			minSpread.x -= min(aimbonus, minSpread.x);
-			minSpread.y -= min(aimbonus, minSpread.y);
+			minSpread.x -= MIN(aimbonus, minSpread.x);
+			minSpread.y -= MIN(aimbonus, minSpread.y);
 		}
 	}
 
@@ -707,8 +707,8 @@ void CGEWeapon::UpdateAccPenalty()
 	float timeratio = (gpGlobals->curtime - m_flCoolDownTime - GetClickFireRate()) / (GetAccFireRate() - GetClickFireRate());
 	
 	m_flAccuracyPenalty -= timeratio*timeratio; //Time squared so waiting longer yeilds much greater benefits.
-	m_flAccuracyPenalty = max(m_flAccuracyPenalty, 0.0f);
-	m_flAccuracyPenalty = min(m_flAccuracyPenalty, (float)GetAccShots());
+	m_flAccuracyPenalty = MAX(m_flAccuracyPenalty, 0.0f);
+	m_flAccuracyPenalty = MIN(m_flAccuracyPenalty, (float)GetAccShots());
 }
 
 void CGEWeapon::AddAccPenalty(float numshots)
@@ -732,7 +732,7 @@ int CGEWeapon::GetGaussFactor()
 
 		if (pPlayer->GetGroundEntity() == NULL)
 		{
-			gaussfactor = min(gaussfactor, 1);
+			gaussfactor = MIN(gaussfactor, 1);
 			gausspenalty = 0;
 		}
 	}

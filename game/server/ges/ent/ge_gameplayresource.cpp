@@ -121,6 +121,6 @@ void CGEGameplayResource::SetCharacterExclusion( const char *str_list )
 		}
 	}
 
-	tmp[min(k,63)] = '\0';
+	tmp[MIN(k,63)] = '\0';
 	Q_strncpy( m_CharExclusion.GetForModify(), tmp, 64 );
 }

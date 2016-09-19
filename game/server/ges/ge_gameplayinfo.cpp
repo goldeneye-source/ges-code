@@ -166,7 +166,7 @@ void CGEGameplayInfo::InputGetConnectionCount(inputdata_t &inputdata)
 	}
 
 	// Bots don't have connections but we should still consider them.
-	iNumConnections = max(max(iNumConnections, ge_bot_threshold.GetInt()), GEMPRules()->GetNumAlivePlayers());
+	iNumConnections = MAX(MAX(iNumConnections, ge_bot_threshold.GetInt()), GEMPRules()->GetNumAlivePlayers());
 
 	m_outConnectionCount.Set(iNumConnections, inputdata.pActivator, this);
 }

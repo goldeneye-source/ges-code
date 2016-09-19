@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "cbase.h"
-#include "ent_envexplosion.h"
+#include "ent_geexplosion.h"
 #include "particle_system.h"
 #include "engine/IEngineSound.h"
 #include "soundent.h"
@@ -185,10 +185,10 @@ void CGE_Explosion::CreateInitialBlast( void )
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin,
 			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-			min(m_flDamageRadius, 500) * 0.03f, 
+			MIN(m_flDamageRadius, 500) * 0.03f, 
 			25,
 			TE_EXPLFLAG_NOFIREBALLSMOKE | TE_EXPLFLAG_NOSOUND,
-			min(m_flDamageRadius, 500) * 0.8f,
+			MIN(m_flDamageRadius, 500) * 0.8f,
 			0.0f,
 			&vecNormal,
 			(char) pdata->game.material );
@@ -199,14 +199,14 @@ void CGE_Explosion::CreateInitialBlast( void )
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin, 
 			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-			min(m_flDamageRadius, 500) * 0.03f,
+			MIN(m_flDamageRadius, 500) * 0.03f,
 			25,
 			TE_EXPLFLAG_NOFIREBALLSMOKE | TE_EXPLFLAG_NOSOUND,
-			min(m_flDamageRadius, 500) * 0.8f,
+			MIN(m_flDamageRadius, 500) * 0.8f,
 			0.0f );
 	}
 
-	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), min(m_flDamageRadius, 500)*1.5f, GE_EXP_DMG_TIME, this );
+	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), MIN(m_flDamageRadius, 500)*1.5f, GE_EXP_DMG_TIME, this );
 
 	//Wreak paintball havok if paintball mode is on
 	//otherwise just place a scorch mark down
@@ -266,7 +266,7 @@ void CGE_Explosion::Think()
 
 		if ( gpGlobals->curtime > m_flShakeTime && gpGlobals->curtime < m_flDieTime + 1.0f )
 		{
-			float radius = (m_flDamageRadius > 0) ? ( min(m_flDamageRadius, 300) * (IsSmallExp() ? 0.75f : 1.0f)) : 45.0f;
+			float radius = (m_flDamageRadius > 0) ? ( MIN(m_flDamageRadius, 300) * (IsSmallExp() ? 0.75f : 1.0f)) : 45.0f;
 			float freq = IsSmallExp() ? 50.0f : 100.0f;
 			float amp = IsSmallExp() ? 3.0 : 7.0;
 			

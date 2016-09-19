@@ -543,6 +543,6 @@ void CGEWeaponMelee::Swing( int bIsSecondary )
 		ToGEPlayer(pPlayer)->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
 
 	//Setup our next attack times
-	m_flNextPrimaryAttack = gpGlobals->curtime + max(GetFireRate(),SequenceDuration());
-	m_flNextSecondaryAttack = gpGlobals->curtime + max(GetFireRate(),SequenceDuration());
+	m_flNextPrimaryAttack = gpGlobals->curtime + MAX(GetFireRate(),SequenceDuration());
+	m_flNextSecondaryAttack = gpGlobals->curtime + MAX(GetFireRate(),SequenceDuration());
 }

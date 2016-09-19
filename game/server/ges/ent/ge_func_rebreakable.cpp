@@ -219,7 +219,7 @@ void CREBreakable::Die( void )
 		else if ( m_PerformanceMode == PM_REDUCED_GIBS )
 		{
 			int iNewCount = iCount * func_break_reduction_factor.GetFloat();
-			iCount = max( iNewCount, 1 );
+			iCount = MAX( iNewCount, 1 );
 		}
 	}
 

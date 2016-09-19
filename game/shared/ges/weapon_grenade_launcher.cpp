@@ -455,7 +455,7 @@ void CGEWeaponGrenadeLauncher::LaunchGrenade( void )
 		pShell->SetThrower( pOwner );
 		pShell->SetOwnerEntity( pOwner );
 		pShell->SetSourceWeapon(this);
-		pShell->SetVelocity( vecThrow, NULL );
+		pShell->SetVelocity( vecThrow, AngularImpulse(0,0,0) );
 		
 		if (pOwner->GetTeamNumber() == TEAM_JANUS)
 			pShell->SetCollisionGroup(COLLISION_GROUP_GRENADE_JANUS);
@@ -491,7 +491,7 @@ void CGEWeaponGrenadeLauncher::CalculateShellVis( bool fillclip )
 		clipammo += reserveammo; //This can be over 6, it won't change the comparision results.
 
 	// We don't actually change bodygroup visibility here so passive reload doesn't cause bodygroup changes on other weapons.
-	m_iDesiredShellVisAmount = m_iShellVisAmount = min(clipammo, 6);
+	m_iDesiredShellVisAmount = m_iShellVisAmount = MIN(clipammo, 6);
 	m_iDesiredShellOffset = m_iShellOffset = 0;
 }
 

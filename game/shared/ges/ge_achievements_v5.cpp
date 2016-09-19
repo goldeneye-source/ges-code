@@ -1386,7 +1386,7 @@ protected:
 			if ( Q_atoi(event->GetString("value1")) != pPlayer->GetUserID() )
 				return;
 
-			m_iStolenSeconds += max( Q_atoi(event->GetString("value3")), 0 );
+			m_iStolenSeconds += MAX( Q_atoi(event->GetString("value3")), 0 );
 
 			while ( m_iStolenSeconds >= 60 && IsScenario("viewtoakill") )
 			{

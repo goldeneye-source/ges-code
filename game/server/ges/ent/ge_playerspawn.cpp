@@ -192,7 +192,7 @@ int CGEPlayerSpawn::GetDesirability(CGEPlayer *pRequestor)
 
 		int adjlife = 160 - life;
 
-		dist /= min(2.0, adjlife*adjlife / 51200.00f + 1); // 51200 is 160*160*2, to get 1.5 as the typical max value
+		dist /= MIN(2.0, adjlife*adjlife / 51200.00f + 1); // 51200 is 160*160*2, to get 1.5 as the typical max value
 
 		// Check if this player is still close enough after modifiers.
 		if (dist > SPAWNER_MAX_ENEMY_DIST)
@@ -211,7 +211,7 @@ int CGEPlayerSpawn::GetDesirability(CGEPlayer *pRequestor)
 		// Finally, compare the calculated threat level to the highest one on record and
 		// replace it if higher.
 		if (abs(threat) > abs(m_iLastEnemyWeight))
-			m_iLastEnemyWeight = min(100, threat);
+			m_iLastEnemyWeight = MIN(100, threat);
 
 	}
 	END_OF_PLAYER_LOOP()
@@ -297,7 +297,7 @@ void CGEPlayerSpawn::NotifyOnDeath( float dist )
 	if (gpGlobals->curtime > m_fDeathFadeTime)
 		m_fDeathFadeTime = gpGlobals->curtime + boost;
 	else
-		m_fDeathFadeTime = min(m_fDeathFadeTime + boost, gpGlobals->curtime + SPAWNER_DEATHFADE_LIMIT);
+		m_fDeathFadeTime = MIN(m_fDeathFadeTime + boost, gpGlobals->curtime + SPAWNER_DEATHFADE_LIMIT);
 }
 
 void CGEPlayerSpawn::NotifyOnUse( void )
@@ -340,7 +340,7 @@ void CGEPlayerSpawn::SetUseFadeTime(float usetime)
 	if (gpGlobals->curtime > m_fUseFadeTime)
 		m_fUseFadeTime = gpGlobals->curtime + usetime;
 	else
-		m_fUseFadeTime = min(m_fUseFadeTime + usetime, gpGlobals->curtime + SPAWNER_USEFADE_LIMIT);
+		m_fUseFadeTime = MIN(m_fUseFadeTime + usetime, gpGlobals->curtime + SPAWNER_USEFADE_LIMIT);
 }
 
 
@@ -436,7 +436,7 @@ void CGEPlayerSpawn::DEBUG_ShowOverlay( float duration )
 	if ( IsDisabled() )
 	{
 		// We are disabled
-		Q_snprintf( tempstr, 64, "DISABLED", d );
+		Q_snprintf( tempstr, 64, "DISABLED" );
 		EntityText( ++line, tempstr, duration );
 	}
 	else

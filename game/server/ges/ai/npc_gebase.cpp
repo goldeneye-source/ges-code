@@ -855,8 +855,8 @@ void CNPC_GEBase::OnUpdateShotRegulator( void )
 
 	if ( pWeapon->UsesClipsForAmmo1() && pWeapon->m_iClip1 > 1 )
 	{
-		minBurst = max( 1, pWeapon->m_iClip1 / 3 );
-		maxBurst = min( minBurst + GERandom<int>(pWeapon->GetMaxClip1() - minBurst), pWeapon->m_iClip1 );
+		minBurst = MAX( 1, pWeapon->m_iClip1 / 3 );
+		maxBurst = MIN( minBurst + GERandom<int>(pWeapon->GetMaxClip1() - minBurst), pWeapon->m_iClip1 );
 	}
 
 	GetShotRegulator()->SetBurstShotCountRange( minBurst, maxBurst );
@@ -1002,17 +1002,17 @@ bool CNPC_GEBase::IsHeavyDamage( const CTakeDamageInfo &info )
 	return ( info.GetDamage() > (m_iMaxHealth / 3.0f) );
 }
 
-void CNPC_GEBase::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr )
+void CNPC_GEBase::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	// Doesn't hurt to force this setting, in case we use the bot player
 	SetLastHitGroup( ptr->hitgroup );
 	m_nForceBone = ptr->physicsbone;		// save this bone for physics forces
 
 	if ( m_hBotPlayer.Get() )
-		m_hBotPlayer->TraceAttack( inputInfo, vecDir, ptr );
+		m_hBotPlayer->TraceAttack( inputInfo, vecDir, ptr, pAccumulator );
 	else
 		// Skip over sneak attack bullshit in CBaseHumanoid
-		CAI_BaseNPC::TraceAttack( inputInfo, vecDir, ptr);
+		CAI_BaseNPC::TraceAttack( inputInfo, vecDir, ptr, pAccumulator );
 }
 
 int CNPC_GEBase::OnTakeDamage( const CTakeDamageInfo &info )

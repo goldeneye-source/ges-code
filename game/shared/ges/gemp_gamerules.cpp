@@ -42,7 +42,6 @@
 	#include "ge_loadoutmanager.h"
 	#include "ge_mapmanager.h"
 	#include "ge_stats_recorder.h"
-	#include "ge_bot.h"
 
 	#include "ge_triggers.h"
 	#include "ge_door.h"
@@ -165,14 +164,14 @@ void GERoundCount_Callback( IConVar *var, const char *pOldString, float flOldVal
 	} else {
 		// Figure out the amount of inter-match round delay to account for it
 		int match_time = mp_timelimit.GetInt() * 60;
-		int total_round_delay = max( ge_rounddelay.GetInt(), 3 ) * (num_rounds - 1);
+		int total_round_delay = MAX( ge_rounddelay.GetInt(), 3 ) * (num_rounds - 1);
 		int round_time = ge_roundtime.GetInt();
 
 		// If our match time exceeds the total round delay, divide the diff by the number of desired rounds
 		if ( match_time > total_round_delay )
 			round_time = (match_time - total_round_delay) / num_rounds;
 		else
-			round_time = max( atoi( ge_roundtime.GetDefault() ), round_time );
+			round_time = MAX( atoi( ge_roundtime.GetDefault() ), round_time );
 
 		// Set the round time based on our calcs, ge_roundtime ensures at least 30 second rounds
 		ge_roundtime.SetValue( round_time );
@@ -261,21 +260,6 @@ void GEBotThreshold_Callback( IConVar *var, const char *pOldString, float fOldVa
 	}
 	denyreentrant = false;
 }
-
-#if defined(GES_ENABLE_OLD_BOTS)
-// Handler for the "bot" command.
-void Bot_f()
-{
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
-	{
-		Msg( "You must be a server admin to use that command\n" );
-		return;
-	}
-
-	BotPutInServer( false, 4 );
-}
-ConCommand cc_Bot( "bot", Bot_f, "Add a bot.", 0 );
-#endif // GES_ENABLE_OLD_BOTS
 
 CON_COMMAND( ge_bot, "Creates a full fledged AI Bot" )
 {
@@ -748,7 +732,7 @@ float CGEMPRules::FlItemRespawnTime( CItem *pItem )
 {
 	// Use dynamic respawn calculation if provided
 	if ( ge_dynweaponrespawn.GetBool() )
-		return (15.4 - 1.8 * sqrt( (float)max(GetNumAlivePlayers(), 8) )) * ge_dynweaponrespawn_scale.GetFloat();
+		return (15.4 - 1.8 * sqrt( (float)MAX(GetNumAlivePlayers(), 8) )) * ge_dynweaponrespawn_scale.GetFloat();
 
 	// Otherwise return the static delay
 	return ge_itemrespawntime.GetFloat();
@@ -758,7 +742,7 @@ float CGEMPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
 {
 	// Use dynamic respawn calculation if provided
 	if ( ge_dynweaponrespawn.GetBool() )
-		return (15.4 - 1.8 * sqrt( (float)max(GetNumAlivePlayers(), 8) )) * ge_dynweaponrespawn_scale.GetFloat();
+		return (15.4 - 1.8 * sqrt( (float)MAX(GetNumAlivePlayers(), 8) )) * ge_dynweaponrespawn_scale.GetFloat();
 
 	// Otherwise return the static delay
 	return ge_weaponrespawntime.GetFloat();
@@ -1765,7 +1749,7 @@ void CGEMPRules::EnforceBotCount()
 	if ( ge_bot_threshold.GetInt() <= 0 )
 		return;
 
-	int bot_thresh = min( ge_bot_threshold.GetInt(), gpGlobals->maxClients - ge_bot_openslots.GetInt() );
+	int bot_thresh = MIN( ge_bot_threshold.GetInt(), gpGlobals->maxClients - ge_bot_openslots.GetInt() );
 	int bot_count = m_vBotList.Count();
 	int player_count = 0;
 	int spec_count = 0;
@@ -1794,7 +1778,7 @@ void CGEMPRules::EnforceBotCount()
 
 	if ( total_count > bot_thresh && bot_count > 0 )
 	{
-		int to_remove = min( total_count - bot_thresh, bot_count );
+		int to_remove = MIN( total_count - bot_thresh, bot_count );
 
 		// Remove bots
 		for ( int i=0; i < to_remove; i++ )
@@ -1882,7 +1866,7 @@ void CGEMPRules::BalanceTeams()
 			if ( players.Size() > 0 )
 			{
 				players.Sort( BalanceTeamSort );
-				int switches = min( abs(plDiff) - 1, players.Size() );
+				int switches = MIN( abs(plDiff) - 1, players.Size() );
 
 				// Switch the required number of players to the light team
 				for ( int j=0; j < switches; j++ )
@@ -2285,7 +2269,7 @@ bool CGEMPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
-		swap(collisionGroup0,collisionGroup1);
+		::V_swap(collisionGroup0,collisionGroup1);
 	}
 	
 	if ( collisionGroup0 == COLLISION_GROUP_MI6 && (collisionGroup1 == COLLISION_GROUP_MI6 || collisionGroup1 == COLLISION_GROUP_GRENADE_MI6) )

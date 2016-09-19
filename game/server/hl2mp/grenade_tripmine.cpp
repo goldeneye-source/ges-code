@@ -243,6 +243,7 @@ int CTripmineGrenade::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	}
 	return BaseClass::OnTakeDamage_Alive( info );
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose:

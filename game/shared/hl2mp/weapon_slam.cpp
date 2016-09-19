@@ -374,6 +374,7 @@ void CWeapon_SLAM::TripmineAttach( void )
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
 		{
 
+#ifndef GE_DLL
 #ifndef CLIENT_DLL
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
@@ -387,6 +388,7 @@ void CWeapon_SLAM::TripmineAttach( void )
 			// Attempt to attach to entity, or just sit still in place.
 			pMine->AttachToEntity( pEntity );
 
+#endif
 #endif
 
 			pOwner->RemoveAmmo( 1, m_iSecondaryAmmoType );

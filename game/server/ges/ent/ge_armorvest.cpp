@@ -125,7 +125,7 @@ CBaseEntity *CGEArmorVest::Respawn(void)
 	SetSolid( SOLID_NONE );
 	RemoveSolidFlags( FSOLID_TRIGGER );
 
-	m_iSpawnpointsgoal = (int)(ge_armorrespawntime.GetInt() * 10 - ge_armorrespawn_pc_scale.GetFloat() * pow(max((float)GEMPRules()->GetNumAlivePlayers() - 1, 0), ge_armorrespawn_pc_pow.GetFloat()));
+	m_iSpawnpointsgoal = (int)(ge_armorrespawntime.GetInt() * 10 - ge_armorrespawn_pc_scale.GetFloat() * pow(MAX((float)GEMPRules()->GetNumAlivePlayers() - 1, 0), ge_armorrespawn_pc_pow.GetFloat()));
 
 	// Let interested developers know our new goal.
 
@@ -308,7 +308,7 @@ void CGEArmorVest::UpdateOnRemove(void)
 
 void CGEArmorVest::AddSpawnProgressMod(CBasePlayer *pPlayer, int amount)
 {
-	int cappedamount = min(amount, m_iSpawnpoints * -1); // Can't put the armor below 0 spawn points.
+	int cappedamount = MIN(amount, m_iSpawnpoints * -1); // Can't put the armor below 0 spawn points.
 
 	if (pPlayer)
 	{
@@ -327,7 +327,7 @@ void CGEArmorVest::ClearSpawnProgressMod(CBasePlayer *pPlayer)
 	int iPID = pPlayer->GetUserID();
 
 	if (m_iSpawnpoints < m_iSpawnpointsgoal - 20) // Only do this next bit if we won't subtract points.
-		m_iSpawnpoints = min(m_iSpawnpoints - m_iPlayerPointContribution[iPID], m_iSpawnpointsgoal - 20); // Add back all the spawn points that we stole but avoid having the armor respawn instantly after we died.
+		m_iSpawnpoints = MIN(m_iSpawnpoints - m_iPlayerPointContribution[iPID], m_iSpawnpointsgoal - 20); // Add back all the spawn points that we stole but avoid having the armor respawn instantly after we died.
 
 	m_iPlayerPointContribution[iPID] = 0;
 }
@@ -406,13 +406,13 @@ void CGEArmorVest::DEBUG_ShowProgress(float duration, int progress)
 	if (!IsEnabled())
 	{
 		// We are disabled
-		Q_snprintf(tempstr, 64, "DISABLED", progress);
+		Q_snprintf(tempstr, 64, "DISABLED");
 		EntityText(++line, tempstr, duration);
 	}
 	else if (!IsEffectActive(EF_NODRAW))
 	{
 		// We've spawned
-		Q_snprintf(tempstr, 64, "SPAWNED", progress);
+		Q_snprintf(tempstr, 64, "SPAWNED");
 		EntityText(++line, tempstr, duration);
 	}
 	else

@@ -121,7 +121,7 @@ void respawn( CBaseEntity *pEdict, bool fCopyCorpse )
 
 	if ( pPlayer )
 	{
-		if ( gpGlobals->curtime > pPlayer->GetDeathTime() + max(DEATH_ANIMATION_TIME,ge_respawndelay.GetFloat()) )
+		if ( gpGlobals->curtime > pPlayer->GetDeathTime() + MAX(DEATH_ANIMATION_TIME,ge_respawndelay.GetFloat()) )
 		{		
 			// respawn player
 			pPlayer->Spawn();			

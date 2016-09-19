@@ -180,7 +180,7 @@ void CGEMPPlayer::UpdateCampingTime()
 	if ( movement > GE_MIN_CAMP_DIST )
 	{
 		m_flLastMoveTime = gpGlobals->curtime;
-		m_flCampingTime = max( 0, m_flCampingTime - 0.5f );
+		m_flCampingTime = MAX( 0, m_flCampingTime - 0.5f );
 	}
 	else
 	{
@@ -230,7 +230,7 @@ void CGEMPPlayer::UpdateJumpPenalty()
 	{
 		//dt * 2000/x
 		m_flJumpPenalty -= gpGlobals->frametime* (2000 / m_flJumpPenalty);
-		m_flJumpPenalty = max(m_flJumpPenalty, 0.0f);
+		m_flJumpPenalty = MAX(m_flJumpPenalty, 0.0f);
 	}
 }
 
@@ -389,7 +389,7 @@ void CGEMPPlayer::Spawn()
 		// First decypher their skins code, if they have one.
 		if (m_iClientSkinsCode && !noSkins)
 		{
-			DevMsg( "Parsing client skin code of %d for %s\n", m_iClientSkinsCode );
+			DevMsg( "Parsing client skin code of %lld\n", m_iClientSkinsCode );
 
 			for (int i = 0; i < WEAPON_RANDOM; i++)
 			{
@@ -400,7 +400,7 @@ void CGEMPPlayer::Spawn()
 		// Then look at the server authenticated skin code, this overwrites the client skins.
 		if (m_iSkinsCode && noSkins <= 1)
 		{
-			DevMsg( "Parsing server skin code of %d\n", m_iSkinsCode );
+			DevMsg( "Parsing server skin code of %lld\n", m_iSkinsCode );
 			uint64 shiftvalue = 0;
 
 			for ( int i = 0; i < WEAPON_RANDOM; i++ )
@@ -980,7 +980,7 @@ CBaseEntity *CGEMPPlayer::EntFindSpawnPoint( int iStart, int iType, int &iReturn
 	if (iNext >= vSpawns->Count())
 	{
 		if ( bAllowWrap )
-			iNext = max(0, iNext % vSpawns->Count());
+			iNext = MAX(0, iNext % vSpawns->Count());
 		else
 			iNext = -1;
 	}
@@ -1232,7 +1232,7 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 			{
 				// Find us a place to reside
 				m_hObserverTarget.Set( 0 );
-				SetViewOffset(0);
+				SetViewOffset(vec3_origin);
 				ClearFlags();
 				GERules()->GetSpectatorSpawnSpot( this );
 			}
@@ -1261,7 +1261,7 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 		{
 			// Find us a place to reside
 			m_hObserverTarget.Set(0);
-			SetViewOffset(0);
+			SetViewOffset(vec3_origin);
 			ClearFlags();
 			GERules()->GetSpectatorSpawnSpot( this );
 		}
@@ -1283,7 +1283,7 @@ bool CGEMPPlayer::ClientCommand( const CCommand &args )
 		{
 			// Find us a place to reside
 			m_hObserverTarget.Set(0);
-			SetViewOffset(0);
+			SetViewOffset(vec3_origin);
 			ClearFlags();
 			GERules()->GetSpectatorSpawnSpot( this );
 		}
@@ -1460,7 +1460,7 @@ void CGEMPPlayer::ObserverTransistion()
 		SetObserverTarget(NULL);
 		SetObserverMode(OBS_MODE_FIXED);
 		GERules()->GetSpectatorSpawnSpot(this);
-		SetViewOffset(0);
+		SetViewOffset(vec3_origin);
 		ClearFlags();
 	}
 	else // Otherwise follow someone around.
