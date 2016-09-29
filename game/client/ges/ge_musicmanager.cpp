@@ -10,7 +10,7 @@
 #include "cbase.h"
 
 // To grab our window handle
-#if !defined(_X360) && defined(_WIN32)
+#ifdef _WIN32
 #pragma warning(disable:4005)
 #include <windows.h>
 #endif
@@ -22,36 +22,53 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-using namespace FMOD;
-
 #define GE_MUSIC_DEFAULTSCAPE	"__default__"
 #define FMOD_TRANSITION_TIME	1.5f
-#define CurrTime()				Plat_FloatTime()
-#define FMOD_CALL(call)			{FMOD_RESULT r = call; if ( r != FMOD_OK ) { DevMsg( "[FMOD] Error Code %i\n", r ); }}
+#define CurrTime()  Plat_FloatTime()
+
+#ifdef _WIN32
+using namespace FMOD;
+#define FMOD_CALL(call) { FMOD_RESULT r = call; if ( r != FMOD_OK ) { DevMsg( "[FMOD] Error Code %i\n", r ); } }
+#endif
 
 // -----------------------
 // Extern definitions
 // -----------------------
 CGEMusicManager *g_pGEMusicManager = NULL;
-inline CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
+CGEMusicManager *GEMusicManager() { return g_pGEMusicManager; }
 
-HWND gWindowHandle;
+HWND gWindowHandle = 0;
 
 void StartGEMusicManager()
 {
 	if ( g_pGEMusicManager )
 		StopGEMusicManager();
 
+#ifdef _WIN32
 	// Find our window handle
 	gWindowHandle = FindWindow("Valve001", NULL);
+#endif
 
-	new CGEMusicManager();
+	g_pGEMusicManager = new CGEMusicManager();
+	
+#ifdef _WIN32
+	g_pGEMusicManager->Start();
+#endif
 }
 
 void StopGEMusicManager()
 {
-	if ( g_pGEMusicManager )
+	if (g_pGEMusicManager != NULL)
+	{
+#ifdef _WIN32
+	    if (g_pGEMusicManager->IsAlive())
+	    {
+	        g_pGEMusicManager->StopThread();
+		    g_pGEMusicManager->Join();
+	    }
+#endif
 		delete g_pGEMusicManager;
+	}
 }
 
 // -----------------------
@@ -69,7 +86,6 @@ void GEMusicVolume_Callback( IConVar *var, const char *pOldString, float flOldVa
 
 CGEMusicManager::CGEMusicManager() : CAutoGameSystem( "GEMusicManager" )
 {
-	g_pGEMusicManager = this;
 	m_bRun = false;
 	m_bFMODRunning = false;
 	m_bLoadPlaylist = false;
@@ -92,23 +108,18 @@ CGEMusicManager::CGEMusicManager() : CAutoGameSystem( "GEMusicManager" )
 	m_fFadeInPercent = 0;
 	m_fFadeOutPercent = 0;
 
+#ifdef _WIN32
 	m_pLastSong = NULL;
 	m_pCurrSong = NULL;
 
-	// Start the thread!
+	// Setup the thread
 	SetPriority( THREAD_PRIORITY_HIGHEST );
-	SetName( "GEMusicManager" );
-	Start();
+	SetName( "GEMusicMgr" );
+#endif
 }
 
 CGEMusicManager::~CGEMusicManager()
 {
-	if ( IsAlive() )
-	{
-		StopThread();
-		Join();
-	}
-	
 	ClearPlayList();
 	g_pGEMusicManager = NULL;
 }
@@ -196,6 +207,7 @@ int CGEMusicManager::Run()
 {
 	m_bRun = true;
 
+#ifdef _WIN32
 	// Crate FMOD system
 	FMOD_RESULT result = FMOD::System_Create( &m_pSystem );
 
@@ -215,9 +227,6 @@ int CGEMusicManager::Run()
 	} else {
 		DevMsg( 2, "[FMOD] Initialization successful\n" );
 	}
-
-	FMOD_Debug_SetLevel( FMOD_DEBUG_LEVEL_HINT | FMOD_DEBUG_LEVEL_ERROR | FMOD_DEBUG_DISPLAY_THREAD 
-		| FMOD_DEBUG_DISPLAY_COMPRESS | FMOD_DEBUG_TYPE_EVENT );
 
 	// Get our master channel group for volume control
 	m_pSystem->getMasterChannelGroup( &m_pMasterChannel );
@@ -264,6 +273,7 @@ int CGEMusicManager::Run()
 	EndSong( m_pLastSong );
 	EndSong( m_pCurrSong );
 	m_pSystem->release();
+#endif // _WIN32
 
 	return 0;
 }
@@ -376,6 +386,7 @@ void CGEMusicManager::InternalLoadSoundscape()
 
 void CGEMusicManager::NextSong( void ) 
 {
+#ifdef _WIN32
 	// Make sure we are not NULL...
 	EnforcePlaylist();
 	if ( !m_CurrPlaylist )
@@ -420,7 +431,7 @@ void CGEMusicManager::NextSong( void )
 	m_pLastSong = m_pCurrSong;
 
 	// Load the new sound as the current song
-	result = m_pSystem->playSound( FMOD_CHANNEL_FREE, pSound, true, &m_pCurrSong );
+	result = m_pSystem->playSound( pSound, m_pMasterChannel, true, &m_pCurrSong );
 	if ( result != FMOD_OK )
 	{
 		Warning( "[FMOD] Failed to play sound stream '%s'! Error Code: %i\n", song_entry, result );
@@ -441,6 +452,7 @@ void CGEMusicManager::NextSong( void )
 	StartFade( FADE_IN );
 
 	DevMsg( 2, "[FMOD] Playing song %s\n", song_entry );
+#endif // _WIN32
 }
 
 void CGEMusicManager::CheckWindowFocus( void )
@@ -465,6 +477,7 @@ void CGEMusicManager::CheckWindowFocus( void )
 
 void CGEMusicManager::StartFade( int type )
 {
+#ifdef _WIN32
 	if ( m_iFadeMode != FADE_NONE && m_iFadeMode != type )
 	{
 		// Changed in-progress fade, swap status
@@ -480,10 +493,12 @@ void CGEMusicManager::StartFade( int type )
 	m_iFadeMode = type;
 	m_fFadeStartTime = CurrTime();
 	m_fLastFadeTime = m_fFadeStartTime;
+#endif
 }
 
 void CGEMusicManager::FadeThink( void )
 {
+#ifdef _WIN32
 	// Sanity Check
 	if ( m_fLastFadeTime < m_fFadeStartTime )
 		return;
@@ -502,7 +517,7 @@ void CGEMusicManager::FadeThink( void )
 		m_fFadeInPercent = 1.0f;
 		m_fFadeOutPercent = 0;
 	}
-
+	
 	if ( m_iFadeMode == FADE_IN )
 	{
 		// m_pLastSong OUT, m_pCurrSong IN
@@ -536,10 +551,12 @@ void CGEMusicManager::FadeThink( void )
 			m_pLastSong = NULL;
 		}
 	}
+#endif // _WIN32
 }
 
 void CGEMusicManager::PauseThink()
 {
+#ifdef _WIN32
 	if ( !m_pCurrSong )
 		return;
 
@@ -563,8 +580,10 @@ void CGEMusicManager::PauseThink()
 		if ( m_iFadeMode == FADE_NONE )
 			m_pCurrSong->setPaused( true );
 	}
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 void CGEMusicManager::EndSong( FMOD::Channel *pChannel )
 {
 	if ( !pChannel )
@@ -578,6 +597,7 @@ void CGEMusicManager::EndSong( FMOD::Channel *pChannel )
 	else
 		DevMsg( 2, "[FMOD] Failed to release sound! Error Code: %i\n", r );
 }
+#endif
 
 void CGEMusicManager::AddSong( const char *relative, const char *soundscape )
 {

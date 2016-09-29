@@ -9,7 +9,6 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "cbase.h"
-#include "screenspaceeffects.h"
 #include "rendertexture.h"
 #include "model_types.h"
 #include "materialsystem/imaterialsystemhardwareconfig.h"
@@ -17,8 +16,8 @@
 #include "materialsystem/imaterialvar.h"
 #include "cdll_client_int.h"
 #include "materialsystem/itexture.h"
-#include "keyvalues.h"
-#include "ClientEffectPrecacheSystem.h"
+#include "KeyValues.h"
+#include "clienteffectprecachesystem.h"
 
 #include "ge_screeneffects.h"
 

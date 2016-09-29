@@ -79,7 +79,7 @@ bool IsScenario( const char *ident, bool official=true );
 	DECLARE_GE_ACHIEVEMENT_( className, achievementID, achievementName, NULL, iPointValue, bHidden, -1 )
 
 #define CREATE_ACH_WEPLEVEL( className, weapid, level, goal )	\
-	class C##className##Level##level## : public CGEAchievement	\
+	class C##className##Level##level : public CGEAchievement	\
 	{															\
 	protected:													\
 		virtual void Init()	{									\

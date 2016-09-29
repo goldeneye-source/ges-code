@@ -76,7 +76,6 @@ CGETeamMenu::CGETeamMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_TEAM )
 	m_pServerOptList = dynamic_cast<vgui::SectionedListPanel*>( FindChildByName("ServerInfo") );
 
 	m_pTeamButtonList->SetFirstColumnWidth( 0 );
-	m_pTeamButtonList->SetScrollBarVisible( false );
 	m_pTeamButtonList->SetVerticalBufferPixels( scheme()->GetProportionalScaledValue(4) );
 
 	m_pServerOptList->AddSection( 0, "" );

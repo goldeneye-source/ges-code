@@ -23,7 +23,7 @@
 #define RANDOM_VALUE	"_random"
 #define COMMAND_MAP		"resource/ges_createserver_map.txt"
 #define COMMAND_MAP_VAL	"cfg/ges_serversettings.txt"
-#define PYDIR			"python\\ges\\GamePlay\\*.py"
+#define PYDIR			"python/ges/GamePlay/*.py"
 
 using namespace vgui;
 
@@ -268,7 +268,7 @@ void CGECreateServer::PopulateControls( void )
 		char file[32];
 
 		maplist->AddItem( "#SERVER_RANDOM_MAP", new KeyValues(RANDOM_VALUE) );
-		const char *pFilename = filesystem->FindFirstEx( "maps\\*.bsp", "MOD", &findHandle );
+		const char *pFilename = filesystem->FindFirstEx( "maps/*.bsp", "MOD", &findHandle );
 		while ( pFilename )
 		{
 			if ( stricmp(pFilename, "ge_transition.bsp") ) //They don't need to pick our dinky crash avoidance map.

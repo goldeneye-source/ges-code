@@ -587,6 +587,7 @@ float CTeamplayRoundBasedRules::GetRespawnTimeScalar( int iTeam )
 //-----------------------------------------------------------------------------
 void CTeamplayRoundBasedRules::FireGameEvent( IGameEvent * event )
 {
+#ifndef GE_DLL
 #ifdef GAME_DLL
 	const char *eventName = event->GetName();
 	if ( g_fGameOver && !Q_strcmp( eventName, "server_changelevel_failed" ) )
@@ -595,6 +596,7 @@ void CTeamplayRoundBasedRules::FireGameEvent( IGameEvent * event )
 		nextlevel.SetValue( "" );
 		ChangeLevel();
 	}
+#endif
 #endif
 }
 
@@ -1909,8 +1911,9 @@ void CTeamplayRoundBasedRules::State_Think_TEAM_WIN( void )
 
 					pPlayer->AddFlag( FL_FROZEN );
 				}
-
+#ifndef GE_DLL
 				g_fGameOver = true;
+#endif
 				g_pPopulationManager->SetMapRestartTime( gpGlobals->curtime + 10.0f );
 				State_Enter( GR_STATE_GAME_OVER );
 				return;
@@ -1925,8 +1928,9 @@ void CTeamplayRoundBasedRules::State_Think_TEAM_WIN( void )
 
 					pPlayer->AddFlag( FL_FROZEN );
 				}
-
+#ifndef GE_DLL
 				g_fGameOver = true;
+#endif				
 				State_Enter( GR_STATE_GAME_OVER );
 				m_flStateTransitionTime = gpGlobals->curtime + GetBonusRoundTime( true );
 				return;

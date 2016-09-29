@@ -1152,7 +1152,7 @@ protected:
 
 	virtual void VarInit()
 	{
-		m_vecLastKillPos = ( 0, 0, 0 );
+		m_vecLastKillPos = vec3_origin;
 		m_iKillCount = 0;
 	}
 
@@ -1171,7 +1171,7 @@ protected:
 
 		if ( !Q_stricmp(event->GetName(), "round_start") )
 		{
-			m_vecLastKillPos = (0, 0, 0);
+			m_vecLastKillPos = vec3_origin;
 			m_iKillCount = 0;
 		}
 		else if (!Q_stricmp(event->GetName(), "player_death"))

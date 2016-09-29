@@ -829,9 +829,6 @@ SendProp::SendProp()
 
 SendProp::~SendProp()
 {
-#ifdef GE_DLL
-	delete m_pArrayProp;
-#endif
 }
 
 
@@ -867,9 +864,6 @@ SendTable::SendTable(SendProp *pProps, int nProps, const char *pNetTableName)
 SendTable::~SendTable()
 {
 //	Assert( !m_pPrecalc );
-#ifdef GE_DLL
-	delete [] m_pProps;
-#endif
 }
 
 

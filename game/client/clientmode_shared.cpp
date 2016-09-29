@@ -1447,6 +1447,85 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 	}
 }
 
+#ifdef GE_DLL
+bool ClientModeShared::QueuePanel( const char *panelName, KeyValues *data /*=NULL*/ )
+{
+	// Default is not to queue anything
+	return false;
+}
+
+void ClientModeShared::AddPanelToQueue( const char *panelName, KeyValues *data, float delay /*=0.25f*/ )
+{
+	QueueSlot_t *slot = new QueueSlot_t;
+	slot->panel = gViewPortInterface->FindPanelByName( panelName );
+	slot->data = data;
+	slot->delay = delay;
+	slot->showtime = gpGlobals->curtime + delay;
+	slot->shown = false;
+	m_vPanelQueue.AddToTail( slot );
+}
+
+bool ClientModeShared::IsPanelQueued( const char *panelName )
+{
+	FOR_EACH_VEC( m_vPanelQueue, i )
+	{
+		if ( !m_vPanelQueue[i]->shown && !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
+			return true;
+	}
+	return false;
+}
+
+void ClientModeShared::ClearPanelQueue( const char *panelName /*=NULL*/ )
+{
+	FOR_EACH_VEC( m_vPanelQueue, i )
+	{
+		if ( !panelName || !Q_stricmp( m_vPanelQueue[i]->panel->GetName(), panelName ) )
+		{
+			if ( m_vPanelQueue[i]->data )
+				m_vPanelQueue[i]->data->deleteThis();
+			delete m_vPanelQueue[i];
+
+			// If we defined a panel name remove this entry and set our iterator back 1
+			if ( panelName )
+				m_vPanelQueue.FastRemove( i-- );
+		}
+	}
+
+	if ( !panelName )
+		m_vPanelQueue.RemoveAll();
+}
+
+void ClientModeShared::ProcessPanelQueue( void )
+{
+	if ( !m_vPanelQueue.Count() )
+		return;
+
+	QueueSlot_t *slot = m_vPanelQueue[0];
+
+	if ( slot->shown && !slot->panel->IsVisible()  )
+	{
+		// We have finished with this panel, time for the next item
+		delete slot;
+		m_vPanelQueue.FastRemove( 0 );
+
+		if ( m_vPanelQueue.Count() )
+			m_vPanelQueue[0]->showtime = gpGlobals->curtime + m_vPanelQueue[0]->delay;
+	}
+	else if ( !slot->shown && gpGlobals->curtime >= slot->showtime )
+	{
+		if ( slot->data )
+		{
+			slot->panel->SetData( slot->data );
+			slot->data->deleteThis();
+			slot->data = NULL;
+		}
+		
+		slot->panel->ShowPanel( true );
+		slot->shown = true;
+	}
+}
+#endif
+
 void ClientModeShared::UpdateReplayMessages()
 {
 #if defined( REPLAY_ENABLED )

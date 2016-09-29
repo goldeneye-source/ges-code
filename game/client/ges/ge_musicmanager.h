@@ -15,9 +15,9 @@
 #include "GameEventListener.h"
 #include "tier0/threadtools.h"
 #include "igamesystem.h"
+
+#ifdef _WIN32
 #include "fmod/fmod.hpp"
-#ifdef POSIX
-  #include "fmod/fmodlinux.h"
 #endif
 
 #define GE_MUSIC_MENU		"_menu"
@@ -43,6 +43,8 @@ public:
 	// Game Event Functions (these drive the thread actions)
 	void PostInit();
 	void LevelInitPreEntity();
+	
+	void StopThread() { m_bRun = false; }
 
 	// Debug functions
 	void DEBUG_NextSong();
@@ -50,15 +52,15 @@ public:
 protected:
 	// Thread controls
 	int Run();
-	void StopThread() { m_bRun = false; }
 	void ClearPlayList();
 
 	void StartFade( int type );
 	void FadeThink();
 	void PauseThink();
 	void NextSong();
+#ifdef _WIN32
 	void EndSong( FMOD::Channel *pChannel );
-	void CheckWindowFocus();
+#endif
 
 	// Playlist functions
 	void InternalLoadPlaylist();
@@ -67,6 +69,8 @@ protected:
 
 	// Soundscape functions
 	void InternalLoadSoundscape();
+	
+	void CheckWindowFocus();
 
 	enum {
 		STATE_STOPPED = 0,
@@ -116,11 +120,13 @@ private:
 	// Current song length in milliseconds
 	unsigned int m_iCurrSongLength;
 
+#ifdef _WIN32
 	// FMOD Variables
 	FMOD::System		*m_pSystem;
 	FMOD::Channel		*m_pLastSong;
 	FMOD::Channel		*m_pCurrSong;
 	FMOD::ChannelGroup	*m_pMasterChannel;
+#endif
 };
 
 extern void StartGEMusicManager();

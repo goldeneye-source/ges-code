@@ -41,7 +41,7 @@ END_RECV_TABLE()
 
 C_GEDoorInterp::C_GEDoorInterp()
 {
-	m_vecOffsetAverage = 0;
+	m_vecOffsetAverage = vec3_origin;
 	m_pTargetDoor = NULL;
 	m_vecSpawnPos = vec3_origin;
 }

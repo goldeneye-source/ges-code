@@ -21,7 +21,7 @@
 #include "ge_gamerules.h"
 #include "gemp_gamerules.h"
 #include "ihudlcd.h"
-#include "iviewport.h"
+#include <game/client/iviewport.h>
 #include "viewport_panel_names.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

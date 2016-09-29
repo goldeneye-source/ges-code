@@ -1,4 +1,4 @@
-///////////// Copyright � 2010 LodleNet. All rights reserved. /////////////
+///////////// Copyright © 2010 LodleNet. All rights reserved. /////////////
 //
 //   Project     : Client
 //   File        : ge_introvideo.h
@@ -62,6 +62,9 @@ private:
 	vgui::Button *m_pButReplay;
 	vgui::CheckButton *m_pAlwaysSkip;
 	vgui::CheckButton *m_pBGSkip;
+
+	//BIKMaterial_t	m_BIKHandle;
+	IMaterial		*m_pMaterial;
 
 	CUtlVector<char*> m_vMovies;
 	int		m_iCurrMovieIdx;

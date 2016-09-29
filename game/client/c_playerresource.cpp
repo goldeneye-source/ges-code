@@ -60,8 +60,7 @@ C_PlayerResource::C_PlayerResource()
 	memset( m_iTeam, 0, sizeof( m_iTeam ) );
 	memset( m_bAlive, 0, sizeof( m_bAlive ) );
 	memset( m_iHealth, 0, sizeof( m_iHealth ) );
-	m_szUnconnectedName = 0;
-	
+
 	for ( int i=0; i<MAX_TEAMS; i++ )
 	{
 		m_Colors[i] = COLOR_GREY;

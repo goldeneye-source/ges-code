@@ -21,7 +21,7 @@ class CGEWeapon;
 #include "GameEventListener.h"
 #include "ge_weapon.h"
 
-class C_GEPlayer : public C_HL2MP_Player, public CGameEventListener
+class C_GEPlayer : public C_HL2MP_Player
 {
 public:
 	DECLARE_CLASS( C_GEPlayer, C_HL2MP_Player );

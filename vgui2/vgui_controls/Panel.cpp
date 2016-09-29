@@ -4927,7 +4927,6 @@ void Panel::ApplySettings(KeyValues *inResourceData)
 
 #ifndef GE_DLL
 	// size
-	int wide, tall;
 	GetSize( wide, tall );
 
 	const char *wstr = inResourceData->GetString( "wide", NULL );

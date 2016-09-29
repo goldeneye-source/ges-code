@@ -7,7 +7,7 @@
 #include "cbase.h"
 #include "usermessages.h"
 #include "shake.h"
-#include "voice_gamemgr.h"
+#include "voice_common.h"
 
 // NVNT include to register in haptic user messages
 #include "haptics/haptic_msgs.h"

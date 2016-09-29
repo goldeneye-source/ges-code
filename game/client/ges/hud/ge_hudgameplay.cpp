@@ -18,7 +18,7 @@
 #include "gemp_gamerules.h"
 #include "c_team.h"
 #include "vgui/ISurface.h"
-#include "vgui_controls/controls.h"
+#include "vgui_controls/Controls.h"
 #include "vgui_controls/AnimationController.h"
 #include "vgui_controls/TextImage.h"
 #include "ge_hudgameplay.h"

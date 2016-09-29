@@ -13,7 +13,7 @@
 #include "hud.h"
 #include "hudelement.h"
 #include "vgui_controls/ImagePanel.h"
-#include "vgui_controls/label.h"
+#include "vgui_controls/Label.h"
 #include "ge_CreditsText.h"
 #include "ge_VertListPanel.h"
 #include "c_ge_gameplayresource.h"

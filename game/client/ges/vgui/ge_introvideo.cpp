@@ -62,6 +62,8 @@ CGEIntroVideoPanel::CGEIntroVideoPanel( vgui::VPANEL parent ) : BaseClass( NULL,
 	SetCursor( vgui::dc_blank );
 	m_bIsCursorShown = false;
 	m_bInBackground = false;
+	
+	m_pMaterial = NULL;
 
 	DisableBackgroundPlaytime();
 	

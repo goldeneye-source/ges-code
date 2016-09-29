@@ -144,7 +144,7 @@ class SendTable;
 //  a client side class.  Probably could be templatized at some point.
 
 #define LINK_ENTITY_TO_CLASS( localName, className )						\
-	static C_BaseEntity *C##className##Factory( void )						\
+	static C_BaseEntity *C##localName##Factory( void )						\
 	{																		\
 		return static_cast< C_BaseEntity * >( new className );				\
 	};																		\
@@ -154,7 +154,7 @@ class SendTable;
 		C##localName##Foo( void )											\
 		{																	\
 			GetClassMap().Add( #localName, #className, sizeof( className ),	\
-				&C##className##Factory );									\
+				&C##localName##Factory );									\
 		}																	\
 	};																		\
 	static C##localName##Foo g_C##localName##Foo;

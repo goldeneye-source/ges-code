@@ -389,7 +389,7 @@ void C_GEPlayer::ClientThink( void )
 void C_GEPlayer::PostDataUpdate( DataUpdateType_t updateType )
 {
 	// Looks like we spawned, cancel any sound modifiers that are active
-	if ( m_bSpawnInterpCounter != m_bSpawnInterpCounterCache )
+	if ( m_iSpawnInterpCounter != m_iSpawnInterpCounterCache )
 	{
 		if ( IsLocalPlayer() )
 		{

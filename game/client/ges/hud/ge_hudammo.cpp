@@ -14,7 +14,7 @@
 #include "iclientmode.h"
 #include "view.h"
 #include "vgui/ISurface.h"
-#include "IVRenderView.h"
+#include "ivrenderview.h"
 #include "in_buttons.h"
 #include "vgui_controls/AnimationController.h"
 #include "vgui/ILocalize.h"

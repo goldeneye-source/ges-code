@@ -64,8 +64,7 @@ private:
 	IMaterial		*m_MatCrosshair;
 };
 
-inline CGEViewEffects *GEViewEffects( void ) {
-	return (CGEViewEffects*)vieweffects;
-}
+extern CGEViewEffects g_ViewEffects;
+inline CGEViewEffects *GEViewEffects( void ) { return &g_ViewEffects; }
 
 #endif

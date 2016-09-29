@@ -311,10 +311,10 @@ void CHL2MPPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData
 		CBaseCombatWeapon *pWeapon = GetHL2MPPlayer()->GetActiveWeapon();
 		if ( pWeapon )
 		{
-			pWeapon->EnsureCorrectRenderingModel();
+			//pWeapon->EnsureCorrectRenderingModel();
 			pWeapon->SendWeaponAnim( iGestureActivity );
 			// Force animation events!
-			pWeapon->ResetEventsParity();		// reset event parity so the animation events will occur on the weapon. 
+			//pWeapon->ResetEventsParity();		// reset event parity so the animation events will occur on the weapon. 
 			pWeapon->DoAnimationEvents( pWeapon->GetModelPtr() );
 		}
 	}
