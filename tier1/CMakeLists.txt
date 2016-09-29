@@ -44,13 +44,13 @@ set(TIER1_SOURCES
 )
 
 if(CMAKE_HOST_UNIX)
-  list(APPEND ${TIER1_SOURCES}
+  list(APPEND TIER1_SOURCES
     processor_detect_linux.cpp
     qsort_s.cpp
     pathmatch.cpp
   )
 elseif(CMAKE_HOST_WIN32)
-  list(APPEND ${TIER1_SOURCES}
+  list(APPEND TIER1_SOURCES
     processor_detect.cpp
   )
 endif()
@@ -58,6 +58,10 @@ endif()
 add_library(tier1 STATIC ${TIER1_SOURCES})
 
 target_compile_definitions(tier1 PRIVATE _LIB TIER1_STATIC_LIB)
+
+if(CMAKE_HOST_UNIX)
+  target_compile_definitions(tier1 PRIVATE POSIX LINUX)
+endif()
 
 target_include_directories(tier1 PRIVATE
   "${CMAKE_SOURCE_DIR}/common"

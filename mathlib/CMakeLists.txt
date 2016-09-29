@@ -27,7 +27,7 @@ set(MATHLIB_SOURCES
 
 add_library(mathlib STATIC ${MATHLIB_SOURCES})
 
-target_compile_definitions(mathlib PRIVATE _LIB)
+target_compile_definitions(mathlib PRIVATE _LIB MATHLIB_LIB)
 
 target_include_directories(mathlib PRIVATE
   "${CMAKE_SOURCE_DIR}/common"

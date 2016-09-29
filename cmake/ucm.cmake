@@ -575,9 +575,9 @@ macro(ucm_add_target)
         # set the number of unity cpp files to be used for the unity target
         if(NOT "${ARG_CPP_PER_UNITY}" STREQUAL "")
             set_property(TARGET ${orig_target} PROPERTY COTIRE_UNITY_SOURCE_MAXIMUM_NUMBER_OF_INCLUDES "${ARG_CPP_PER_UNITY}")
-		else()
-			set_property(TARGET ${orig_target} PROPERTY COTIRE_UNITY_SOURCE_MAXIMUM_NUMBER_OF_INCLUDES "100")
-		endif()
+    		else()
+    			set_property(TARGET ${orig_target} PROPERTY COTIRE_UNITY_SOURCE_MAXIMUM_NUMBER_OF_INCLUDES "100")
+    		endif()
 
         if(NOT "${ARG_PCH_FILE}" STREQUAL "")
             set_target_properties(${orig_target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "${ARG_PCH_FILE}")
