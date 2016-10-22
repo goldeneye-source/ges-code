@@ -47,11 +47,6 @@ your distro's package manager.
 4. Open Visual Studio using the generated solution files
 5. Build and install as usual
 
-### What happened to the SDK??
-GES does not agree with the way Valve setup their SDK repository. There are hundreds
-of duplicated files and a ridiculous directory structure. As a result, we only used
-the "multiplayer" part of the SDK and collapsed some directories to be easier to navigate.
-
 ## Third-Party Libraries
 GES relies on several third-party libraries during compilation. We have an integrated
 Python 3.4 interpreter to run our Gameplay Scenarios and AI. To drive all this, we use
