@@ -10,11 +10,11 @@ hundreds and thousands of PC gamers for Eight long years and running.
 Visit our [website](http://www.geshl2.com) and [forums](http://forums.geshl2.com)!
 
 ## Current State
-The last public release of GES was v4.2.4 on November 10, 2013. Since then we have 
-been watching the state of SDK 2013 code base recently released by Valve. This code
-represents our steps to transition from SDK 2007 to this SDK 2013 code base. It is
-currently a work in progress and we appreciate your help in fixing bugs and testing
-releases on various Operating Systems.
+The last public release of GES was v5.0 on August 12, 2016 using the 2007 Source SDK. 
+Our current plan is to transition to the 2013 Source SDK in v5.1. The code for v5.0 has
+aready been ported into this repository and is buildable on Linux, Mac, and Windows.
+
+We need YOUR help to make it work properly on ALL platforms.
 
 ## Navigating the Code
 The main code base for GES is located in the following directories:
@@ -25,6 +25,28 @@ The main code base for GES is located in the following directories:
 
 TODO: Write more specific code navigation readme
 
+## How to build
+### Prerequisites
+You must have the Boost libraries (v1.49  or higher) installed on your system path such that CMAKE can find them.
+You can download Boost [here](https://sourceforge.net/projects/boost/files/boost/) or through your distro's package manager.
+
+You must also have CMAKE v2.8.12 or higher installed on your system, available [here](https://cmake.org/download/) or through
+your distro's package manager.
+
+### Linux Build Process
+1. Checkout the repository using git
+2. Open a terminal window in the root of the repository you just checked out
+3. ```mkdir build && cd build```
+4. ```cmake -DCMAKE_INSTALL_PREFIX=[path_to_gesource] ..```
+5. ```make install```
+
+### Windows Build Process
+1. Checkout the repository using git
+2. Create a build directory in the repository's root
+3. Open CMAKE GUI and configure the project for the visual studio version you are using (prefer 2015)
+4. Open Visual Studio using the generated solution files
+5. Build and install as usual
+
 ### What happened to the SDK??
 GES does not agree with the way Valve setup their SDK repository. There are hundreds
 of duplicated files and a ridiculous directory structure. As a result, we only used
@@ -32,7 +54,7 @@ the "multiplayer" part of the SDK and collapsed some directories to be easier to
 
 ## Third-Party Libraries
 GES relies on several third-party libraries during compilation. We have an integrated
-Python 2.6 interpreter to run our Gameplay Scenarios and AI. To drive this, we use
+Python 3.4 interpreter to run our Gameplay Scenarios and AI. To drive all this, we use
 the Boost Python library. To play our music, we utilize FMOD since Valve's internal
 sound functions do not operate across level transitions.
 
