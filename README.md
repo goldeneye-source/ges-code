@@ -36,12 +36,13 @@ your distro's package manager.
 ### Linux Build Process
 1. Checkout the repository using git
 2. Open a terminal window in the root of the repository you just checked out
-3. ```mkdir build && cd build```
-4. ```cmake -DCMAKE_INSTALL_PREFIX=[path_to_gesource] ..```
-5. ```make install```
+3. Initialize the submodules: ```git submodule init --recursive```
+4. Build with CMake: ```mkdir build && cd build```
+5. ```cmake -DCMAKE_INSTALL_PREFIX=[path_to_gesource] ..```
+6. ```make install```
 
 ### Windows Build Process
-1. Checkout the repository using git
+1. Checkout the repository using git and initialize the submodules (recommend TortoiseGit)
 2. Create a build directory in the repository's root
 3. Open CMAKE GUI and configure the project for the visual studio version you are using (prefer 2015)
 4. Open Visual Studio using the generated solution files
