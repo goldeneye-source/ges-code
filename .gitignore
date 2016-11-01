@@ -68,12 +68,6 @@ config.cfg
 
 *.vpc[._]*
 
-lib/public/**/fgdlib.*
-lib/public/**/mathlib.*
-lib/public/**/raytrace.*
-lib/public/**/tier1.*
-lib/public/**/vgui_controls.*
-
 # shader files
 *.tmp
 
