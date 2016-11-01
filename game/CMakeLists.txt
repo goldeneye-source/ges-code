@@ -30,25 +30,25 @@ tier1 ${TIER2_LIBRARY} ${TIER3_LIBRARY} ${LIBZ_LIBRARY} m dl pthread ldap rt uti
 ucm_add_dirs("shared" TO SHARED_SOURCES NO_HEADERS RECURSIVE)
 ucm_remove_directories("shared/sdk" "shared/episodic" FROM SHARED_SOURCES)
 ucm_add_files(
-  ${CMAKE_SOURCE_DIR}/common/language.cpp
-  ${CMAKE_SOURCE_DIR}/common/randoverride.cpp
-  ${CMAKE_SOURCE_DIR}/public/bone_setup.cpp
-  ${CMAKE_SOURCE_DIR}/public/collisionutils.cpp
-  ${CMAKE_SOURCE_DIR}/public/dt_utlvector_common.cpp
-  ${CMAKE_SOURCE_DIR}/public/filesystem_helpers.cpp
-  ${CMAKE_SOURCE_DIR}/public/interpolatortypes.cpp
-  ${CMAKE_SOURCE_DIR}/public/haptics/haptic_msgs.cpp
-  ${CMAKE_SOURCE_DIR}/public/networkvar.cpp
-  ${CMAKE_SOURCE_DIR}/public/rope_physics.cpp
-  ${CMAKE_SOURCE_DIR}/public/scratchpad3d.cpp
-  ${CMAKE_SOURCE_DIR}/public/ScratchPadUtils.cpp
-  ${CMAKE_SOURCE_DIR}/public/simple_physics.cpp
-  ${CMAKE_SOURCE_DIR}/public/SoundParametersInternal.cpp
-  ${CMAKE_SOURCE_DIR}/public/stringregistry.cpp
-  ${CMAKE_SOURCE_DIR}/public/studio.cpp
-TO SHARED_SOURCES)
+  ../common/language.cpp
+  ../common/randoverride.cpp
+  ../public/bone_setup.cpp
+  ../public/collisionutils.cpp
+  ../public/dt_utlvector_common.cpp
+  ../public/filesystem_helpers.cpp
+  ../public/interpolatortypes.cpp
+  ../public/haptics/haptic_msgs.cpp
+  ../public/networkvar.cpp
+  ../public/rope_physics.cpp
+  ../public/scratchpad3d.cpp
+  ../public/ScratchPadUtils.cpp
+  ../public/simple_physics.cpp
+  ../public/SoundParametersInternal.cpp
+  ../public/stringregistry.cpp
+  ../public/studio.cpp
+TO SHARED_SOURCES FILTER_POP 1)
 if(CMAKE_HOST_WIN32)
-  ucm_add_files(../public/haptics/haptic_utils.cpp)
+  ucm_add_files(../public/haptics/haptic_utils.cpp TO SHARED_SOURCES FILTER_POP 1)
 endif()
 
 if(CMAKE_HOST_UNIX)
@@ -79,14 +79,14 @@ endif()
 ucm_add_dirs("server" TO SERVER_SOURCES NO_HEADERS RECURSIVE)
 ucm_remove_directories("server/ges/py" "server/sdk" FROM SERVER_SOURCES)
 ucm_add_files(
-  ${CMAKE_SOURCE_DIR}/public/dt_send.cpp
-  ${CMAKE_SOURCE_DIR}/public/dt_utlvector_send.cpp
-  ${CMAKE_SOURCE_DIR}/public/editor_sendcommand.cpp
-  ${CMAKE_SOURCE_DIR}/public/keyframe/keyframe.cpp
-  ${CMAKE_SOURCE_DIR}/public/map_utils.cpp
-  ${CMAKE_SOURCE_DIR}/public/registry.cpp
-  ${CMAKE_SOURCE_DIR}/public/server_class.cpp
-TO SERVER_SOURCES)
+  ../public/dt_send.cpp
+  ../public/dt_utlvector_send.cpp
+  ../public/editor_sendcommand.cpp
+  ../public/keyframe/keyframe.cpp
+  ../public/map_utils.cpp
+  ../public/registry.cpp
+  ../public/server_class.cpp
+TO SERVER_SOURCES FILTER_POP 1)
 LIST(APPEND SERVER_SOURCES ${SHARED_SOURCES})
 ADD_MSVC_PRECOMPILED_HEADER("server/stdafx.h" "server/stdafx.cpp" SERVER_SOURCES)
 
@@ -108,9 +108,13 @@ if(CMAKE_HOST_UNIX)
   set_target_properties(server PROPERTIES OUTPUT_NAME server)
 
   target_link_libraries(server steam_api tier0 vstdlib)
+
+  install(TARGETS server LIBRARY DESTINATION "bin")
+else()
+  install(TARGETS server RUNTIME DESTINATION "bin")
 endif()
 
-install(TARGETS server LIBRARY DESTINATION "bin")
+
 
 
 ################
@@ -119,20 +123,20 @@ install(TARGETS server LIBRARY DESTINATION "bin")
 ucm_add_dirs("client" TO CLIENT_SOURCES NO_HEADERS RECURSIVE)
 ucm_remove_directories("client/sdk" "client/replay" "client/ShaderEditor" FROM CLIENT_SOURCES)
 ucm_add_files(
-  ${CMAKE_SOURCE_DIR}/common/compiledcaptionswap.cpp
-  ${CMAKE_SOURCE_DIR}/public/bone_accessor.cpp
-  ${CMAKE_SOURCE_DIR}/public/client_class.cpp
-  ${CMAKE_SOURCE_DIR}/public/crtmemdebug.cpp
-  ${CMAKE_SOURCE_DIR}/public/dt_recv.cpp
-  ${CMAKE_SOURCE_DIR}/public/dt_utlvector_recv.cpp
-  ${CMAKE_SOURCE_DIR}/public/jigglebones.cpp
-  ${CMAKE_SOURCE_DIR}/public/posedebugger.cpp
-  ${CMAKE_SOURCE_DIR}/public/renamed_recvtable_compat.cpp
-  ${CMAKE_SOURCE_DIR}/public/sentence.cpp
-  ${CMAKE_SOURCE_DIR}/public/vallocator.cpp
-  ${CMAKE_SOURCE_DIR}/public/tools/bonelist.cpp
-  ${CMAKE_SOURCE_DIR}/public/vgui_controls/vgui_controls.cpp
-TO CLIENT_SOURCES)
+  ../common/compiledcaptionswap.cpp
+  ../public/bone_accessor.cpp
+  ../public/client_class.cpp
+  ../public/crtmemdebug.cpp
+  ../public/dt_recv.cpp
+  ../public/dt_utlvector_recv.cpp
+  ../public/jigglebones.cpp
+  ../public/posedebugger.cpp
+  ../public/renamed_recvtable_compat.cpp
+  ../public/sentence.cpp
+  ../public/vallocator.cpp
+  ../public/tools/bonelist.cpp
+  ../public/vgui_controls/vgui_controls.cpp
+TO CLIENT_SOURCES FILTER_POP 1)
 LIST(APPEND CLIENT_SOURCES ${SHARED_SOURCES})
 ADD_MSVC_PRECOMPILED_HEADER("client/stdafx.h" "client/stdafx.cpp" CLIENT_SOURCES)
 
@@ -164,6 +168,10 @@ if(CMAKE_HOST_UNIX)
   set_target_properties(client PROPERTIES OUTPUT_NAME client)
 
   target_link_libraries(client steam_api tier0 vstdlib)
+
+  install(TARGETS client LIBRARY DESTINATION "bin")
+else()
+  install(TARGETS client RUNTIME DESTINATION "bin")
 endif()
 
-install(TARGETS client LIBRARY DESTINATION "bin")
+
