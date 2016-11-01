@@ -48,8 +48,14 @@ endif()
 # Configure, build, and "install" Python
 ExternalProject_Add(python
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/python"
-  CMAKE_ARGS "-C${CMAKE_SOURCE_DIR}/cmake/ges_python.cmake" "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/python/"
+  CMAKE_ARGS "-C${CMAKE_SOURCE_DIR}/cmake/ges_python.cmake" 
+	"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/python/"
     "-DCMAKE_C_FLAGS=-m32"
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "${CMAKE_COMMAND}"
+      --build .
+      --target install
+      --config Release
   PREFIX "python"
 )
 

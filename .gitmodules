@@ -1,3 +1,4 @@
 [submodule "thirdparty/python"]
 	path = thirdparty/python
-	url = https://github.com/python-cmake-buildsystem/python-cmake-buildsystem.git
+	url = https://github.com/droidmonkey/python-cmake-buildsystem.git
+	branch = develop
