@@ -25,7 +25,7 @@ find_library(TIER3_LIBRARY tier3 HINTS ${SHARED_LINK_DIRS})
 find_library(LIBZ_LIBRARY z HINTS ${SHARED_LINK_DIRS})
 
 SET(SHARED_LIBS ${PARTICLES_LIBRARY} ${MATHLIB_LIBRARY} ${CURL_LIBRARY} ${DMXLOADER_LIBRARY} ${CHOREOOBJECTS_LIBRARY}
-tier1 ${TIER2_LIBRARY} ${TIER3_LIBRARY} ${LIBZ_LIBRARY} m dl pthread ldap rt util nsl)
+tier1 ${TIER2_LIBRARY} ${TIER3_LIBRARY} ${LIBZ_LIBRARY} m dl pthread ldap rt expat util nsl)
 
 ucm_add_dirs("shared" TO SHARED_SOURCES NO_HEADERS RECURSIVE)
 ucm_remove_directories("shared/sdk" "shared/episodic" FROM SHARED_SOURCES)
@@ -97,7 +97,7 @@ ADD_MSVC_PRECOMPILED_HEADER("server/ges/py/ge_pyprecom.h" "server/ges/py/ge_pypr
 add_library(server SHARED ${SERVER_SOURCES} ${GEPY_SOURCES})
 add_dependencies(server python boost_python tier1)
 
-target_link_libraries(server -m32 -Wl,--no-undefined ${SHARED_LIBS} python3.5m boost_python)
+target_link_libraries(server -m32 -Wl,--no-undefined python3.5m ${SHARED_LIBS} boost_python)
 target_compile_definitions(server PUBLIC ${SHARED_DEFINITIONS} GAME_DLL HL2_DLL Py_ENABLE_SHARED GE_AI)
 target_include_directories(server PUBLIC "server" "server/hl2" "server/hl2mp" "server/ges" "server/ges/ai"
   "server/ges/py" "server/ges/ent" ${SHARED_INCLUDE_DIRS})
