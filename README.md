@@ -10,11 +10,7 @@ hundreds and thousands of PC gamers for Eight long years and running.
 Visit our [website](http://www.geshl2.com) and [forums](http://forums.geshl2.com)!
 
 ## Current State
-The last public release of GES was v5.0 on August 12, 2016 using the 2007 Source SDK. 
-Our current plan is to transition to the 2013 Source SDK in v5.1. The code for v5.0 has
-aready been ported into this repository and is buildable on Linux, Mac, and Windows.
-
-We need YOUR help to make it work properly on ALL platforms.
+The last major public release of GES was v5.0 on August 12, 2016 using the 2007 Source SDK. 
 
 ## Navigating the Code
 The main code base for GES is located in the following directories:
